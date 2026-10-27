@@ -5,12 +5,12 @@
 // =====================================================================
 
 export const firebaseConfig = {
-  apiKey: "TODO",
-  authDomain: "TODO.firebaseapp.com",
-  projectId: "TODO",
-  storageBucket: "TODO.appspot.com",
-  messagingSenderId: "TODO",
-  appId: "TODO",
+  apiKey: "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU",
+  authDomain: "furbipart.firebaseapp.com",
+  projectId: "furbipart",
+  storageBucket: "furbipart.firebasestorage.app",
+  messagingSenderId: "47886344973",
+  appId: "1:47886344973:web:fe31d5cc3ae69aef630644",
 };
 
 // Admin panelga kira oladigan email(lar). firestore.rules faylida ham shu email turishi shart.
