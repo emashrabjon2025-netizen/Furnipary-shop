@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// FURNIPART — Firestore himoya qoidalari.
+// Firebase Console → Firestore Database → Rules bo'limiga to'liq nusxa qilib "Publish" bosing.
+// Pastdagi TODO@gmail.com o'rniga admin email(lar)ni yozing (js/config.js dagi bilan bir xil).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['TODO@gmail.com'];
+    }
+
+    // Mahsulotlarni hamma ko'radi, faqat admin o'zgartiradi
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Katta rasmlar
+    match /productImages/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Buyurtmalar: mijoz faqat yangi buyurtma yarata oladi, ko'rish/o'zgartirish — faqat admin
+    match /orders/{id} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(
+            ['name', 'phone', 'address', 'comment', 'items', 'total', 'status', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 1 && request.resource.data.name.size() <= 60
+        && request.resource.data.phone is string
+        && request.resource.data.phone.matches('^\\+998[0-9]{9}$')
+        && request.resource.data.address is string && request.resource.data.address.size() <= 120
+        && request.resource.data.comment is string && request.resource.data.comment.size() <= 300
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50
+        && request.resource.data.total is number
+        && request.resource.data.status == 'Yangi'
+        && request.resource.data.createdAt == request.time;
+    }
+  }
+}
