@@ -18,7 +18,7 @@ Build kerak emas: oddiy HTML + JavaScript, Firebase CDN orqali ulanadi.
 4. **Authentication → Users → Add user** — admin email va parol.
 5. **Authentication → Settings → User actions** — "Enable create (sign-up)" belgisini olib tashlang.
 6. **Project settings → Your apps → Web (`</>`)** — ilova qo'shing, chiqqan `firebaseConfig`ni `js/config.js`ga yozing.
-7. `js/config.js` dagi `ADMIN_EMAILS` va `firestore.rules` dagi `TODO@gmail.com` o'rniga admin email.
+7. Admin foydalanuvchining UID'sini `js/config.js` (`ADMIN_UIDS`) va `firestore.rules` ga yozing.
 8. **Firestore → Rules** — `firestore.rules` mazmunini qo'yib **Publish**.
 
 ### 2. Vercel

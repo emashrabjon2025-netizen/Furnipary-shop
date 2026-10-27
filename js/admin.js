@@ -1,4 +1,4 @@
-import { CATEGORIES, ADMIN_EMAILS } from "./config.js";
+import { CATEGORIES, ADMIN_UIDS } from "./config.js";
 import {
   db,
   auth,
@@ -42,8 +42,7 @@ let editingId = null;
 let pickedFile = null;
 let importRows = [];
 
-const isAdminEmail = (email) =>
-  !!email && ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email.toLowerCase());
+const isAdmin = (user) => !!user && ADMIN_UIDS.includes(user.uid);
 
 // ================= Kirish =================
 if (!configured) {
@@ -52,7 +51,7 @@ if (!configured) {
   onAuthStateChanged(auth, (user) => {
     unsub.forEach((u) => u());
     unsub = [];
-    if (user && isAdminEmail(user.email)) {
+    if (isAdmin(user)) {
       $("#loginView").hidden = true;
       $("#appView").hidden = false;
       $("#logout").hidden = false;

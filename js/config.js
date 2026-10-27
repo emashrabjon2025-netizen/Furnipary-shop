@@ -13,8 +13,9 @@ export const firebaseConfig = {
   appId: "1:47886344973:web:fe31d5cc3ae69aef630644",
 };
 
-// Admin panelga kira oladigan email(lar). firestore.rules faylida ham shu email turishi shart.
-export const ADMIN_EMAILS = ["TODO@gmail.com"];
+// Admin panelga kira oladigan akkaunt(lar) UID'si (Firebase → Authentication → Users).
+// firestore.rules faylida ham shu UID turishi shart.
+export const ADMIN_UIDS = ["B3O0Gn3vA3al6kmBZw5porxAEXC3"];
 
 export const SHOP = {
   name: "FURNIPART",

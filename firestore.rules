@@ -2,14 +2,14 @@ rules_version = '2';
 
 // FURNIPART — Firestore himoya qoidalari.
 // Firebase Console → Firestore Database → Rules bo'limiga to'liq nusxa qilib "Publish" bosing.
-// Pastdagi TODO@gmail.com o'rniga admin email(lar)ni yozing (js/config.js dagi bilan bir xil).
+// Admin — Firebase Authentication'dagi UID (js/config.js dagi ADMIN_UIDS bilan bir xil).
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email in ['TODO@gmail.com'];
+        && request.auth.uid in ['B3O0Gn3vA3al6kmBZw5porxAEXC3'];
     }
 
     // Mahsulotlarni hamma ko'radi, faqat admin o'zgartiradi
