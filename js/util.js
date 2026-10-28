@@ -3,9 +3,12 @@ import { CATEGORIES } from "./config.js";
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+// Narxlar AQSh dollarida: 1250 -> "$1 250", 12.5 -> "$12.50"
 export function formatPrice(n) {
-  const v = Math.round(Number(n) || 0);
-  return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so'm";
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  const [int, dec] = v.toFixed(2).split(".");
+  const intStr = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return "$" + intStr + (dec === "00" ? "" : "." + dec);
 }
 
 export function escapeHtml(s) {
@@ -31,9 +34,24 @@ export function matchCategory(text) {
   return CATEGORIES.find((c) => c.keys.some((k) => t.includes(k)))?.id || "";
 }
 
-// "365 000", "365.000 so'm", "365000" -> 365000
+// "$1 250", "29", "12,5", "12.50 $" -> dollar qiymati (2 xonagacha)
 export function parsePrice(v) {
-  if (typeof v === "number") return Math.round(v);
+  if (typeof v === "number") return Math.round(v * 100) / 100;
+  let s = String(v ?? "").replace(/[^\d.,]/g, "");
+  if (!s) return 0;
+  const last = Math.max(s.lastIndexOf("."), s.lastIndexOf(","));
+  // oxirgi ajratgichdan keyin 1-2 raqam bo'lsa — kasr qismi, aks holda minglik ajratgich
+  if (last >= 0 && s.length - last - 1 <= 2) {
+    s = s.slice(0, last).replace(/[.,]/g, "") + "." + s.slice(last + 1);
+  } else {
+    s = s.replace(/[.,]/g, "");
+  }
+  const n = Number(s);
+  return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
+// Soni (butun son)
+export function parseCount(v) {
   const digits = String(v ?? "").replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
 }

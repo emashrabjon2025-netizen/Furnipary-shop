@@ -27,6 +27,7 @@ import {
   categoryLabel,
   matchCategory,
   parsePrice,
+  parseCount,
   toast,
   compressImage,
   PLACEHOLDER_IMG,
@@ -207,7 +208,7 @@ $("#pForm").addEventListener("submit", async (e) => {
     category: f.category.value,
     price,
     salePrice: salePrice || null,
-    stock: f.stock.value.trim() === "" ? null : parsePrice(f.stock.value),
+    stock: f.stock.value.trim() === "" ? null : parseCount(f.stock.value),
     description: f.description.value.trim(),
     imgUrl: f.imgUrl.value.trim(),
     active: f.active.checked,
@@ -368,8 +369,8 @@ $("#template").addEventListener("click", async () => {
   const X = await loadXlsx();
   const ws = X.utils.aoa_to_sheet([
     HEADERS,
-    ["Mebelchilar uchun chamadon", "Shablonlar", 365000, "", "Ikkita alohida qutisi bor", 10, ""],
-    ["Ortopedik matras 160x200", "Matraslar", 2500000, 2200000, "5 yil kafolat", "", ""],
+    ["Mebelchilar uchun chamadon", "Shablonlar", 29, "", "Ikkita alohida qutisi bor", 10, ""],
+    ["Ortopedik matras 160x200", "Matraslar", 199, 179, "5 yil kafolat", "", ""],
   ]);
   ws["!cols"] = [{ wch: 32 }, { wch: 22 }, { wch: 12 }, { wch: 14 }, { wch: 40 }, { wch: 8 }, { wch: 30 }];
   const wb = X.utils.book_new();
@@ -416,7 +417,7 @@ $("#importFile").addEventListener("change", async (e) => {
           price: parsePrice(o.price),
           salePrice: parsePrice(o.salePrice) || null,
           description: String(o.description ?? "").trim(),
-          stock: String(o.stock ?? "").trim() === "" ? null : parsePrice(o.stock),
+          stock: String(o.stock ?? "").trim() === "" ? null : parseCount(o.stock),
           imgUrl: /^https?:\/\//.test(String(o.imgUrl ?? "").trim()) ? String(o.imgUrl).trim() : "",
         };
         if (row.salePrice && row.salePrice >= row.price) row.salePrice = null;

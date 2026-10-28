@@ -78,7 +78,7 @@
 
       <div class="panel">
         <h2>2. Excel'dan yuklash</h2>
-        <p class="hint">Ustunlar: <b>Nomi, Kategoriya, Narxi, Chegirma narxi, Tavsif, Soni, Rasm (link)</b>. Faqat Nomi, Kategoriya va Narxi majburiy.</p>
+        <p class="hint">Ustunlar: <b>Nomi, Kategoriya, Narxi, Chegirma narxi, Tavsif, Soni, Rasm (link)</b>. Narxlar dollarda ($). Faqat Nomi, Kategoriya va Narxi majburiy.</p>
         <div class="btn-row">
           <button class="btn btn-line" id="template">Namuna Excel'ni yuklab olish</button>
           <label class="btn btn-dark file-btn">Excel faylni tanlash<input id="importFile" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
@@ -109,8 +109,8 @@
       <label>Nomi *<input name="name" required maxlength="120" /></label>
       <label>Kategoriya *<select name="category" required></select></label>
       <div class="two">
-        <label>Narxi (so'm) *<input name="price" required inputmode="numeric" placeholder="365000" /></label>
-        <label>Chegirma narxi<input name="salePrice" inputmode="numeric" placeholder="bo'sh qoldiring" /></label>
+        <label>Narxi ($) *<input name="price" required inputmode="decimal" placeholder="29" /></label>
+        <label>Chegirma narxi ($)<input name="salePrice" inputmode="decimal" placeholder="bo'sh qoldiring" /></label>
       </div>
       <label>Soni (omborda)<input name="stock" inputmode="numeric" placeholder="bo'sh = cheklanmagan, 0 = tugagan" /></label>
       <label>Tavsif<textarea name="description" rows="4" maxlength="2000"></textarea></label>

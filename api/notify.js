@@ -5,7 +5,10 @@
 // Ikkalasi bo'lmasa, funksiya hech narsa yubormaydi (sayt baribir ishlaydi).
 
 const clip = (s, n) => String(s ?? "").slice(0, n);
-const money = (n) => Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so'm";
+const money = (n) => {
+  const [int, dec] = (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).split(".");
+  return "$" + int.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (dec === "00" ? "" : "." + dec);
+};
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 
 module.exports = async (req, res) => {
