@@ -24,7 +24,9 @@ import {
 } from "./util.js";
 
 let products = [];
-let activeCat = "all";
+// ?k=matras kabi link bilan kirilsa, shu kategoriya ochiladi
+const startCat = new URLSearchParams(location.search).get("k");
+let activeCat = CATEGORIES.some((c) => c.id === startCat) ? startCat : "all";
 let searchText = "";
 let cart = loadCart();
 
