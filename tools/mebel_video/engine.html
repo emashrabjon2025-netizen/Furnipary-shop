@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#0b0b0c;font-family:Inter,"Inter Display",sans-serif}
+#bg{position:absolute;inset:0;background:
+  radial-gradient(900px 900px at 50% 46%, rgba(255,225,53,.10), rgba(255,225,53,0) 70%),
+  radial-gradient(1400px 1100px at 50% 40%, #1d1d20 0%, #0b0b0c 70%)}
+#grid{position:absolute;inset:0;opacity:.07;background-image:
+  linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(700px 800px at 50% 50%,#000,transparent)}
+canvas{position:absolute;inset:0;width:1080px;height:1920px}
+#vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(1200px 1500px at 50% 45%,transparent 55%,rgba(0,0,0,.55))}
+#hud{position:absolute;left:64px;right:64px;top:70px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:14px;color:#fff}
+.logo .w{line-height:1}.furni{font-weight:900;font-size:30px;color:#FFE135;letter-spacing:-1px}
+.part{font-weight:900;font-size:30px;letter-spacing:-1px}.prem{font-weight:800;font-size:15px;margin-top:3px;letter-spacing:.5px}
+.pill{display:inline-flex;align-items:center;gap:10px;background:#FFE135;color:#0e0e0e;font-weight:900;font-size:24px;letter-spacing:1.5px;padding:12px 22px;border-radius:999px}
+.pill .n{font-family:"DejaVu Sans Mono",monospace;font-weight:700;opacity:.75;letter-spacing:0}
+#prog{position:absolute;left:64px;right:64px;top:152px;height:5px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}
+#prog i{display:block;height:100%;width:0;background:#FFE135;border-radius:5px}
+#head{position:absolute;left:60px;right:60px;top:205px;text-align:center;color:#fff;font-weight:900;font-size:86px;line-height:1.02;letter-spacing:-2px}
+#sub{position:absolute;left:80px;right:80px;top:0;text-align:center;color:rgba(255,255,255,.72);font-weight:600;font-size:34px;line-height:1.25}
+.y{color:#FFE135}.r{color:#FF5A5A}.g{color:#5BE38A}
+#cap{position:absolute;left:70px;right:70px;top:1395px;display:flex;justify-content:center}
+#cap div{max-width:940px;text-align:center;background:rgba(10,10,12,.72);border:1px solid rgba(255,255,255,.10);
+  color:#fff;font-weight:800;font-size:50px;line-height:1.18;padding:22px 34px;border-radius:28px;backdrop-filter:blur(6px)}
+#labels{position:absolute;inset:0;pointer-events:none}
+#labels svg{position:absolute;inset:0}
+.lab{position:absolute;white-space:nowrap;font-weight:900;font-size:34px;padding:12px 22px;border-radius:999px;
+  background:#0e0e0e;color:#fff;border:3px solid #FFE135;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.lab.yel{background:#FFE135;color:#0e0e0e;border-color:#FFE135}
+.lab.red{background:#FF5A5A;color:#fff;border-color:#FF5A5A}
+.lab.grn{background:#2fbf6a;color:#fff;border-color:#2fbf6a}
+.lab.wht{background:#fff;color:#0e0e0e;border-color:#fff}
+#fade{position:absolute;inset:0;background:#0b0b0c;opacity:0}
+#flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(255,225,53,.35),transparent 60%);opacity:0}
+</style></head><body>
+<div id="bg"></div><div id="grid"></div>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div id="vig"></div>
+<div id="labels"><svg width="1080" height="1920"></svg></div>
+<div id="hud">
+  <div class="logo"><svg width="44" height="59" viewBox="0 0 263 353"><path fill="#FFE135" d="M0 0H263L192 93H56V249L0 319Z"/><path fill="#fff" d="M56 93H263L212 164H125V270L56 353Z"/></svg>
+  <div class="w"><span class="furni">FURNI</span><span class="part">PART</span><div class="prem">premium</div></div></div>
+  <div class="pill"><span id="rub">MEBEL BILIM</span><span class="n" id="step">01/06</span></div>
+</div>
+<div id="prog"><i></i></div>
+<div id="head"></div><div id="sub"></div>
+<div id="cap"><div></div></div>
+<div id="flash"></div><div id="fade"></div>
+<script type="module" src="./engine.js"></script>
+</body></html>

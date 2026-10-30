@@ -20,9 +20,9 @@ Y = "#FFE135"; K = "#0E0E0E"; W = "#FFFFFF"
 
 LOGO = f"""
 <div class="logo">
-  <svg width="64" height="64" viewBox="0 0 64 64">
-    <path class="corner" d="M0 0H64V14H14V64H0Z"/>
-    <path d="M22 22H52V31H31V37H46V46H31V58H22Z" fill="currentColor"/>
+  <svg width="52" height="70" viewBox="0 0 263 353">
+    <path class="corner" d="M0 0H263L192 93H56V249L0 319Z"/>
+    <path class="fin" d="M56 93H263L212 164H125V270L56 353Z"/>
   </svg>
   <div class="lw"><span class="furni">FURNI</span><span class="part">PART</span><div class="prem">premium</div></div>
 </div>"""
@@ -35,7 +35,7 @@ body{{width:1080px;height:1350px;font-family:Inter,sans-serif;overflow:hidden}}
 .logo{{display:flex;align-items:center;gap:16px}}
 .lw{{line-height:1}} .furni{{font-weight:900;font-size:34px;color:{Y};letter-spacing:-1px}}
 .part{{font-weight:900;font-size:34px;letter-spacing:-1px}} .prem{{font-weight:800;font-size:17px;margin-top:4px;letter-spacing:.5px}}
-.corner{{fill:{Y}}} .yel .corner{{fill:{K}}}
+.corner{{fill:{Y}}} .fin{{fill:{W}}} .light .fin{{fill:{K}}} .yel .corner{{fill:{K}}} .yel .fin{{fill:{W}}}
 .yel .furni{{color:{K}}}
 .top{{display:flex;justify-content:space-between;align-items:center}}
 .cat{{font-weight:800;font-size:22px;letter-spacing:4px;padding:12px 24px;border-radius:40px;border:2px solid currentColor}}
