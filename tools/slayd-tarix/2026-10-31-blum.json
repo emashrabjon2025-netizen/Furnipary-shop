@@ -1,0 +1,12 @@
+{
+  "kategoriya": "BLUM",
+  "slides": [
+    {"type": "cover", "kicker": "Oshxona mebeli uchun", "title": "Blum furnitura: nimaga pul toʻlaysiz?", "accent": "Blum", "sub": "Avstriya sifati — eshik va tortmalaringiz yillar davomida jim va ravon ishlashi uchun 4 ta sabab"},
+    {"type": "point", "num": "01", "title": "BLUMOTION — ovozsiz yopilish", "text": "Eshik yoki tortmani qattiq itarsangiz ham, oxirida sekinlashib, taqillamay yopiladi. Bola uxlayotgan uyda ayniqsa qadrli.", "tag": "Soft-close"},
+    {"type": "point", "num": "02", "title": "CLIP top petlilar", "text": "Eshik petlisi bir „chik“ bilan oʻrnatiladi va yechiladi. Eshikni sozlash ham, almashtirish ham bir necha daqiqa.", "tag": "Tez montaj"},
+    {"type": "point", "num": "03", "title": "TANDEMBOX va LEGRABOX tortmalar", "text": "Ogʻir qozon-tovoqlarni ham koʻtaradi, toʻliq ochiladi — tortmaning eng orqasidagi narsagacha qoʻlingiz yetadi.", "tag": "Toʻliq ochilish"},
+    {"type": "point", "num": "04", "title": "AVENTOS koʻtarma mexanizmlar", "text": "Yuqori shkaf eshigi tepaga ochiladi va xohlagan holatda toʻxtab turadi. Boshingiz eshikka urilmaydi.", "tag": "Yuqori shkaflar"},
+    {"type": "list", "title": "Asl Blum'ni qanday tanish mumkin?", "items": ["Detalda „BLUM“ yozuvi va logotip bor", "Harakati silliq, gʻijirlamaydi", "Narxi juda arzon boʻlsa — shubhalaning", "Ishonchli doʻkondan oling"]},
+    {"type": "cta", "title": "Blum furniturani FURNIPART'dan oling", "text": "Oshxona, garderob va har qanday mebel uchun asl mexanizmlar. Qaysi biri kerakligini maslahat berib, tanlashga yordam beramiz."}
+  ]
+}
