@@ -321,7 +321,7 @@ P.mattress = (p) => {
   });
   const n = layers.length;
   return {
-    group: g, labels, cam: { pos: [2.6, 3.4, 4.6], target: [0, .9, 0] },
+    group: g, labels, cam: { pos: [3.3, 4.3, 6.1], target: [0, .5, 0] },
     update(t) {
       let y = .1; const ex = eInOut(seg(t, .7, 1.8));
       for (let i = n - 1; i >= 0; i--) { const o = layers[i], h = o.userData.h; y += h / 2; const k = eBack(seg(t, (n - 1 - i) * .12, .6 + (n - 1 - i) * .12)); o.position.y = y + (n - 1 - i) * ex * .32 + (1 - k) * 2; y += h / 2; }
@@ -348,7 +348,7 @@ P.checklist = (p) => {
     const h = new THREE.Group(); h.add(m); h.position.y = .3 + (n - 1 - i) * gap; g.add(h); cards.push(h);
   });
   return {
-    group: g, labels: [], cam: { pos: [0.6, 1.0 + n * gap / 2, 4.6], target: [0, .3 + (n - 1) * gap / 2, 0] },
+    group: g, labels: [], cam: { pos: [0.6, 1.0 + n * gap / 2, 4.6 + Math.max(0, n - 2) * 0.9], target: [0, .15 + (n - 1) * gap / 2, 0] },
     update(t, dur) {
       const step = Math.min(.9, (dur - 1) / Math.max(n, 1));
       cards.forEach((c, i) => { const k = eBack(seg(t, .2 + i * step, .75 + i * step)); c.rotation.x = (1 - k) * -1.6; c.position.x = (1 - k) * 1.5; setOpacity(c, seg(t, .2 + i * step, .45 + i * step)); });

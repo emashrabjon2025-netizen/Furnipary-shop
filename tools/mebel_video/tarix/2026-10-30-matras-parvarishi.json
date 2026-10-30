@@ -1,0 +1,40 @@
+{
+  "rubric": "MEBEL BILIM",
+  "topic": "Matras: qachon almashtirish va qanday parvarish qilish",
+  "scenes": [
+    {"head": "Matrasni qachon *almashtirish* kerak?", "sub": "Uyqungiz shunga bogʻliq",
+     "say": "Ertalab charchab turasizmi? Balki aybdor matrasingizdir. Keling, uni qachon almashtirish va qanday asrash kerakligini bilib olamiz.",
+     "show": "Ertalab charchab turasizmi? Balki aybdor *matrasingizdir*. Uni qachon almashtirish va qanday asrashni bilib olamiz.",
+     "audio": "s1.wav",
+     "visual": {"type": "mattress", "layers": [
+       {"kind": "cover", "label": "Chexol"}, {"kind": "foam", "label": "Yumshoq qatlam"},
+       {"kind": "springs", "label": "Prujinalar"}, {"kind": "foam", "label": "Tayanch qatlam"}]}},
+    {"head": "*Almashtirish* belgilari", "sub": "Bittasi boʻlsa ham — oʻylab koʻring",
+     "say": "Belgilari: o'rtasi cho'kib qolgan, prujinalar sezilyapti yoki g'ijirlaydi, ertalab bel va bo'yin og'riydi. Bunday bo'lsa, almashtirish vaqti kelgan.",
+     "show": "Belgilari: oʻrtasi !choʻkib qolgan!, prujinalar !sezilyapti! yoki gʻijirlaydi, ertalab *bel va boʻyin* ogʻriydi. Demak, almashtirish vaqti kelgan.",
+     "audio": "s2.wav",
+     "visual": {"type": "checklist", "items": ["Oʻrtasi choʻkkan", "Prujina sezilyapti", "Gʻijirlayapti", "Ertalab bel ogʻriydi"], "marks": ["no", "no", "no", "no"]}},
+    {"head": "Vaqti-vaqti bilan *aylantiring*", "sub": "Bosh va oyoq tomonini almashtiring",
+     "say": "Matras bir joydan cho'kmasligi uchun uni vaqti-vaqti bilan aylantirib, bosh va oyoq tomonini almashtirib turing. Shunda u bir tekis ishlaydi.",
+     "show": "Matras bir joydan choʻkmasligi uchun uni vaqti-vaqti bilan *aylantirib*, bosh va oyoq tomonini almashtiring. Shunda u *bir tekis* ishlaydi.",
+     "audio": "s3.wav",
+     "visual": {"type": "mattress", "layers": [
+       {"kind": "cover", "label": "Bosh tomoni ↔ oyoq tomoni"}, {"kind": "foam"}, {"kind": "springs"}, {"kind": "foam"}]}},
+    {"head": "*Himoya chexoli* oling", "sub": "Dogʻ va namlikdan saqlaydi",
+     "say": "Ustiga himoya chexoli kiydiring. U matrasni dog' va namlikdan saqlaydi, chexolni esa yechib yuvish oson.",
+     "show": "Ustiga *himoya chexoli* kiydiring. U matrasni !dogʻ! va !namlikdan! saqlaydi, chexolni esa yechib *yuvish oson*.",
+     "audio": "s4.wav",
+     "visual": {"type": "mattress", "layers": [
+       {"kind": "cover", "label": "Himoya chexoli"}, {"kind": "latex", "label": "Matras"}, {"kind": "foam"}]}},
+    {"head": "*Uzoq* xizmat qilsin", "sub": "Oddiy qoidalar",
+     "say": "Matrasni tekis va mustahkam asosga qo'ying, xonani shamollatib turing, ustida sakramang. Namlik va issiqlik manbaidan uzoqroq tursin.",
+     "show": "Matrasni *tekis va mustahkam* asosga qoʻying, xonani *shamollatib* turing, ustida !sakramang!. Namlik va issiqlikdan uzoqroq tursin.",
+     "audio": "s5.wav",
+     "visual": {"type": "checklist", "items": ["Tekis, mustahkam asos", "Shamollatib turing", "Ustida sakramang", "Namlikdan asrang"], "marks": ["ok", "ok", "no", "ok"]}},
+    {"head": "*FURNIPART* premium", "sub": "Margʻilon · +998 91 125 9000<br>Oʻzbekiston boʻylab dastavka bor",
+     "say": "Sifatli matras va furnitura kerak bo'lsa — Furnipart premium, Marg'ilon. O'zbekiston bo'ylab dastavka bor. Saqlab qo'ying va direktga yozing!",
+     "show": "Sifatli matras va furnitura kerak boʻlsa — *FURNIPART premium*, Margʻilon. Saqlab qoʻying va *direktga yozing!*",
+     "audio": "s6.wav", "tail": 1.2,
+     "visual": {"type": "logo"}}
+  ]
+}
