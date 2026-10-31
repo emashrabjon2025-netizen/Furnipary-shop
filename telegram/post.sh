@@ -20,6 +20,6 @@ for i in "${!imgs[@]}"; do
 done
 media+="]"
 resp=$(curl -sS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup" \
-  -F "chat_id=$chat" -F "media=$media" "${args[@]}")
+  --form-string "chat_id=$chat" --form-string "media=$media" "${args[@]}")
 echo "$resp" | jq -c '{ok, description, count: (.result|length?)}'
 echo "$resp" | jq -e '.ok' >/dev/null
