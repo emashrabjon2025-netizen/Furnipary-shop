@@ -219,7 +219,7 @@ function renderCart() {
       <label>Manzil (viloyat, shahar)<input name="address" maxlength="120" placeholder="Masalan: Farg'ona, Marg'ilon" /></label>
       <label>Izoh<textarea name="comment" rows="2" maxlength="300"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Buyurtmani yuborish</button>
-      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v6</span></p>
+      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v7</span></p>
     </form>`;
   $("#orderForm").addEventListener("submit", submitOrder);
 }
@@ -284,6 +284,14 @@ async function submitOrder(e) {
   } catch (err) {
     console.error(err);
     toast("Yuborib bo'lmadi (" + (err.code || "xato") + "). Iltimos, qo'ng'iroq qiling: " + SHOP.phone, "err");
+    let box = form.querySelector(".order-err");
+    if (!box) {
+      box = document.createElement("p");
+      box.className = "order-err";
+      box.style.cssText = "color:#c62828;font-weight:600;margin:10px 0 0;word-break:break-word";
+      btn.after(box);
+    }
+    box.textContent = "Xato: " + (err.code || "") + " " + (err.message || "");
     btn.disabled = false;
     btn.textContent = "Buyurtmani yuborish";
   }
