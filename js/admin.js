@@ -96,6 +96,10 @@ function startListeners() {
       products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       $("#pCount").textContent = products.length;
       renderProducts();
+      if (!catalogsSynced) {
+        catalogsSynced = true;
+        syncCatalogs();
+      }
     })
   );
   unsub.push(
@@ -107,6 +111,54 @@ function startListeners() {
       renderOrders();
     })
   );
+}
+
+// ================= Tayyor kataloglar (avtomatik yuklash) =================
+// /catalog/*.json dagi mahsulotlar admin kirganda bazaga qo'shiladi.
+// Bazada shu ID yoki shu nomdagi mahsulot bo'lsa — qayta qo'shilmaydi.
+const CATALOGS = ["higold-oshxona", "higold-garderob"];
+let catalogsSynced = false;
+
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+
+async function syncCatalogs() {
+  for (const key of CATALOGS) {
+    if (lsGet("catalog-done-" + key)) continue;
+    try {
+      const res = await fetch(`/catalog/${key}.json`, { cache: "no-store" });
+      if (!res.ok) continue;
+      const { items = [] } = await res.json();
+      const ids = new Set(products.map((p) => p.id));
+      const names = new Set(products.map((p) => (p.name || "").trim().toLowerCase()));
+      const missing = items.filter((it) => !ids.has(it.id) && !names.has(it.name.trim().toLowerCase()));
+      for (let i = 0; i < missing.length; i += 400) {
+        const b = writeBatch(db);
+        missing.slice(i, i + 400).forEach(({ id, ...it }) => {
+          b.set(doc(db, "products", id), {
+            name: it.name,
+            category: it.category,
+            price: it.price,
+            salePrice: null,
+            description: it.description || "",
+            stock: null,
+            imgUrl: it.imgUrl || "",
+            thumb: "",
+            hasImage: false,
+            active: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        });
+        await b.commit();
+      }
+      lsSet("catalog-done-" + key, "1");
+      if (missing.length) toast(`Katalogdan ${missing.length} ta mahsulot qo'shildi (${key})`);
+    } catch (err) {
+      console.error("Katalog yuklanmadi:", key, err);
+      toast("Katalog yuklanmadi: " + err.message, "err");
+    }
+  }
 }
 
 // ================= Mahsulotlar =================
