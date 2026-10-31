@@ -219,7 +219,7 @@ function renderCart() {
       <label>Manzil (viloyat, shahar)<input name="address" maxlength="120" placeholder="Masalan: Farg'ona, Marg'ilon" /></label>
       <label>Izoh<textarea name="comment" rows="2" maxlength="300"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Buyurtmani yuborish</button>
-      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}.</p>
+      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v6</span></p>
     </form>`;
   $("#orderForm").addEventListener("submit", submitOrder);
 }
