@@ -302,6 +302,29 @@ window.addEventListener("hashchange", () => {
 });
 
 // ---------- Yuklash ----------
+// Tayyor kataloglar (/catalog/*.json) — bazaga qo'shilmagan bo'lsa ham saytda ko'rinadi.
+// Bazada shu ID yoki nomdagi mahsulot bo'lsa, bazadagisi ishlatiladi (admin o'zgartirishi/yashirishi mumkin).
+const CATALOGS = ["higold-oshxona", "higold-garderob"];
+let catalogItems = [];
+async function loadCatalogs() {
+  const all = await Promise.all(
+    CATALOGS.map((k) =>
+      fetch(`/catalog/${k}.json`)
+        .then((r) => (r.ok ? r.json() : { items: [] }))
+        .then((d) => d.items || [])
+        .catch(() => [])
+    )
+  );
+  catalogItems = all.flat().map((it) => ({
+    salePrice: null,
+    stock: null,
+    thumb: "",
+    hasImage: false,
+    active: true,
+    ...it,
+    imgUrl: (it.imgUrl || "").replace(/^https?:\/\/furnipart-shop\.vercel\.app/, ""),
+  }));
+}
 renderChips();
 updateCartCount();
 if (!configured) {
@@ -309,22 +332,40 @@ if (!configured) {
   $("#empty").hidden = false;
   $("#empty").textContent = "Sayt sozlanmoqda…";
 } else {
+  let dbAll = [];
+  let dbReady = false;
+  const refresh = () => {
+    const seenIds = new Set(dbAll.map((p) => p.id));
+    const seenNames = new Set(dbAll.map((p) => (p.name || "").trim().toLowerCase()));
+    const extra = catalogItems.filter(
+      (it) => !seenIds.has(it.id) && !seenNames.has(it.name.trim().toLowerCase())
+    );
+    products = [...dbAll.filter((p) => p.active !== false), ...extra];
+    if (!products.length && !dbReady) return;
+    renderChips();
+    renderGrid();
+    updateCartCount();
+    const m = location.hash.match(/^#p=(.+)$/);
+    if (m && !$("#productDlg").open) openProduct(m[1]);
+  };
+  loadCatalogs().then(refresh);
   const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
   onSnapshot(
     q,
     (snap) => {
-      products = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.active !== false);
-      renderChips();
-      renderGrid();
-      updateCartCount();
-      const m = location.hash.match(/^#p=(.+)$/);
-      if (m && !$("#productDlg").open) openProduct(m[1]);
+      dbAll = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      dbReady = true;
+      refresh();
     },
     (err) => {
       console.error(err);
-      $("#grid").innerHTML = "";
-      $("#empty").hidden = false;
-      $("#empty").textContent = "Mahsulotlarni yuklab bo'lmadi. Sahifani yangilang.";
+      dbReady = true;
+      refresh();
+      if (!products.length) {
+        $("#grid").innerHTML = "";
+        $("#empty").hidden = false;
+        $("#empty").textContent = "Mahsulotlarni yuklab bo'lmadi. Sahifani yangilang.";
+      }
     }
   );
 }
