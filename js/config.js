@@ -13,6 +13,9 @@ export const firebaseConfig = {
   appId: "1:47886344973:web:fe31d5cc3ae69aef630644",
 };
 
+// Firestore baza nomi (Firebase Console → Firestore → Database ro'yxatida ko'rinadigan nom)
+export const DATABASE_ID = "default";
+
 // Admin panelga kira oladigan akkaunt(lar) UID'si (Firebase → Authentication → Users).
 // firestore.rules faylida ham shu UID turishi shart.
 export const ADMIN_UIDS = ["B3O0Gn3vA3al6kmBZw5porxAEXC3"];

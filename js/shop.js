@@ -1,4 +1,4 @@
-import { SHOP, CATEGORIES, firebaseConfig } from "./config.js";
+import { SHOP, CATEGORIES, firebaseConfig, DATABASE_ID } from "./config.js";
 import {
   db,
   configured,
@@ -219,7 +219,7 @@ function renderCart() {
       <label>Manzil (viloyat, shahar)<input name="address" maxlength="120" placeholder="Masalan: Farg'ona, Marg'ilon" /></label>
       <label>Izoh<textarea name="comment" rows="2" maxlength="300"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Buyurtmani yuborish</button>
-      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v7</span></p>
+      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v8</span></p>
     </form>`;
   $("#orderForm").addEventListener("submit", submitOrder);
 }
@@ -316,7 +316,7 @@ async function createOrderRest(order) {
   const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const rnd = crypto.getRandomValues(new Uint8Array(20));
   const id = Array.from(rnd, (n) => abc[n % abc.length]).join("");
-  const base = `projects/${firebaseConfig.projectId}/databases/(default)/documents`;
+  const base = `projects/${firebaseConfig.projectId}/databases/${DATABASE_ID}/documents`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
   try {

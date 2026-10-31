@@ -21,13 +21,13 @@ import {
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { firebaseConfig } from "./config.js";
+import { firebaseConfig, DATABASE_ID } from "./config.js";
 
 export const configured = !String(firebaseConfig.projectId).startsWith("TODO");
 
 const app = initializeApp(firebaseConfig);
 // Telefon brauzerlarida (Safari, Instagram/Telegram ichidagi brauzer) ulanish qotib qolmasligi uchun long-polling
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+export const db = initializeFirestore(app, { experimentalForceLongPolling: true }, DATABASE_ID);
 export const auth = getAuth(app);
 
 export {
