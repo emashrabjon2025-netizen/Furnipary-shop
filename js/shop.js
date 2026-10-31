@@ -1,4 +1,4 @@
-import { SHOP, CATEGORIES } from "./config.js";
+import { SHOP, CATEGORIES, firebaseConfig } from "./config.js";
 import {
   db,
   configured,
@@ -266,7 +266,7 @@ async function submitOrder(e) {
   btn.disabled = true;
   btn.textContent = "Yuborilmoqda…";
   try {
-    const ref = await addDoc(collection(db, "orders"), order);
+    const ref = await createOrderRest(order);
     fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -286,6 +286,65 @@ async function submitOrder(e) {
     toast("Yuborib bo'lmadi (" + (err.code || "xato") + "). Iltimos, qo'ng'iroq qiling: " + SHOP.phone, "err");
     btn.disabled = false;
     btn.textContent = "Buyurtmani yuborish";
+  }
+}
+
+// Buyurtmani Firestore REST API orqali yozish: aniq javob (yoki xato) qaytaradi, qotib qolmaydi.
+function fsValue(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === "string") return { stringValue: v };
+  if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === "boolean") return { booleanValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(fsValue) } };
+  return { mapValue: { fields: fsFields(v) } };
+}
+function fsFields(o) {
+  const f = {};
+  Object.entries(o).forEach(([k, v]) => (f[k] = fsValue(v)));
+  return f;
+}
+async function createOrderRest(order) {
+  const { createdAt, ...data } = order;
+  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const rnd = crypto.getRandomValues(new Uint8Array(20));
+  const id = Array.from(rnd, (n) => abc[n % abc.length]).join("");
+  const base = `projects/${firebaseConfig.projectId}/databases/(default)/documents`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/${base}:commit?key=${firebaseConfig.apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          writes: [
+            {
+              update: { name: `${base}/orders/${id}`, fields: fsFields(data) },
+              updateTransforms: [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }],
+              currentDocument: { exists: false },
+            },
+          ],
+        }),
+      }
+    );
+    if (!res.ok) {
+      let msg = "HTTP " + res.status;
+      try {
+        const j = await res.json();
+        msg = (j.error && (j.error.status || j.error.message)) || msg;
+      } catch (_) {}
+      const e = new Error(msg);
+      e.code = msg;
+      throw e;
+    }
+    return { id };
+  } catch (err) {
+    if (err.name === "AbortError") err.code = "internet sekin / javob yo'q";
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

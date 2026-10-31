@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
   doc,
   getDoc,
@@ -26,7 +26,8 @@ import { firebaseConfig } from "./config.js";
 export const configured = !String(firebaseConfig.projectId).startsWith("TODO");
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Telefon brauzerlarida (Safari, Instagram/Telegram ichidagi brauzer) ulanish qotib qolmasligi uchun long-polling
+export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 export const auth = getAuth(app);
 
 export {
