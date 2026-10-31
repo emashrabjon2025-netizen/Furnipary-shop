@@ -371,7 +371,7 @@ window.addEventListener("hashchange", () => {
 // ---------- Yuklash ----------
 // Tayyor kataloglar (/catalog/*.json) — bazaga qo'shilmagan bo'lsa ham saytda ko'rinadi.
 // Bazada shu ID yoki nomdagi mahsulot bo'lsa, bazadagisi ishlatiladi (admin o'zgartirishi/yashirishi mumkin).
-const CATALOGS = ["higold-oshxona", "higold-garderob"];
+const CATALOGS = ["higold-oshxona", "higold-garderob", "shablonlar"];
 let catalogItems = [];
 async function loadCatalogs() {
   const all = await Promise.all(
