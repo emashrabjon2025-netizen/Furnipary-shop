@@ -22,4 +22,7 @@ media+="]"
 resp=$(curl -sS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup" \
   --form-string "chat_id=$chat" --form-string "media=$media" "${args[@]}")
 echo "$resp" | jq -c '{ok, description, count: (.result|length?)}'
-echo "$resp" | jq -e '.ok' >/dev/null
+if ! echo "$resp" | jq -e '.ok' >/dev/null; then
+  echo "::error::Telegram: $(echo "$resp" | jq -r '.description // .')"
+  exit 1
+fi
