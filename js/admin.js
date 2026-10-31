@@ -109,6 +109,9 @@ function startListeners() {
       $("#oNew").textContent = n || "";
       $("#oNew").className = n ? "new" : "";
       renderOrders();
+    }, (err) => {
+      console.error(err);
+      $("#oList").innerHTML = `<p class="empty">Buyurtmalarni o'qib bo'lmadi: ${escapeHtml(err.code || err.message)}.<br>Firebase Console → Firestore → Rules bo'limiga firestore.rules faylini qo'yib, "Publish" bosing.</p>`;
     })
   );
 }

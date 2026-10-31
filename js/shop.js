@@ -283,7 +283,7 @@ async function submitOrder(e) {
     $("#cartFooter").innerHTML = "";
   } catch (err) {
     console.error(err);
-    toast("Yuborib bo'lmadi. Iltimos, qo'ng'iroq qiling: " + SHOP.phone, "err");
+    toast("Yuborib bo'lmadi (" + (err.code || "xato") + "). Iltimos, qo'ng'iroq qiling: " + SHOP.phone, "err");
     btn.disabled = false;
     btn.textContent = "Buyurtmani yuborish";
   }
