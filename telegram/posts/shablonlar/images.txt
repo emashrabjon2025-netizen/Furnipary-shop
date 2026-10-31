@@ -1,0 +1,8 @@
+img/shablon/universal.jpg
+img/shablon/x-sentrik.jpg
+img/shablon/korpus-vtulka.jpg
+img/shablon/t-konduktor.jpg
+img/shablon/petlya-oq.jpg
+img/shablon/petlya-sariq.jpg
+img/shablon/markaz-16.jpg
+img/shablon/magnitli.jpg

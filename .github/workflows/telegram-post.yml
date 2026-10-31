@@ -1,0 +1,20 @@
+name: Telegram kanalga post
+
+on:
+  workflow_dispatch:
+    inputs:
+      post:
+        description: "Post papkasi (telegram/posts/ ichidagi nom)"
+        required: true
+        default: "shablonlar"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kanalga yuborish
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL: "@Furnipart_uz"
+        run: telegram/post.sh "telegram/posts/${{ inputs.post }}"
