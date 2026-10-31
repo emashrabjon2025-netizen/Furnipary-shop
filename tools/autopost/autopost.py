@@ -136,9 +136,13 @@ def telegram_slot(now):
 def telegram_caption(p):
     price = p.get("salePrice") or p["price"]
     old = f" (oldin {fmt_price(p['price'])})" if p.get("salePrice") else ""
+    if p.get("priceUzs"):  # so'mda narxi bor mahsulotlar (shablonlar)
+        price_txt = f"{int(p['priceUzs']):,} so'm".replace(",", ".")
+    else:
+        price_txt = fmt_price(price) + old
     name = re.sub(r"\s+—\s+[A-Za-z0-9-]+$", "", p["name"].strip())
     return (f"{name}\n\n"
-            f"Narxi: {fmt_price(price)}{old}\n"
+            f"Narxi: {price_txt}\n"
             f"Buyurtma: {SITE}/#p={p['id']}\n"
             f"Tel: {PHONE}\n"
             f"O'zbekiston bo'ylab dastavka bor")

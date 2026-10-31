@@ -7,7 +7,8 @@
    "category": "shablon",
    "price": 19.17,
    "description": "Ruchka teshiklari 96 / 128 / 160 / 192 / 224 mm  Rafix 15  X sentrik va shkant teshiklari bitta shablonda. Metall vtulkalar bilan.\n\nNarxi: 230 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/universal.jpg"
+   "imgUrl": "/img/shablon/universal.jpg",
+   "priceUzs": 230000
   },
   {
    "id": "sh-x-sentrik",
@@ -15,7 +16,8 @@
    "category": "shablon",
    "price": 10.83,
    "description": "Katta teshik X sentrik uchun  yonidagi teshiklar 22 / 32 / 44 mm masofada. Metall vtulkalar bilan.\n\nNarxi: 130 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/x-sentrik.jpg"
+   "imgUrl": "/img/shablon/x-sentrik.jpg",
+   "priceUzs": 130000
   },
   {
    "id": "sh-korpus-vtulka",
@@ -23,7 +25,8 @@
    "category": "shablon",
    "price": 6.67,
    "description": "Ikki tomonida metall vtulkalar: teshiklar bir xil masofada va tekis chiqadi.\n\nNarxi: 80 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/korpus-vtulka.jpg"
+   "imgUrl": "/img/shablon/korpus-vtulka.jpg",
+   "priceUzs": 80000
   },
   {
    "id": "sh-t-konduktor",
@@ -31,7 +34,8 @@
    "category": "shablon",
    "price": 5.42,
    "description": "Plita chetiga (toretsga) to'g'ri burchak bilan teshik ochish uchun  podshipnikli vtulka.\n\nNarxi: 65 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/t-konduktor.jpg"
+   "imgUrl": "/img/shablon/t-konduktor.jpg",
+   "priceUzs": 65000
   },
   {
    "id": "sh-petlya-oq",
@@ -39,7 +43,8 @@
    "category": "shablon",
    "price": 5.0,
    "description": "Petlya chashkasi o'rnini aniq belgilaydi: 32 / 45 / 48 mm.\n\nNarxi: 60 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/petlya-oq.jpg"
+   "imgUrl": "/img/shablon/petlya-oq.jpg",
+   "priceUzs": 60000
   },
   {
    "id": "sh-petlya-sariq",
@@ -47,7 +52,8 @@
    "category": "shablon",
    "price": 2.92,
    "description": "35 mm petlya chashkasi uchun teshikli  45 / 48 mm.\n\nNarxi: 35 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/petlya-sariq.jpg"
+   "imgUrl": "/img/shablon/petlya-sariq.jpg",
+   "priceUzs": 35000
   },
   {
    "id": "sh-markaz-16",
@@ -55,7 +61,8 @@
    "category": "shablon",
    "price": 1.67,
    "description": "Teshikni 16 mm plitaning aynan o'rtasiga tushiradi.\n\nNarxi: 20 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/markaz-16.jpg"
+   "imgUrl": "/img/shablon/markaz-16.jpg",
+   "priceUzs": 20000
   },
   {
    "id": "sh-magnitli",
@@ -63,7 +70,8 @@
    "category": "shablon",
    "price": 2.92,
    "description": "Yig'ish paytida detalni joyida ushlab turadi  magnitli.\n\nNarxi: 35 000 so'm\nNarx AQSh dollarida ko'rsatilgan; to'lov so'mda, xarid kunidagi Markaziy bank kursi bo'yicha.",
-   "imgUrl": "/img/shablon/magnitli.jpg"
+   "imgUrl": "/img/shablon/magnitli.jpg",
+   "priceUzs": 35000
   }
  ]
 }
