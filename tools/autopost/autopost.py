@@ -136,14 +136,12 @@ def telegram_slot(now):
 def telegram_caption(p):
     price = p.get("salePrice") or p["price"]
     old = f" (oldin {fmt_price(p['price'])})" if p.get("salePrice") else ""
-    parts = [p["name"].strip()]
-    d = short_desc(p)
-    if d:
-        parts.append(d)
-    parts.append(f"Narxi: {fmt_price(price)}{old}\nTo'lov so'mda, Markaziy bank kursi bo'yicha.")
-    parts.append(f"Buyurtma va batafsil: {SITE}/#p={p['id']}\nTel: {PHONE}\nO'zbekiston bo'ylab dastavka bor.")
-    cap = "\n\n".join(parts)
-    return cap[:1020]
+    name = re.sub(r"\s+—\s+[A-Za-z0-9-]+$", "", p["name"].strip())
+    return (f"{name}\n\n"
+            f"Narxi: {fmt_price(price)}{old}\n"
+            f"Buyurtma: {SITE}/#p={p['id']}\n"
+            f"Tel: {PHONE}\n"
+            f"O'zbekiston bo'ylab dastavka bor")
 
 
 def send_telegram(p, img):
