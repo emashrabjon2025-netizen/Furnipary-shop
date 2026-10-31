@@ -1,0 +1,36 @@
+name: Instagram istoriya rasmlari
+
+# Kunlik 4 ta istoriya rasmini chizib, stories/SANA/ papkaga saqlaydi.
+# Claude har kuni ertalab shuni ishga tushirib, rasmlarni Metricool orqali Instagram'ga rejalashtiradi.
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Sana (YYYY-MM-DD), bo'sh bo'lsa bugun"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: stories
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Istoriyalarni chizish
+        run: python tools/autopost/autopost.py stories ${{ inputs.date }}
+      - name: Saqlash
+        run: |
+          git config user.name "furnipart-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add stories
+          git commit -m "Istoriyalar: ${{ inputs.date || 'bugun' }}" || exit 0
+          git pull --rebase -q
+          git push
