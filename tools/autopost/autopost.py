@@ -126,10 +126,17 @@ def short_desc(p, limit=420):
 
 
 # ---------------- Telegram ----------------
+CRON_SLOTS = ["0 3", "30 4", "0 6", "30 7", "0 9", "30 10", "0 12", "30 13", "0 15", "30 16"]  # UTC, telegram-autopost.yml bilan bir xil
+
+
 def telegram_slot(now):
     local = now.astimezone(TZ)
+    sched = " ".join(os.environ.get("SCHEDULE", "").split()[:2])
+    if sched in CRON_SLOTS:  # rejalashtirilgan ishga tushish: kechikishdan qat'i nazar o'z navbati
+        day = (local.date() - dt.date(2026, 1, 1)).days
+        return day * SLOTS_PER_DAY + CRON_SLOTS.index(sched)
     mins = local.hour * 60 + local.minute - 8 * 60
-    pos = max(0, min(SLOTS_PER_DAY - 1, round(mins / 90)))
+    pos = max(0, min(SLOTS_PER_DAY - 1, mins // 90))  # GitHub cron kechikadi (30–80 daq), shuning uchun pastga yaxlitlash
     day = (local.date() - dt.date(2026, 1, 1)).days
     return day * SLOTS_PER_DAY + pos
 
