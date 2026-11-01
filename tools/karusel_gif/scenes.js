@@ -119,7 +119,7 @@ S.cover = () => {
   const c = cornerShell(), g = c.g, sus = susan(c);
   g.add(sus.grp);
   return {
-    group: g, dur: 4.8, cam: { pos: [2.5, 2.0, 2.6], target: [.0, .42, .0], zoom: 1.35 }, labels: [],
+    group: g, dur: 4.8, cam: { pos: [2.5, 2.0, 2.6], target: [.0, .62, .0], zoom: 1.55 }, labels: [],
     update(t, dur) {
       c.parts.forEach((p, i) => { const k = eOut(seg(t, i * .07, .55 + i * .07)) - eIO(seg(t, dur - .9 + i * .03, dur - .25 + i * .03)); p.position.copy(p.userData.from).multiplyScalar(1 - k).add(p.userData.home); setOpacity(p, Math.min(1, k * 1.6)); });
       const k2 = seg(t, .8, dur - 1.0); sus.grp.rotation.y = eIO(k2) * Math.PI * 2; setOpacity(sus.grp, seg(t, .5, .9) * (1 - seg(t, dur - .6, dur - .3)));
