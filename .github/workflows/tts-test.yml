@@ -1,0 +1,54 @@
+name: Ovoz sinovi (Google AI Studio)
+
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: "Matn"
+        required: true
+        default: "Assalomu alaykum! Mebel buyurtma qilmoqchimisiz? Avval el-de-es-pe va em-de-ef farqini bilib oling. Bu sizni ortiqcha xarajatdan saqlaydi. Furnipart premium, Margʻilon."
+      voices:
+        description: "Ovozlar (vergul bilan)"
+        required: false
+        default: "Charon,Orus,Fenrir,Algenib"
+      compare_url:
+        description: "Solishtirish uchun boshqa ovoz havolasi (ixtiyoriy)"
+        required: false
+        default: ""
+      chat_id:
+        description: "Qabul qiluvchi chat ID"
+        required: false
+        default: "5345741396"
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Ovoz yozish va botga yuborish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ inputs.chat_id }}
+          TEXT: ${{ inputs.text }}
+          VOICES: ${{ inputs.voices }}
+          CMP: ${{ inputs.compare_url }}
+        run: |
+          set -euo pipefail
+          : "${GEMINI_API_KEY:?GEMINI_API_KEY secret topilmadi}"
+          echo "TTS modellar:"; python3 tools/tts/gemini_tts.py --list
+          api="https://api.telegram.org/bot${TOKEN}"
+          curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎙 Ovoz sinovi (Google AI Studio). Matn: $TEXT" >/dev/null
+          IFS=',' read -ra VS <<< "$VOICES"
+          for v in "${VS[@]}"; do
+            v=$(echo "$v" | xargs)
+            python3 tools/tts/gemini_tts.py "$TEXT" "g_$v.wav" --voice "$v"
+            ffmpeg -v error -y -i "g_$v.wav" -c:a libopus -b:a 48k "g_$v.ogg"
+            r=$(curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Google: $v" -F "voice=@g_$v.ogg")
+            echo "$v: $(echo "$r" | jq -c '{ok, description}')"
+          done
+          if [ -n "$CMP" ]; then
+            curl -sSL -o cmp.wav "$CMP" && ffmpeg -v error -y -i cmp.wav -c:a libopus -b:a 48k cmp.ogg && \
+            curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Hozirgi ovoz (kamron)" -F "voice=@cmp.ogg" | jq -c '{ok, description}'
+          fi
