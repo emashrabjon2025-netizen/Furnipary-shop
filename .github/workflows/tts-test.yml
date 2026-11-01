@@ -44,16 +44,16 @@ jobs:
           : "${GEMINI_API_KEY:?GEMINI_API_KEY secret topilmadi}"
           echo "TTS modellar:"; python3 tools/tts/gemini_tts.py --list
           api="https://api.telegram.org/bot${TOKEN}"
-          curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎙 Ovoz sinovi (Google AI Studio). Matn: $TEXT" >/dev/null
+          curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎙 Ovoz sinovi: Google AI Studio ovozlari va hozirgi ovoz (kamron). Eshitib, qaysi biri yoqqanini yozing. Matn: $TEXT" >/dev/null
           IFS=',' read -ra VS <<< "$VOICES"
           for v in "${VS[@]}"; do
             v=$(echo "$v" | xargs)
             python3 tools/tts/gemini_tts.py "$TEXT" "g_$v.wav" --voice "$v" ${MODEL:+--model "$MODEL"} | tee /dev/stderr | sed -n "s/^model: //p" > model.txt
-            ffmpeg -v error -y -i "g_$v.wav" -c:a libopus -b:a 48k "g_$v.ogg"
-            r=$(curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Google ($(cat model.txt)): $v" -F "voice=@g_$v.ogg")
+            ffmpeg -v error -y -i "g_$v.wav" -c:a libmp3lame -b:a 128k "Google_$v.mp3"
+            r=$(curl -sS "$api/sendAudio" --form-string "chat_id=$CHAT" --form-string "title=Google $v" --form-string "performer=$(cat model.txt)" --form-string "caption=Google ($(cat model.txt)): $v" -F "audio=@Google_$v.mp3")
             echo "$v: $(echo "$r" | jq -c '{ok, description}')"
           done
           if [ -n "$CMP" ]; then
-            curl -sSL -o cmp.wav "$CMP" && ffmpeg -v error -y -i cmp.wav -c:a libopus -b:a 48k cmp.ogg && \
-            curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Hozirgi ovoz (kamron)" -F "voice=@cmp.ogg" | jq -c '{ok, description}'
+            curl -sSL -o cmp.wav "$CMP" && ffmpeg -v error -y -i cmp.wav -c:a libmp3lame -b:a 128k Hozirgi_kamron.mp3 && \
+            curl -sS "$api/sendAudio" --form-string "chat_id=$CHAT" --form-string "title=Hozirgi ovoz: kamron" --form-string "performer=NeuronAI" --form-string "caption=Hozirgi ovoz (kamron)" -F "audio=@Hozirgi_kamron.mp3" | jq -c '{ok, description}'
           fi
