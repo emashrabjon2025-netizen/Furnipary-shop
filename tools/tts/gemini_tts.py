@@ -25,8 +25,17 @@ def tts_models():
     return [m["name"].split("/", 1)[1] for m in d.get("models", []) if "tts" in m["name"]]
 
 
+def best_model():
+    """Eng yangi, toʻliq (lite emas, preview emas) TTS model; boʻlmasa eng yangisi."""
+    import re
+    ms = tts_models() or ["gemini-2.5-flash-preview-tts"]
+    ver = lambda m: tuple(int(x) for x in re.findall(r"\d+", m.split("-tts")[0])[:2])
+    score = lambda m: ("lite" not in m, "preview" not in m, ver(m), "pro" in m)
+    return max(ms, key=score)
+
+
 def synth(text, out, voice="Charon", model=None, style=STYLE):
-    model = model or (tts_models() or ["gemini-2.5-flash-preview-tts"])[0]
+    model = model or best_model()
     body = {"contents": [{"parts": [{"text": f"{style}\n\n{text}"}]}],
             "generationConfig": {"responseModalities": ["AUDIO"],
                                  "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}}}}

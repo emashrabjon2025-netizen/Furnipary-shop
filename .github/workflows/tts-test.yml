@@ -15,6 +15,10 @@ on:
         description: "Solishtirish uchun boshqa ovoz havolasi (ixtiyoriy)"
         required: false
         default: ""
+      model:
+        description: "Model (bo'sh = eng yangisi)"
+        required: false
+        default: ""
       chat_id:
         description: "Qabul qiluvchi chat ID"
         required: false
@@ -34,6 +38,7 @@ jobs:
           TEXT: ${{ inputs.text }}
           VOICES: ${{ inputs.voices }}
           CMP: ${{ inputs.compare_url }}
+          MODEL: ${{ inputs.model }}
         run: |
           set -euo pipefail
           : "${GEMINI_API_KEY:?GEMINI_API_KEY secret topilmadi}"
@@ -43,9 +48,9 @@ jobs:
           IFS=',' read -ra VS <<< "$VOICES"
           for v in "${VS[@]}"; do
             v=$(echo "$v" | xargs)
-            python3 tools/tts/gemini_tts.py "$TEXT" "g_$v.wav" --voice "$v"
+            python3 tools/tts/gemini_tts.py "$TEXT" "g_$v.wav" --voice "$v" ${MODEL:+--model "$MODEL"} | tee /dev/stderr | sed -n "s/^model: //p" > model.txt
             ffmpeg -v error -y -i "g_$v.wav" -c:a libopus -b:a 48k "g_$v.ogg"
-            r=$(curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Google: $v" -F "voice=@g_$v.ogg")
+            r=$(curl -sS "$api/sendVoice" --form-string "chat_id=$CHAT" --form-string "caption=Google ($(cat model.txt)): $v" -F "voice=@g_$v.ogg")
             echo "$v: $(echo "$r" | jq -c '{ok, description}')"
           done
           if [ -n "$CMP" ]; then
