@@ -7,4 +7,8 @@ jobs:
       - env:
           K: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          curl -sS -H "x-goog-api-key: $K" "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000" | jq -r '.models[] | "\(.name) | \(.supportedGenerationMethods|join(","))"'
+          for m in veo-3.1-generate-preview veo-3.1-fast-generate-preview veo-3.0-generate-001 veo-3.0-fast-generate-001 veo-2.0-generate-001; do
+            echo "== $m"
+            curl -sS -H "x-goog-api-key: $K" -H "Content-Type: application/json" \
+              "https://generativelanguage.googleapis.com/v1beta/models/$m" | jq -c '{name, error: .error.message}'
+          done
