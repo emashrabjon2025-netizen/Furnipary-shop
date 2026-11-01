@@ -1,0 +1,11 @@
+name: Firestore tekshiruv (vaqtinchalik)
+on: workflow_dispatch
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for db in default '(default)'; do
+            u="https://firestore.googleapis.com/v1/projects/furbipart/databases/$db/documents/products?pageSize=300&mask.fieldPaths=name&mask.fieldPaths=active"
+            echo "== $db"; curl -sS -o r.json -w "%{http_code}\n" "$u"; head -c 300 r.json; echo; jq '.documents|length' r.json 2>/dev/null || true
+          done
