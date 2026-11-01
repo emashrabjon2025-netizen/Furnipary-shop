@@ -1,0 +1,61 @@
+name: Tayyor karusel/videoni botga yuborish
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "slayd yoki video"
+        required: true
+        default: "slayd"
+      date:
+        description: "Sana (YYYY-MM-DD): img/slaydlar/<sana> yoki img/video/<sana>"
+        required: true
+      chat_id:
+        description: "Qabul qiluvchi chat ID (bo'sh bo'lsa TELEGRAM_CHAT_ID secret, u ham bo'lmasa botga oxirgi yozgan odam)"
+        required: false
+        default: ""
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Botga yuborish
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
+          KIND: ${{ inputs.kind }}
+          D: ${{ inputs.date }}
+        run: |
+          set -euo pipefail
+          : "${TOKEN:?TELEGRAM_BOT_TOKEN topilmadi}"
+          api="https://api.telegram.org/bot${TOKEN}"
+          echo "Bot: @$(curl -sS "$api/getMe" | jq -r '.result.username')"
+          if [ -z "${CHAT:-}" ]; then
+            CHAT=$(curl -sS "$api/getUpdates" | jq -r '[.result[] | (.message // .my_chat_member // empty) | .chat | select(.type=="private") | .id] | last // empty')
+            if [ -z "$CHAT" ]; then
+              echo "::error::Chat ID topilmadi — botga /start yozing yoki TELEGRAM_CHAT_ID secret qo'shing"
+              exit 1
+            fi
+            echo "Chat ID (getUpdates): $CHAT"
+          fi
+          check() { echo "$1" | jq -c '{ok, description}'; echo "$1" | jq -e '.ok' >/dev/null || { echo "::error::Telegram: $(echo "$1" | jq -r '.description')"; exit 1; }; }
+          if [ "$KIND" = "video" ]; then
+            DIR="img/video/$D"; [ -f "$DIR/reel.mp4" ] || { echo "::error::$DIR/reel.mp4 topilmadi"; exit 1; }
+            cap=""; [ -f "$DIR/caption.txt" ] && cap=$(head -c 1000 "$DIR/caption.txt")
+            check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎬 $D — Mebel bilim video (Reels). Pastdagi matnni nusxalab, Instagramga o'zingiz joylang.")"
+            check "$(curl -sS "$api/sendVideo" --form-string "chat_id=$CHAT" --form-string "supports_streaming=true" --form-string "caption=$cap" -F "video=@$DIR/reel.mp4")"
+          else
+            DIR="img/slaydlar/$D"; ls "$DIR"/slayd_*.png >/dev/null 2>&1 || { echo "::error::$DIR topilmadi"; exit 1; }
+            check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🖼 $D — karusel slaydlar (tartib bilan). Matn oxirgi xabarda.")"
+            args=(); media="["; i=0
+            for f in $(ls "$DIR"/slayd_*.png | sort | head -10); do
+              i=$((i+1)); args+=(-F "p$i=@$f"); [ "$i" -gt 1 ] && media+=","
+              media+=$(jq -nc --arg m "attach://p$i" '{type:"document",media:$m}')
+            done
+            media+="]"
+            check "$(curl -sS "$api/sendMediaGroup" --form-string "chat_id=$CHAT" --form-string "media=$media" "${args[@]}")"
+            if [ -f "$DIR/caption.txt" ]; then
+              check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=$(head -c 4000 "$DIR/caption.txt")")"
+            fi
+          fi
