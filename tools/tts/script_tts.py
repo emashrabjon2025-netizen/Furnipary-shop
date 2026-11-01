@@ -17,6 +17,8 @@ for i, s in enumerate(sc["scenes"], 1):
     if not text:
         continue
     name = s.get("audio") or f"s{i}.wav"
+    if (out / name).exists() and (out / name).stat().st_size > 10000:
+        print(f"{name}: bor, o'tkazildi"); continue  # qayta ishga tushirishda limitni tejash
     synth(text, str(out / name), a.voice, model)
     print(f"{name}: {text[:60]}…", flush=True)
 print("model:", model, "ovoz:", a.voice)

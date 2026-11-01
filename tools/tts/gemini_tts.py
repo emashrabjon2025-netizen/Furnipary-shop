@@ -19,6 +19,8 @@ def call(url, body=None):
             return json.loads(urllib.request.urlopen(req, timeout=180).read())
         except urllib.error.HTTPError as e:
             msg = e.read().decode()[:600]
+            if e.code == 429 and "per day" in msg:
+                raise SystemExit(f"Gemini kunlik limit tugadi (429): {msg[:300]}")
             if e.code in (429, 500, 503) and i < 5:
                 print(f"Gemini {e.code}, {15 * (i + 1)} s dan keyin qayta urinish", file=sys.stderr); time.sleep(15 * (i + 1)); continue
             raise SystemExit(f"Gemini xato {e.code}: {msg}")
