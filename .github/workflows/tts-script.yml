@@ -14,6 +14,10 @@ on:
         description: "Ovoz"
         required: false
         default: "Charon"
+      model:
+        description: "Model (bo'sh = eng yangisi)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -29,7 +33,7 @@ jobs:
       - name: Ovoz yozish
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python3 tools/tts/script_tts.py "${{ inputs.script }}" "${{ inputs.out }}" --voice "${{ inputs.voice }}"
+        run: python3 tools/tts/script_tts.py "${{ inputs.script }}" "${{ inputs.out }}" --voice "${{ inputs.voice }}" ${{ inputs.model && format('--model {0}', inputs.model) || '' }}
       - name: Saqlash
         if: always()
         run: |
