@@ -23,7 +23,7 @@ def req(url, body=None):
 def gen(prompt, out, model, neg):
     """Gemini Omni Flash (Interactions API): 9:16 video, natija fayl URI orqali."""
     body = {"model": model, "input": f"{prompt} Avoid: {neg}. No dialogue, no speech, only quiet natural ambient sound.",
-            "response_format": {"type": "video", "aspect_ratio": "9:16", "resolution": "1080p", "delivery": "uri"}}
+            "response_format": {"type": "video", "aspect_ratio": "9:16", "resolution": "720p", "delivery": "uri"}}
     t0 = time.time()
     resp = req(f"{API}/interactions", body)
     uri = None
