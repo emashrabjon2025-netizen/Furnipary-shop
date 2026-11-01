@@ -67,7 +67,7 @@ function sh(o) { o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiv
 const box = (sx, sy, sz, m, x = 0, y = 0, z = 0) => { const b = sh(new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), typeof m === 'string' ? mat(m) : m)); b.position.set(x, y, z); return b; };
 const cyl = (r, h, m, x = 0, y = 0, z = 0, seg = 28) => { const c = sh(new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), typeof m === 'string' ? mat(m) : m)); c.position.set(x, y, z); return c; };
 function anchor(p, x, y, z) { const a = new THREE.Object3D(); a.position.set(x, y, z); p.add(a); return a; }
-function setOpacity(o, a) { o.traverse(m => { if (m.isMesh) [].concat(m.material).forEach(x => { if (x.userData.b == null) { x.userData.b = x.opacity; x.userData.t = x.transparent; } x.transparent = a < 1 || x.userData.t; x.opacity = x.userData.b * a; }); }); }
+function setOpacity(o, a) { o.traverse(m => { if (!m.isMesh) return; [].concat(m.material).forEach(x => { if (x.userData.b == null) { x.userData.b = x.opacity; x.userData.t = x.transparent; } x.transparent = a < 1 || x.userData.t; x.opacity = x.userData.b * a; }); m.visible = a > 0.02; }); }
 
 // idishlar: banka, likopcha, kastryul, butilka
 const ITEM_COLS = ['#d64545', '#3a7bd5', '#f2a33a', '#3fae6a', '#8e5bd0', '#e8e4da', '#c0392b', '#2c3e50'];
@@ -121,8 +121,9 @@ S.cover = () => {
   return {
     group: g, dur: 4.8, cam: { pos: [2.5, 2.0, 2.6], target: [.0, .62, .0], zoom: 1.55 }, labels: [],
     update(t, dur) {
-      c.parts.forEach((p, i) => { const k = eOut(seg(t, i * .07, .55 + i * .07)) - eIO(seg(t, dur - .9 + i * .03, dur - .25 + i * .03)); p.position.copy(p.userData.from).multiplyScalar(1 - k).add(p.userData.home); setOpacity(p, Math.min(1, k * 1.6)); });
-      const k2 = seg(t, .8, dur - 1.0); sus.grp.rotation.y = eIO(k2) * Math.PI * 2; setOpacity(sus.grp, seg(t, .5, .9) * (1 - seg(t, dur - .6, dur - .3)));
+      // 0 s da toʻliq yigʻilgan (Instagram lentadagi muqova kadri shu), oʻrtada qismlarga ajralib qayta yigʻiladi
+      c.parts.forEach((p, i) => { const k = 1 - pulse(t, 2.3 + i * .03, 2.9 + i * .03, 3.3 + i * .05, 4.0 + i * .05); p.position.copy(p.userData.from).multiplyScalar((1 - k) * .28).add(p.userData.home); });
+      sus.grp.rotation.y = eIO(seg(t, .3, 2.4)) * Math.PI * 2;
       g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .12;
     }
   };
@@ -272,7 +273,7 @@ S.list = (sl) => {
   return {
     group: g, dur: 4.6, cam: { pos: [.5, .25 + n * gap / 2 + .7, 4.7], target: [0, .3 + (n - 1) * gap / 2, 0], zoom: 1.4 }, labels: [],
     update(t, dur) {
-      cards.forEach((c, i) => { const k = eBack(seg(t, .2 + i * .45, .8 + i * .45)) * (1 - eIO(seg(t, dur - .7 + i * .05, dur - .2 + i * .05))); c.rotation.x = (1 - k) * -1.5; c.position.x = (1 - k) * 1.6; setOpacity(c, clamp(k * 1.5)); });
+      cards.forEach((c, i) => { const k = seg(t, .3 + i * .55, 1.1 + i * .55); c.rotation.x = eIO(k) * Math.PI * 2; c.position.z = Math.sin(k * Math.PI) * .35; });
       g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
     }
   };

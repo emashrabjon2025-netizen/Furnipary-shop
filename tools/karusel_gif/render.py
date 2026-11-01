@@ -38,7 +38,10 @@ def main():
             pg = br.new_page(viewport={"width": 1080, "height": 1350})
             errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
             pg.goto(f"http://127.0.0.1:{port}/karusel_gif/engine.html?rs={a.rs}")
-            pg.wait_for_function("window.ENGINE_READY === true", timeout=60000)
+            try:
+                pg.wait_for_function("window.ENGINE_READY === true", timeout=60000)
+            except Exception:
+                sys.exit(f"Sahifa yuklanmadi (slayd {i}), JS xato: {errs or 'nomaʼlum'}")
             meta = {"kategoriya": data.get("kategoriya", ""), "page": f"{i:02d} / {n:02d}", "progress": i / n}
             dur = pg.evaluate("([s, m]) => window.setup(s, m)", [sl, meta])
             if errs: sys.exit(f"JS xato (slayd {i}): {errs}")
