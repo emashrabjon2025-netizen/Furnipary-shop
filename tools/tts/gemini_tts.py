@@ -14,10 +14,14 @@ def call(url, body=None):
     key = os.environ["GEMINI_API_KEY"]
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,
                                  headers={"Content-Type": "application/json", "x-goog-api-key": key})
-    try:
-        return json.loads(urllib.request.urlopen(req, timeout=180).read())
-    except urllib.error.HTTPError as e:
-        raise SystemExit(f"Gemini xato {e.code}: {e.read().decode()[:600]}")
+    for i in range(6):  # 429/500/503 (band) — kutib qayta urinish
+        try:
+            return json.loads(urllib.request.urlopen(req, timeout=180).read())
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode()[:600]
+            if e.code in (429, 500, 503) and i < 5:
+                print(f"Gemini {e.code}, {15 * (i + 1)} s dan keyin qayta urinish", file=sys.stderr); time.sleep(15 * (i + 1)); continue
+            raise SystemExit(f"Gemini xato {e.code}: {msg}")
 
 
 def tts_models():
