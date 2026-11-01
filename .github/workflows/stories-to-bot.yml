@@ -9,7 +9,7 @@ on:
       chat_id:
         description: "Qabul qiluvchi chat ID (bo'sh bo'lsa TELEGRAM_CHAT_ID secret)"
         required: false
-        default: ""
+        default: "5345741396"
 
 jobs:
   send:
