@@ -1,0 +1,12 @@
+{
+  "kategoriya": "OSHXONA",
+  "slides": [
+    {"type": "cover", "kicker": "Oshxona uchun", "title": "Burchak shkafi: joy bekor ketmasin", "accent": "Burchak", "sub": "Oshxonaning eng noqulay joyini foydali saqlash joyiga aylantiruvchi 4 ta yechim"},
+    {"type": "point", "num": "01", "title": "Aylanuvchi karusel polkalar", "text": "Yarim yoki toʻliq doira shaklidagi polkalar aylanadi. Orqadagi idishni olish uchun boshqa narsalarni chiqarib oʻtirmaysiz.", "tag": "Klassik yechim"},
+    {"type": "point", "num": "02", "title": "Tortib chiqariladigan savatlar", "text": "Eshik ochilganda burchak ichidagi savatlar tashqariga chiqib keladi. Burchakning eng chuqur qismi ham ishlaydi.", "tag": "Magic corner"},
+    {"type": "point", "num": "03", "title": "Keng ochiladigan petlilar", "text": "Katta burchakka ochiladigan petlilar eshikni keng ochadi — ichkariga qoʻl yetishi osonlashadi, eshik qoʻshni fasadga urilmaydi.", "tag": "Keng ochilish"},
+    {"type": "point", "num": "04", "title": "Burchakli tortmalar", "text": "Oddiy eshik oʻrniga maxsus burchakli tortmalar ham qoʻyiladi. Toʻliq ochiladi va ichidagi hamma narsa koʻz oldingizda.", "tag": "Zamonaviy"},
+    {"type": "list", "title": "Tanlashdan oldin", "items": ["Burchak oʻlchamini aniq oʻlchang", "Nimani saqlashingizni oʻylab koʻring", "Ogʻir idishga mustahkam mexanizm tanlang", "Eshik va tortmalar bir-biriga tegmasin"]},
+    {"type": "cta", "title": "Burchak yechimini FURNIPART'dan tanlang", "text": "Oshxonangiz oʻlchamiga mos mexanizmni topishga yordam beramiz. Direktga yozing yoki doʻkonimizga keling."}
+  ]
+}
