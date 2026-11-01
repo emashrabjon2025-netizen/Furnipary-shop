@@ -1,0 +1,40 @@
+name: YouTube Shorts'ga yuklash
+
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: "Video yo'li (masalan img/video/2026-11-02/reel.mp4)"
+        required: true
+      title:
+        description: "Sarlavha"
+        required: true
+      desc_file:
+        description: "Tavsif fayli (masalan img/video/2026-11-02/caption.txt)"
+        required: false
+        default: ""
+      tags:
+        description: "Teglar (vergul bilan)"
+        required: false
+        default: "furnipart,mebel,furnitura,margilon,uzbekistan"
+      at:
+        description: "Chiqish vaqti (ISO, masalan 2026-11-03T12:30:00+05:00); bo'sh = darhol"
+        required: false
+        default: ""
+
+jobs:
+  up:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Yuklash
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          : "${YT_REFRESH_TOKEN:?YT_REFRESH_TOKEN secret yo'q}"
+          python3 tools/youtube/upload.py "${{ inputs.video }}" --title "$TITLE" --tags "${{ inputs.tags }}" \
+            ${{ inputs.desc_file && format('--desc-file {0}', inputs.desc_file) || '' }} \
+            ${{ inputs.at && format('--at {0}', inputs.at) || '' }}
