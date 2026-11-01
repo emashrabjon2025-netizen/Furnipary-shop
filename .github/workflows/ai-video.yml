@@ -1,4 +1,4 @@
-name: AI video kliplar (Google Veo)
+name: AI video kliplar (Google Gemini Omni)
 
 on:
   workflow_dispatch:
@@ -14,9 +14,9 @@ on:
         required: false
         default: ""
       model:
-        description: "Veo modeli"
+        description: "Video modeli"
         required: false
-        default: "veo-3.1-generate-preview"
+        default: "gemini-omni-1.1-flash"
 
 permissions:
   contents: write

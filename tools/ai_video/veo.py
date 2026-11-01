@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Google Veo bilan qisqa video kliplar (9:16). GEMINI_API_KEY kerak.
+"""Google Gemini Omni Flash bilan qisqa video kliplar (9:16). GEMINI_API_KEY kerak.
 
-  python3 tools/ai_video/veo.py shots.json OUT_DIR [--model veo-3.1-generate-preview] [--only 1,2]
+  python3 tools/ai_video/veo.py shots.json OUT_DIR [--model gemini-omni-1.1-flash] [--only 1,2]
 shots.json: {"shots": [{"prompt": "...", "say": "..."}, ...]}  -> OUT_DIR/clipN.mp4
 Mavjud clipN.mp4 qayta yaratilmaydi (limit/pulni tejash).
 """
@@ -21,22 +21,26 @@ def req(url, body=None):
 
 
 def gen(prompt, out, model, neg):
-    body = {"instances": [{"prompt": prompt}],
-            "parameters": {"aspectRatio": "9:16", "negativePrompt": neg, "personGeneration": "allow_all"}}
-    op = req(f"{API}/models/{model}:predictLongRunning", body)
-    name = op["name"]; t0 = time.time()
-    while not op.get("done"):
-        if time.time() - t0 > 900:
-            raise SystemExit("Veo: 15 daqiqada tayyor boʻlmadi")
-        time.sleep(15); op = req(f"{API}/{name}")
-    if "error" in op:
-        raise SystemExit(f"Veo xato: {op['error']}")
-    resp = op.get("response", {})
-    samples = (resp.get("generateVideoResponse") or resp).get("generatedSamples") or resp.get("generatedVideos") or []
-    if not samples:
-        raise SystemExit(f"Veo video qaytarmadi (filtr?): {json.dumps(resp)[:500]}")
-    uri = samples[0]["video"]["uri"]
-    r = urllib.request.Request(uri, headers={"x-goog-api-key": KEY})
+    """Gemini Omni Flash (Interactions API): 9:16 video, natija fayl URI orqali."""
+    body = {"model": model, "input": f"{prompt} Avoid: {neg}. No dialogue, no speech, only quiet natural ambient sound.",
+            "response_format": {"type": "video", "aspect_ratio": "9:16", "resolution": "1080p", "delivery": "uri"}}
+    t0 = time.time()
+    resp = req(f"{API}/interactions", body)
+    uri = None
+    for st in resp.get("steps", []) or []:
+        for c in st.get("content", []) or []:
+            if c.get("type") == "video" and c.get("uri"):
+                uri = c["uri"]
+    if not uri:
+        raise SystemExit(f"Video qaytmadi (filtr yoki limit?): {json.dumps(resp)[:700]}")
+    fid = uri.split("/files/")[1].split(":")[0].split("?")[0]
+    while True:
+        st = req(f"{API}/files/{fid}").get("state")
+        if st == "ACTIVE": break
+        if st == "FAILED": raise SystemExit("Video yaratish muvaffaqiyatsiz (FAILED)")
+        if time.time() - t0 > 1200: raise SystemExit("Video 20 daqiqada tayyor boʻlmadi")
+        time.sleep(10)
+    r = urllib.request.Request(f"{API}/files/{fid}:download?alt=media", headers={"x-goog-api-key": KEY})
     with urllib.request.urlopen(r, timeout=300) as f:
         pathlib.Path(out).write_bytes(f.read())
     print(f"{out}: {time.time() - t0:.0f}s", flush=True)
@@ -44,7 +48,7 @@ def gen(prompt, out, model, neg):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("shots"); ap.add_argument("out")
-    ap.add_argument("--model", default="veo-3.1-generate-preview"); ap.add_argument("--only")
+    ap.add_argument("--model", default="gemini-omni-1.1-flash"); ap.add_argument("--only")
     a = ap.parse_args()
     d = json.load(open(a.shots, encoding="utf-8")); out = pathlib.Path(a.out); out.mkdir(parents=True, exist_ok=True)
     only = {int(x) for x in a.only.split(",")} if a.only else None
