@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "slayd yoki video"
+        description: "slayd, gif yoki video"
         required: true
         default: "slayd"
       date:
@@ -13,7 +13,7 @@ on:
       chat_id:
         description: "Qabul qiluvchi chat ID (bo'sh bo'lsa TELEGRAM_CHAT_ID secret, u ham bo'lmasa botga oxirgi yozgan odam)"
         required: false
-        default: ""
+        default: "5345741396"
 
 jobs:
   send:
@@ -40,7 +40,22 @@ jobs:
             echo "Chat ID (getUpdates): $CHAT"
           fi
           check() { echo "$1" | jq -c '{ok, description}'; echo "$1" | jq -e '.ok' >/dev/null || { echo "::error::Telegram: $(echo "$1" | jq -r '.description')"; exit 1; }; }
-          if [ "$KIND" = "video" ]; then
+          if [ "$KIND" = "gif" ]; then
+            DIR="img/karusel-gif/$D"; ls "$DIR"/slayd_*.gif >/dev/null 2>&1 || { echo "::error::$DIR topilmadi"; exit 1; }
+            check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎞 $D — 3D animatsiyali karusel. Avval GIF ko'rinishi, oxirida Instagram uchun MP4 fayllar (Instagram karusel GIF qabul qilmaydi).")"
+            for f in $(ls "$DIR"/slayd_*.gif | sort); do
+              check "$(curl -sS "$api/sendAnimation" --form-string "chat_id=$CHAT" --form-string "caption=$(basename "$f" .gif)" -F "animation=@$f")"
+            done
+            args=(); media="["; i=0
+            for f in $(ls "$DIR"/slayd_*.mp4 | sort | head -10); do
+              i=$((i+1)); args+=(-F "p$i=@$f"); [ "$i" -gt 1 ] && media+=","
+              media+=$(jq -nc --arg m "attach://p$i" '{type:"document",media:$m}')
+            done
+            media+="]"
+            check "$(curl -sS "$api/sendMediaGroup" --form-string "chat_id=$CHAT" --form-string "media=$media" "${args[@]}")"
+            CAPF="img/slaydlar/$D/caption.txt"; [ -f "$DIR/caption.txt" ] && CAPF="$DIR/caption.txt"
+            if [ -f "$CAPF" ]; then check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=$(head -c 4000 "$CAPF")")"; fi
+          elif [ "$KIND" = "video" ]; then
             DIR="img/video/$D"; [ -f "$DIR/reel.mp4" ] || { echo "::error::$DIR/reel.mp4 topilmadi"; exit 1; }
             cap=""; [ -f "$DIR/caption.txt" ] && cap=$(head -c 1000 "$DIR/caption.txt")
             check "$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=🎬 $D — Mebel bilim video (Reels). Pastdagi matnni nusxalab, Instagramga o'zingiz joylang.")"

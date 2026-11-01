@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"../mebel_video/vendor/three.module.js"}}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1350px;overflow:hidden;background:#0b0b0c;font-family:Inter,"Inter Display",sans-serif;color:#fff}
+#bg{position:absolute;inset:0;background:
+  radial-gradient(760px 620px at 50% 54%, rgba(255,225,53,.13), rgba(255,225,53,0) 70%),
+  radial-gradient(1200px 1000px at 50% 50%, #1f1f22 0%, #0b0b0c 72%)}
+#grid{position:absolute;inset:0;opacity:.06;background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+  background-size:54px 54px;mask-image:radial-gradient(560px 520px at 50% 56%,#000,transparent)}
+canvas{position:absolute;inset:0;width:1080px;height:1350px}
+#hud{position:absolute;left:72px;right:72px;top:64px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:14px}.logo .w{line-height:1}
+.furni{font-weight:900;font-size:32px;color:#FFE135;letter-spacing:-1px}.part{font-weight:900;font-size:32px;letter-spacing:-1px}
+.prem{font-weight:800;font-size:16px;margin-top:3px;letter-spacing:.5px}
+.cat{font-weight:800;font-size:20px;letter-spacing:4px;padding:11px 22px;border-radius:40px;border:2px solid #FFE135;color:#FFE135}
+#top{position:absolute;left:72px;right:72px;top:178px}
+.num{display:inline-block;background:#FFE135;color:#0e0e0e;font-weight:900;font-size:30px;padding:8px 18px;border-radius:14px;letter-spacing:1px}
+h1{font-family:"Inter Display",Inter;font-weight:900;font-size:66px;line-height:1.0;letter-spacing:-2px;margin-top:18px}
+h1 .y{color:#FFE135}
+.cover h1{font-size:92px;letter-spacing:-3px}
+.kick{font-weight:800;font-size:26px;letter-spacing:3px;text-transform:uppercase;color:#FFE135}
+#bot{position:absolute;left:72px;right:72px;bottom:96px}
+.txt{font-size:33px;line-height:1.38;font-weight:500;color:rgba(255,255,255,.86)}
+.tag{display:inline-block;margin-top:20px;background:#FFE135;color:#0e0e0e;font-weight:800;font-size:26px;padding:12px 24px;border-radius:40px}
+#foot{position:absolute;left:72px;right:72px;bottom:36px;display:flex;justify-content:space-between;font-weight:700;font-size:22px;opacity:.55}
+#bar{position:absolute;left:0;bottom:0;height:12px;background:#FFE135}
+#labels{position:absolute;inset:0;pointer-events:none}#labels svg{position:absolute;inset:0}
+.lab{position:absolute;white-space:nowrap;font-weight:900;font-size:30px;padding:10px 20px;border-radius:999px;background:#0e0e0e;color:#fff;border:3px solid #FFE135;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.lab.yel{background:#FFE135;color:#0e0e0e}.lab.wht{background:#fff;color:#0e0e0e;border-color:#fff}
+.lab.red{background:#FF5A5A;border-color:#FF5A5A}.lab.grn{background:#2fbf6a;border-color:#2fbf6a}
+.list{list-style:none}.list li{display:flex;gap:20px;align-items:center;font-size:36px;font-weight:700;margin-top:26px;opacity:0}
+.list li b{flex:none;width:58px;height:58px;border-radius:50%;background:#FFE135;color:#0e0e0e;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900}
+.btn{display:inline-flex;align-items:center;gap:14px;background:#FFE135;color:#0e0e0e;font-weight:900;font-size:34px;padding:22px 38px;border-radius:60px;margin-top:26px}
+</style></head><body>
+<div id="bg"></div><div id="grid"></div>
+<canvas id="c" width="1080" height="1350"></canvas>
+<div id="labels"><svg width="1080" height="1350"></svg></div>
+<div id="hud">
+  <div class="logo"><svg width="46" height="62" viewBox="0 0 263 353"><path fill="#FFE135" d="M0 0H263L192 93H56V249L0 319Z"/><path fill="#fff" d="M56 93H263L212 164H125V270L56 353Z"/></svg>
+  <div class="w"><span class="furni">FURNI</span><span class="part">PART</span><div class="prem">premium</div></div></div>
+  <div class="cat" id="cat"></div>
+</div>
+<div id="top"></div><div id="bot"></div>
+<div id="foot"><span>@furnipart.uz</span><span id="pg"></span></div><div id="bar"></div>
+<script type="module" src="./scenes.js"></script>
+</body></html>
