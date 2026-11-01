@@ -1,0 +1,51 @@
+name: Istoriyalarni botga yuborish
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Sana (YYYY-MM-DD), stories/<sana> papkasi"
+        required: true
+      chat_id:
+        description: "Qabul qiluvchi chat ID (bo'sh bo'lsa TELEGRAM_CHAT_ID secret)"
+        required: false
+        default: ""
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Botga yuborish
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
+          DIR: stories/${{ inputs.date }}
+        run: |
+          set -euo pipefail
+          : "${TOKEN:?TELEGRAM_BOT_TOKEN topilmadi}"
+          if [ -z "${CHAT:-}" ]; then
+            echo "Chat ID yo'q. Botga oxirgi yozganlar:"
+            curl -sS "https://api.telegram.org/bot${TOKEN}/getUpdates" \
+              | jq -r '[.result[] | (.message // .my_chat_member // empty) | .chat | select(.type=="private") | "\(.id) \(.first_name // "") @\(.username // "")"] | unique[]' || true
+            echo "::error::Chat ID topilmadi — chat_id kiriting yoki TELEGRAM_CHAT_ID secret qo'shing"
+            exit 1
+          fi
+          [ -f "$DIR/stories.json" ] || { echo "::error::$DIR topilmadi"; exit 1; }
+          list=$(jq -r '.[] | "\(.n). \(.name)"' "$DIR/stories.json")
+          caption=$(printf "📲 %s — istoriyalar\n\n%s\n\nHavola stikeri: t.me/Furnipart_uz" "${{ inputs.date }}" "$list")
+          args=(); media="["
+          for i in 1 2 3 4; do
+            args+=(-F "p$i=@$DIR/$i.jpg")
+            [ "$i" -gt 1 ] && media+=","
+            if [ "$i" -eq 1 ]; then
+              media+=$(jq -nc --arg c "$caption" '{type:"document",media:"attach://p1",caption:$c}')
+            else
+              media+=$(jq -nc --arg m "attach://p$i" '{type:"document",media:$m}')
+            fi
+          done
+          media+="]"
+          resp=$(curl -sS "https://api.telegram.org/bot${TOKEN}/sendMediaGroup" \
+            --form-string "chat_id=$CHAT" --form-string "media=$media" "${args[@]}")
+          echo "$resp" | jq -c '{ok, description, count: (.result|length?)}'
+          echo "$resp" | jq -e '.ok' >/dev/null || { echo "::error::Telegram: $(echo "$resp" | jq -r '.description')"; exit 1; }
