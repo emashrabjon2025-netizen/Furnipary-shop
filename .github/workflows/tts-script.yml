@@ -1,0 +1,40 @@
+name: Video ovozi (Google AI Studio)
+
+# Ssenariy JSON dagi har sahna "say" matnidan WAV yozadi va repoga saqlaydi.
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Ssenariy JSON yo'li (repoda)"
+        required: true
+      out:
+        description: "WAV fayllar papkasi (masalan img/video/2026-11-02/audio)"
+        required: true
+      voice:
+        description: "Ovoz"
+        required: false
+        default: "Charon"
+
+permissions:
+  contents: write
+
+concurrency: tts-script
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Ovoz yozish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 tools/tts/script_tts.py "${{ inputs.script }}" "${{ inputs.out }}" --voice "${{ inputs.voice }}"
+      - name: Saqlash
+        run: |
+          git config user.name "furnipart-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "${{ inputs.out }}"
+          git commit -m "Ovoz: ${{ inputs.out }}" || exit 0
+          git pull --rebase -q
+          git push
