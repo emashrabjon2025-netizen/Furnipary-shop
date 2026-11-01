@@ -1,0 +1,76 @@
+name: Kanal mahsulotlaridan istoriya → bot
+
+# Har kuni 21:50 (Toshkent) da o'sha kuni Telegram kanalga chiqqan mahsulotlardan
+# istoriya rasmlarini chizib, egasiga botga yuboradi (ertasi kuni qo'lda chiqarish uchun).
+on:
+  schedule:
+    - cron: "50 16 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Sana (YYYY-MM-DD), bo'sh bo'lsa bugun"
+        required: false
+        default: ""
+      count:
+        description: "Nechta istoriya"
+        required: false
+        default: "4"
+      chat_id:
+        description: "Qabul qiluvchi chat ID"
+        required: false
+        default: "5345741396"
+
+permissions:
+  contents: write
+
+concurrency: kanal-stories
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Sana
+        id: d
+        run: echo "date=${{ inputs.date || '' }}" | sed "s/=$/=$(TZ=Asia/Tashkent date +%F)/" >> "$GITHUB_OUTPUT"
+      - name: Istoriyalarni chizish
+        run: python tools/autopost/autopost.py kanal ${{ steps.d.outputs.date }} ${{ inputs.count || '4' }}
+      - name: Saqlash
+        run: |
+          git config user.name "furnipart-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add stories/kanal
+          git commit -m "Kanal istoriyalari: ${{ steps.d.outputs.date }}" || exit 0
+          git pull --rebase -q
+          git push
+      - name: Botga yuborish
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ inputs.chat_id || '5345741396' }}
+          DATE: ${{ steps.d.outputs.date }}
+        run: |
+          set -euo pipefail
+          DIR="stories/kanal/$DATE"
+          list=$(jq -r '.[] | "\(.n). \(.name)"' "$DIR/stories.json")
+          caption=$(printf "📲 Istoriyalar (bugun kanalga chiqqan mahsulotlar)\n\n%s\n\nHavola stikeri: t.me/Furnipart_uz" "$list")
+          args=(); media="["; first=1
+          for f in $(ls "$DIR"/*.jpg | sort -V); do
+            i=$(basename "$f" .jpg)
+            args+=(-F "p$i=@$f")
+            [ $first -eq 0 ] && media+=","
+            if [ $first -eq 1 ]; then
+              media+=$(jq -nc --arg c "$caption" --arg m "attach://p$i" '{type:"document",media:$m,caption:$c}')
+            else
+              media+=$(jq -nc --arg m "attach://p$i" '{type:"document",media:$m}')
+            fi
+            first=0
+          done
+          media+="]"
+          resp=$(curl -sS "https://api.telegram.org/bot${TOKEN}/sendMediaGroup" \
+            --form-string "chat_id=$CHAT" --form-string "media=$media" "${args[@]}")
+          echo "$resp" | jq -c '{ok, description, count: (.result|length?)}'
+          echo "$resp" | jq -e '.ok' >/dev/null || { echo "::error::Telegram: $(echo "$resp" | jq -r '.description')"; exit 1; }

@@ -3,6 +3,7 @@
 
   python tools/autopost/autopost.py telegram           # navbatdagi mahsulotni kanalga yuboradi
   python tools/autopost/autopost.py stories [SANA]     # SANA (YYYY-MM-DD) uchun 4 ta istoriya rasmini chizadi
+  python tools/autopost/autopost.py kanal [SANA] [N]   # SANA kuni kanalga chiqqan mahsulotlardan N ta istoriya
 
 Mahsulotlar saytdagidek olinadi: Firestore'dagi faol mahsulotlar + /catalog/*.json.
 Navbat holat saqlamaydi: kun va vaqt bo'yicha hisoblanadi, shuning uchun har gal boshqa mahsulot chiqadi.
@@ -286,10 +287,46 @@ def cmd_stories(date_str=None):
     print(json.dumps(meta, ensure_ascii=False))
 
 
+def channel_posts(day, prods):
+    """SANA kuni telegram avtopost kanalga yuborgan (yoki yuboradigan) mahsulotlar, tartib bilan."""
+    base = (day - dt.date(2026, 1, 1)).days * SLOTS_PER_DAY
+    out = []
+    for pos in range(SLOTS_PER_DAY):
+        for k in range(len(prods)):  # cmd_telegram kabi: rasmi yo'q bo'lsa keyingisi
+            p = prods[(base + pos + k) % len(prods)]
+            raw = product_image(p)
+            if raw:
+                out.append((p, raw))
+                break
+    return out
+
+
+def cmd_kanal(date_str=None, count=4):
+    day = dt.date.fromisoformat(date_str) if date_str else dt.datetime.now(TZ).date()
+    posts = channel_posts(day, load_products())
+    if not posts:
+        print("::error::Kanal mahsulotlari topilmadi"); sys.exit(1)
+    # kun bo'yi teng oraliqda tanlash (ertalabdan kechgacha)
+    count = max(1, min(count, len(posts)))
+    idx = [round(i * (len(posts) - 1) / max(1, count - 1)) for i in range(count)] if count > 1 else [0]
+    outdir = ROOT / "stories" / "kanal" / day.isoformat()
+    outdir.mkdir(parents=True, exist_ok=True)
+    meta = []
+    for n, i in enumerate(idx, 1):
+        p, raw = posts[i]
+        (outdir / f"{n}.jpg").write_bytes(render_story(p, raw))
+        meta.append({"n": n, "id": p["id"], "name": p["name"]})
+    (outdir / "stories.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), "utf-8")
+    print(json.dumps(meta, ensure_ascii=False))
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "telegram":
         cmd_telegram()
+    elif cmd == "kanal":
+        a = sys.argv[2:]
+        cmd_kanal(a[0] if a and a[0] else None, int(a[1]) if len(a) > 1 else 4)
     elif cmd == "stories":
         cmd_stories(sys.argv[2] if len(sys.argv) > 2 else None)
     else:
