@@ -1,0 +1,10 @@
+name: Gemini modellar ro'yxati
+on: workflow_dispatch
+jobs:
+  l:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          K: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          curl -sS -H "x-goog-api-key: $K" "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000" | jq -r '.models[] | "\(.name) | \(.supportedGenerationMethods|join(","))"'
