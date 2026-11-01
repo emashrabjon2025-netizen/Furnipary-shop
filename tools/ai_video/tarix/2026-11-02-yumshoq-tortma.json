@@ -1,0 +1,20 @@
+{
+ "topic": "Tortma nega taqillab yopiladi — yumshoq yopiluvchi yo'naltiruvchi",
+ "style": "Photorealistic, vertical 9:16, cinematic soft daylight, shallow depth of field, modern Central Asian home, natural realistic movement, no on-screen text.",
+ "shots": [
+  {"prompt": "A young Central Asian man in a casual sweater in a modern kitchen with dark green cabinets pushes a kitchen drawer shut too hard, the drawer slams loudly and the dishes inside rattle; he winces and looks annoyed. Medium shot.",
+   "say": "Oshxonadagi tortmalaringiz taqillab yopiladimi? Idishlar ichida shaqillab ketadimi?",
+   "show": "Tortmalaringiz *taqillab* yopiladimi?"},
+  {"prompt": "Close-up of an experienced furniture craftsman's hands in a clean workshop installing a concealed soft-close full-extension drawer runner (metal slide rail) under a light wooden drawer box with a screwdriver. Detailed, sharp focus on the metal runner mechanism.",
+   "say": "Sababi yo'naltiruvchida. Yashirin, yumshoq yopiluvchi yo'naltiruvchi tortma ostiga o'rnatiladi.",
+   "show": "Sababi — *yo'naltiruvchida*"},
+  {"prompt": "A smiling young Central Asian woman in a bright modern kitchen gives a kitchen drawer a light push with one hand; the drawer slows down near the end and closes gently and silently by itself. Close-up on the drawer front, then her calm smile.",
+   "say": "Tortmani biroz itarsangiz, oxirida o'zi sekinlab, jimgina yopiladi.",
+   "show": "Oxirida o'zi *sekin* yopiladi"},
+  {"prompt": "A furniture craftsman in a workshop apron pulls out a wide kitchen drawer full of heavy pots and pans; it slides out smoothly all the way to full extension without sagging. He nods confidently at the camera.",
+   "say": "Sifatli yo'naltiruvchi og'ir kastryullarni ham ko'taradi va tortma to'liq ochiladi.",
+   "show": "Og'ir yukda ham *to'liq* ochiladi"}
+ ],
+ "cta": {"say": "Yumshoq yopiluvchi yo'naltiruvchilar Furnipart premiumda. Marg'ilon. O'zbekiston bo'ylab dastavka bor. Direktga yozing!",
+         "show": "Furnipart premium"}
+}
