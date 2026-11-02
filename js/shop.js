@@ -41,8 +41,9 @@ $("#footTg").href = SHOP.telegram;
 // ---------- Kategoriyalar ----------
 function renderChips() {
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, 0]));
-  products.forEach((p) => (counts[p.category] = (counts[p.category] || 0) + 1));
-  const chips = [{ id: "all", label: "Barchasi", n: products.length }, ...CATEGORIES.map((c) => ({ ...c, n: counts[c.id] || 0 }))];
+  const all = buildGroups(products);
+  all.forEach((g) => (counts[g.items[0].category] = (counts[g.items[0].category] || 0) + 1));
+  const chips = [{ id: "all", label: "Barchasi", n: all.length }, ...CATEGORIES.map((c) => ({ ...c, n: counts[c.id] || 0 }))];
   $("#chips").innerHTML = chips
     .map(
       (c) =>
@@ -75,6 +76,81 @@ function priceHtml(p) {
   return `<span class="price">${formatPrice(p.price)}</span>`;
 }
 
+// ---------- Variantlar: bir xil, faqat o'lchami/rangi farq qiladigan mahsulotlar bitta kartochkada ----------
+const baseName = (p) => (p.name || "").replace(/\s+—\s+[^—]*$/, "").trim();
+const seriesOf = (p) => ((p.description || "").match(/^HIGOLD\s+—\s+(.+)$/m) || [])[1] || "";
+const imgKey = (p) => {
+  const img = (p.imgUrl || "").replace(/^https?:\/\/[^/]+/, "").replace(/-(m|bv)(\.\w+)$/i, "$2");
+  return img && !/placeholder/.test(img) ? p.category + "|img|" + img : "";
+};
+// Bir xil rasm YOKI bir xil seriya+nom bo'lsa — bitta guruh
+function buildGroups(list) {
+  const parent = list.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const seen = new Map();
+  list.forEach((p, i) => {
+    const keys = [imgKey(p), p.category + "|nm|" + seriesOf(p) + "|" + baseName(p).toLowerCase()];
+    keys.filter(Boolean).forEach((k) => {
+      if (seen.has(k)) parent[find(i)] = find(seen.get(k));
+      else seen.set(k, i);
+    });
+  });
+  const clusters = new Map();
+  list.forEach((p, i) => {
+    const r = find(i);
+    if (!clusters.has(r)) clusters.set(r, []);
+    clusters.get(r).push(p);
+  });
+  const out = [];
+  for (const items of clusters.values()) {
+    let title = commonTitle(items);
+    if (!title) {
+      // Umumiy nomi yo'q (masalan, shtanga va uning tutqichi bitta rasmda) — nomi bo'yicha ajratiladi
+      const byName = new Map();
+      items.forEach((p) => {
+        const k = baseName(p).toLowerCase();
+        if (!byName.has(k)) byName.set(k, []);
+        byName.get(k).push(p);
+      });
+      byName.forEach((its) => out.push({ items: its, title: commonTitle(its) || its[0].name }));
+      continue;
+    }
+    out.push({ items, title });
+  }
+  out.forEach((g) => g.items.sort((a, b) => effectivePrice(a) - effectivePrice(b)));
+  return out;
+}
+const groupOf = (p) => buildGroups(products).find((g) => g.items.includes(p));
+function commonTitle(items) {
+  const names = items.map(baseName);
+  if (new Set(names).size === 1) return items.length > 1 ? names[0] : items[0].name;
+  let pre = names[0];
+  for (const n of names) while (!n.startsWith(pre)) pre = pre.slice(0, -1);
+  if (names.some((n) => /[\p{L}\d]/u.test(n[pre.length] || "")) && /[\p{L}\d]$/u.test(pre)) {
+    pre = pre.replace(/[\p{L}\d'’ʻ]+$/u, "");
+  }
+  pre = pre.replace(/[\s,(—–\-:]+$/, "").trim();
+  return pre.length >= 8 && pre.split(/\s+/).length >= 2 ? pre : "";
+}
+function field(p, label) {
+  const m = (p.description || "").match(new RegExp("^" + label + "[^:]*:\\s*(.+)$", "m"));
+  return m ? m[1].trim() : "";
+}
+const artOf = (p) => ((p.name || "").match(/—\s+([^—]+)$/) || [])[1] || "";
+function variantLabels(group) {
+  const items = group.items;
+  const differs = (fn) => new Set(items.map(fn)).size > 1;
+  const suffix = (p) =>
+    baseName(p).slice(group.title.length).replace(/^[\s,(—–\-:]+/, "").replace(/^\)|\)$/g, "").trim();
+  const parts = [suffix];
+  if (differs((p) => field(p, "Baza"))) parts.push((p) => field(p, "Baza"));
+  if (differs((p) => field(p, "Rang"))) parts.push((p) => field(p, "Rang").replace(/\s*\(.*\)$/, ""));
+  const make = (fs) => items.map((p) => fs.map((f) => f(p)).filter(Boolean).join(" · "));
+  let labels = make(parts);
+  if (new Set(labels).size < items.length || labels.some((l) => !l)) labels = make([...parts, (p) => field(p, "O'lcham")]);
+  if (new Set(labels).size < items.length || labels.some((l) => !l)) labels = make([...parts, artOf]);
+  return labels.map((l, i) => l || artOf(items[i]) || items[i].name);
+}
 function renderGrid() {
   const list = products.filter(
     (p) =>
@@ -91,21 +167,28 @@ function renderGrid() {
     return;
   }
   empty.hidden = true;
-  $("#grid").innerHTML = list
-    .map((p) => {
-      const sale = effectivePrice(p) !== p.price;
-      const out = p.stock === 0;
+  $("#grid").innerHTML = buildGroups(list)
+    .map((g) => {
+      const p = g.items[0];
+      const many = g.items.length > 1;
+      const sale = g.items.some((x) => effectivePrice(x) !== x.price);
+      const out = g.items.every((x) => x.stock === 0);
+      const priceDiff = new Set(g.items.map(effectivePrice)).size > 1;
       return `<article class="card" data-id="${p.id}">
-        <button class="card-img" data-open="${p.id}" aria-label="${escapeHtml(p.name)}">
+        <button class="card-img" data-open="${p.id}" aria-label="${escapeHtml(g.title)}">
           <img src="${escapeHtml(imgOf(p))}" alt="" loading="lazy" />
           ${sale ? `<span class="badge">Chegirma</span>` : ""}
-          ${out ? `<span class="badge badge-dark">Tugagan</span>` : ""}
+          ${out ? `<span class="badge badge-dark">Tugagan</span>` : many ? `<span class="badge badge-dark">${g.items.length} xil</span>` : ""}
         </button>
         <div class="card-body">
           <small class="cat">${escapeHtml(categoryLabel(p.category))}</small>
-          <h3 data-open="${p.id}">${escapeHtml(p.name)}</h3>
-          <div class="prices">${priceHtml(p)}</div>
-          <button class="btn btn-yellow btn-sm" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga"}</button>
+          <h3 data-open="${p.id}">${escapeHtml(g.title)}</h3>
+          <div class="prices">${priceHtml(p)}${priceDiff ? `<span class="from">dan</span>` : ""}</div>
+          ${
+            many
+              ? `<button class="btn btn-yellow btn-sm" data-open="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "O'lchamni tanlash"}</button>`
+              : `<button class="btn btn-yellow btn-sm" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga"}</button>`
+          }
         </div>
       </article>`;
     })
@@ -123,11 +206,27 @@ async function openProduct(id) {
   const p = products.find((x) => x.id === id);
   if (!p) return;
   history.replaceState(null, "", "#p=" + id);
+  const group = groupOf(p) || { items: [p], title: p.name };
+  const many = group.items.length > 1;
+  const labels = many ? variantLabels(group) : [];
   const out = p.stock === 0;
   $("#productBody").innerHTML = `
     <div class="pd-img"><img id="pdImg" src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(p.name)}" /></div>
     <small class="cat">${escapeHtml(categoryLabel(p.category))}</small>
-    <h2>${escapeHtml(p.name)}</h2>
+    <h2>${escapeHtml(many ? group.title : p.name)}</h2>
+    ${
+      many
+        ? `<div class="variants" role="radiogroup" aria-label="O'lchamni tanlang">
+        <p class="variants-h">O'lchamni tanlang (${group.items.length} xil):</p>
+        ${group.items
+          .map(
+            (v, i) => `<button type="button" class="variant ${v.id === p.id ? "on" : ""}" role="radio" aria-checked="${v.id === p.id}" data-variant="${v.id}" ${v.stock === 0 ? "data-out" : ""}>
+            <span>${escapeHtml(labels[i])}</span><b>${formatPrice(effectivePrice(v))}</b></button>`
+          )
+          .join("")}
+      </div>`
+        : ""
+    }
     <div class="prices big">${priceHtml(p)}</div>
     ${p.description ? `<p class="pd-desc">${escapeHtml(p.description).replace(/\n/g, "<br>")}</p>` : ""}
     <ul class="perks"><li>${escapeHtml(SHOP.delivery)}</li>${p.category === "matras" ? "<li>5 yil kafolat</li>" : ""}</ul>
@@ -139,11 +238,16 @@ async function openProduct(id) {
     addToCart(p.id);
     $("#productDlg").close();
   });
-  $("#productDlg").showModal();
+  $$("#productBody [data-variant]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.dataset.variant !== p.id) openProduct(b.dataset.variant);
+    })
+  );
+  if (!$("#productDlg").open) $("#productDlg").showModal();
   if (p.hasImage) {
     try {
       const snap = await getDoc(doc(db, "productImages", p.id));
-      if (snap.exists() && $("#pdImg")) $("#pdImg").src = snap.data().data;
+      if (snap.exists() && $("#pdImg") && location.hash === "#p=" + p.id) $("#pdImg").src = snap.data().data;
     } catch (_) {
       /* kichik rasm qoladi */
     }
@@ -219,7 +323,7 @@ function renderCart() {
       <label>Manzil (viloyat, shahar)<input name="address" maxlength="120" placeholder="Masalan: Farg'ona, Marg'ilon" /></label>
       <label>Izoh<textarea name="comment" rows="2" maxlength="300"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Buyurtmani yuborish</button>
-      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v8</span></p>
+      <p class="hint">Buyurtmadan so'ng siz bilan bog'lanamiz. ${escapeHtml(SHOP.delivery)}. <span style="opacity:.4">v9</span></p>
     </form>`;
   $("#orderForm").addEventListener("submit", submitOrder);
 }
