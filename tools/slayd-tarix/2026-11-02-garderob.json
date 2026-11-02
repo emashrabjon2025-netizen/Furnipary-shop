@@ -1,0 +1,12 @@
+{
+  "kategoriya": "GARDEROB",
+  "slides": [
+    {"type": "cover", "kicker": "Bilasizmi?", "title": "Garderobga hamma kiyim qanday sigʻadi?", "accent": "sigʻadi", "sub": "Har santimetrni ishlatadigan 4 ta mexanizm — sir shu yerda"},
+    {"type": "point", "num": "01", "title": "Shtanga-lift (pantograf)", "text": "Eng tepadagi kiyim ilgichi dastasidan tortilsa, pastga va oldinga tushib keladi. Baland garderobning yuqori qismi ham bemalol ishlaydi — stul kerak emas.", "tag": "Yuqori joy"},
+    {"type": "point", "num": "02", "title": "Tortib chiqariladigan shim tortmasi", "text": "Shimlar alohida tayoqchalarga osiladi va ramka tashqariga tortib chiqariladi. Shimlar gʻijimlanmaydi, keraklisini bir qarashda topasiz.", "tag": "Shimlar uchun"},
+    {"type": "point", "num": "03", "title": "Toʻrli savat tortmalar", "text": "Buklangan kiyim, sharf va mayda narsalar uchun. Savat toʻrli boʻlgani uchun ichi koʻrinib turadi va havo yaxshi aylanadi.", "tag": "Tartib"},
+    {"type": "point", "num": "04", "title": "Kupe eshiklar", "text": "Eshiklar rels boʻylab yonga suriladi, oldinga ochilmaydi. Shuning uchun tor xonada ham, yotoqxonada ham joy tejaydi.", "tag": "Joy tejaydi"},
+    {"type": "list", "title": "Garderob buyurtmasidan oldin", "items": ["Shift balandligini aniq oʻlchang", "Kiyimlaringiz turini oʻylab koʻring", "Xona kengligiga qarab eshik tanlang", "Mexanizm sifatiga eʼtibor bering"]},
+    {"type": "cta", "title": "Garderob furniturasini FURNIPART'dan oling", "text": "Shtanga-lift, shim tortmasi, savatlar va kupe tizimlari. Garderobingizga mosini tanlashga yordam beramiz."}
+  ]
+}

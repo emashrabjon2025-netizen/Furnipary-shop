@@ -257,6 +257,158 @@ S.drawer = () => {
   };
 };
 
+// ===== GARDEROB sahnalari =====
+const CLOTH = ['#3a7bd5', '#e8e4da', '#d64545', '#2c3e50', '#3fae6a', '#f2a33a', '#8e5bd0', '#c9b79c'];
+// ilgichdagi koʻylak: pivot = shtanga nuqtasi
+function shirt(ci) {
+  const g = new THREE.Group(), c = CLOTH[ci % CLOTH.length];
+  g.add(cyl(.006, .05, 'chrome', 0, -.012, 0, 8));
+  g.add(box(.012, .014, .34, 'chrome', 0, -.04, 0));
+  g.add(box(.035, .5, .34, c, 0, -.3, 0));
+  return g;
+}
+function stack(n, w, d, ci) { const g = new THREE.Group(); for (let i = 0; i < n; i++) g.add(box(w, .045, d, CLOTH[(ci + i) % CLOTH.length], 0, .0225 + i * .047, 0)); return g; }
+function wShell(Wd, D, Hh, { mids = [] } = {}) {
+  const g = new THREE.Group(), y0 = .06, th = .022;
+  [box(Wd, Hh, th, 'white', 0, y0 + Hh / 2, -D / 2 + th / 2), box(th, Hh, D, 'white', -Wd / 2 + th / 2, y0 + Hh / 2, 0), box(th, Hh, D, 'white', Wd / 2 - th / 2, y0 + Hh / 2, 0),
+    box(Wd, th, D, 'inner', 0, y0 + th / 2, 0), box(Wd, th, D, 'white', 0, y0 + Hh - th / 2, 0), box(Wd - .04, y0, .02, '#1c1c1e', 0, y0 / 2, D / 2 - .04)].forEach(k => g.add(k));
+  mids.forEach(x => g.add(box(th, Hh - 2 * th, D - .02, 'white', x, y0 + Hh / 2, -.01)));
+  return { g, y0, th, Wd, D, Hh };
+}
+
+// kupe garderob (muqova va 04 uchun)
+function kupeWardrobe() {
+  const Wd = 1.6, D = .6, Hh = 2.2, s = wShell(Wd, D, Hh, { mids: [0] }), g = s.g, y0 = s.y0, th = s.th;
+  // chap: shtanga + koʻylaklar, pastda polka va taxlam
+  { const r = cyl(.012, Wd / 2 - 2 * th, 'chrome', -Wd / 4, y0 + 1.9, -.02); r.rotation.z = Math.PI / 2; g.add(r); }
+  for (let i = 0; i < 7; i++) { const sh_ = shirt(i); sh_.position.set(-Wd / 2 + .09 + i * .1, y0 + 1.9, -.02); g.add(sh_); }
+  g.add(box(Wd / 2 - th, th, D - .03, 'inner', -Wd / 4, y0 + .55, -.01));
+  [-.55, -.25].forEach((x, i) => { const st = stack(5, .26, .34, i * 3); st.position.set(x, y0 + .56, 0); g.add(st); });
+  // oʻng: polkalar + 2 savat
+  [1.5, 1.95].forEach(yy => g.add(box(Wd / 2 - th, th, D - .03, 'inner', Wd / 4, y0 + yy, -.01)));
+  [[.55, 1.51, 0], [.25, 1.51, 4]].forEach(([x, yy, ci]) => { const st = stack(6, .24, .32, ci); st.position.set(x, y0 + yy, 0); g.add(st); });
+  const baskets = [.15, .62].map((yy, i) => { const b = basket(Wd / 2 - .08, D - .1, .2); b.position.set(Wd / 4, y0 + yy, 0); [-.18, .02, .2].forEach((x, j) => { const st = stack(2, .16, .3, i * 2 + j); st.position.set(x, .01, 0); b.add(st); }); g.add(b); return b; });
+  // relslar va eshiklar
+  g.add(box(Wd, .035, .08, 'metal', 0, y0 + Hh - .02, D / 2 + .03)); g.add(box(Wd, .015, .08, 'metal', 0, y0 + .008, D / 2 + .03));
+  const dw = Wd / 2 + .03, dh = Hh - .05;
+  const mkDoor = (m, z, x) => { const d = new THREE.Group(); d.add(box(dw, dh, .02, m, 0, 0, 0)); d.add(box(.02, dh, .03, 'metal', -dw / 2 + .01, 0, .005)); d.add(box(.02, dh, .03, 'metal', dw / 2 - .01, 0, .005));
+    d.position.set(x, y0 + Hh / 2, z); d.userData.x = x; g.add(d); return d; };
+  const dL = mkDoor('oak', D / 2 + .015, -Wd / 4 + .015), dR = mkDoor('fasad', D / 2 + .048, Wd / 4 - .015);
+  return { g, s, dL, dR, baskets, Wd, D, Hh, y0 };
+}
+
+// MUQOVA (garderob): kupe eshik suriladi, savat chiqadi, hammasi joyiga qaytadi
+S.garderob = () => {
+  const k = kupeWardrobe(), g = k.g;
+  const labels = [{ obj: anchor(k.baskets[1], 0, .2, .3), text: 'Har joy ishlaydi', style: 'yel', at: 1.6, side: 'right', until: 3.6 }];
+  return {
+    group: g, dur: 5.0, cam: { pos: [1.5, 1.3, 3.6], target: [0, 1.2, 0], zoom: 2.6 }, labels,
+    update(t, dur) {
+      const o = pulse(t, .6, 1.5, 3.7, 4.5); k.dR.position.x = k.dR.userData.x - (k.Wd / 2 - .03) * o;
+      const b = pulse(t, 1.4, 2.1, 2.9, 3.6); k.baskets[1].position.z = .42 * b; k.baskets[0].position.z = .42 * pulse(t, 1.6, 2.3, 2.8, 3.5);
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
+// 04 — kupe eshiklar: ikkala eshik navbat bilan rels boʻylab suriladi
+S.kupe = () => {
+  const k = kupeWardrobe(), g = k.g;
+  // eshik oldidagi pol: ochilishga joy kerak emas (sariq chiziq)
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(k.Wd, .06), new THREE.MeshBasicMaterial({ color: Y, transparent: true, opacity: 0 })); strip.rotation.x = -Math.PI / 2; strip.position.set(0, .004, k.D / 2 + .12); g.add(strip);
+  const labels = [
+    { obj: anchor(k.dR, 0, .3, .02), text: 'Rels boʻylab suriladi', style: 'yel', at: .9, side: 'left', until: 2.9 },
+    { obj: anchor(strip, .4, 0, 0), text: 'Oldinga ochilmaydi', style: 'wht', at: 3.2, side: 'right', until: 5.6 }];
+  return {
+    group: g, dur: 6.4, cam: { pos: [1.6, 1.25, 3.6], target: [0, 1.12, 0], zoom: 2.6 }, labels,
+    update(t, dur) {
+      k.dR.position.x = k.dR.userData.x - (k.Wd / 2 - .03) * pulse(t, .6, 1.6, 2.2, 3.1);
+      k.dL.position.x = k.dL.userData.x + (k.Wd / 2 - .03) * pulse(t, 3.2, 4.2, 4.8, 5.7);
+      strip.material.opacity = .9 * pulse(t, 3.0, 3.4, 5.4, 5.8, x => x);
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .07;
+    }
+  };
+};
+
+// 01 — shtanga-lift (pantograf): yuqoridagi shtanga pastga-oldinga tushadi
+S.pantograf = () => {
+  const Wd = .9, D = .6, Hh = 2.3, s = wShell(Wd, D, Hh), g = s.g, y0 = s.y0, th = s.th;
+  g.add(box(Wd - 2 * th, th, D - .03, 'inner', 0, y0 + .75, -.01)); g.add(box(Wd - 2 * th, th, D - .03, 'inner', 0, y0 + .35, -.01));
+  [[-.22, .76, 0], [.18, .76, 3], [-.22, .36, 5], [.18, .36, 2]].forEach(([x, yy, ci]) => { const st = stack(4, .3, .34, ci); st.position.set(x, y0 + yy, 0); g.add(st); });
+  const PY = y0 + 1.72, PZ = -.12, L = .5;
+  const arms = [-1, 1].map(sx => { const a = new THREE.Group(); a.position.set(sx * (Wd / 2 - th - .02), PY, PZ); a.add(box(.025, L, .035, 'metal', 0, L / 2, 0)); { const p = cyl(.03, .03, 'metal', 0, 0, 0, 16); p.rotation.z = Math.PI / 2; a.add(p); } g.add(a); return a; });
+  const rodG = new THREE.Group(); g.add(rodG);
+  { const r = cyl(.014, Wd - 2 * th - .06, 'chrome', 0, 0, 0); r.rotation.z = Math.PI / 2; rodG.add(r); }
+  for (let i = 0; i < 6; i++) { const sh_ = shirt(i + 1); sh_.position.set(-Wd / 2 + .13 + i * .126, 0, 0); rodG.add(sh_); }
+  const handle = new THREE.Group(); handle.add(cyl(.008, .45, 'chrome', 0, -.225, 0, 10)); handle.add(cyl(.02, .07, 'yellow', 0, -.47, 0, 16)); handle.position.set(0, 0, .05); rodG.add(handle);
+  const labels = [
+    { obj: anchor(rodG, .2, 0, .1), text: 'Yuqori shtanga', style: 'wht', at: .1, side: 'right', until: 1.0 },
+    { obj: anchor(rodG, -.15, -.2, .2), text: 'Pastga tushadi', style: 'yel', at: 1.9, side: 'left', until: 4.3 }];
+  return {
+    group: g, dur: 5.8, cam: { pos: [1.7, 1.2, 3.4], target: [0, 1.22, .1], zoom: 2.5 }, labels,
+    update(t, dur) {
+      const th_ = 1.95 * pulse(t, .9, 2.4, dur - 2.0, dur - .6);
+      arms.forEach(a => a.rotation.x = th_);
+      rodG.position.set(0, PY + L * Math.cos(th_), PZ + L * Math.sin(th_));
+      handle.rotation.x = -Math.sin(th_) * .15;
+      g.rotation.y = .1 + Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
+// 02 — shim tortmasi: tayoqchali ramka tortib chiqariladi
+S.shimtortma = () => {
+  const Wd = .7, D = .6, Hh = 1.3, s = wShell(Wd, D, Hh), g = s.g, y0 = s.y0, th = s.th;
+  g.add(box(Wd - 2 * th, th, D - .03, 'inner', 0, y0 + .42, -.01));
+  [[-.15, 0], [.15, 3]].forEach(([x, ci]) => { const st = stack(5, .26, .34, ci); st.position.set(x, y0 + .43, 0); g.add(st); });
+  const fr = new THREE.Group(), FY = y0 + 1.2, iw = Wd - 2 * th - .04;
+  // yon yoʻnaltiruvchilar (korpusda)
+  [-1, 1].forEach(sx => g.add(box(.012, .035, D - .06, 'metal', sx * (iw / 2 + .012), FY, -.01)));
+  [-1, 1].forEach(sx => fr.add(box(.014, .03, D - .08, 'chrome', sx * iw / 2, 0, 0)));
+  fr.add(box(iw, .03, .02, 'chrome', 0, 0, D / 2 - .05)); fr.add(box(iw, .03, .02, 'chrome', 0, 0, -D / 2 + .05));
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const z = -D / 2 + .1 + i * (D - .18) / (n - 1);
+    const bar = cyl(.007, iw, 'chrome', 0, 0, z, 10); bar.rotation.z = Math.PI / 2; fr.add(bar);
+    const c = CLOTH[(i + 2) % CLOTH.length], len = .4 + (i % 3) * .05;
+    const tw = iw * .62, tx = (i % 2 ? .04 : -.04); fr.add(box(tw, len, .008, c, tx, -len / 2, z + .009)); fr.add(box(tw, len * .9, .008, c, tx, -len * .45, z - .009));
+  }
+  fr.add(box(iw * .5, .03, .03, 'yellow', 0, 0, D / 2 - .03));
+  fr.position.set(0, FY, -.01); g.add(fr);
+  const labels = [
+    { obj: anchor(fr, iw / 2, 0, D / 2 - .05), text: 'Toʻliq chiqadi', style: 'yel', at: 1.6, side: 'right', until: 4.4 },
+    { obj: anchor(fr, -iw / 4, -.25, 0), text: 'Gʻijimlanmaydi', style: 'wht', at: 2.4, side: 'left', until: 4.6 }];
+  return {
+    group: g, dur: 6.0, cam: { pos: [1.9, 1.6, 2.9], target: [0, .76, .15], zoom: 1.9 }, labels,
+    update(t, dur) {
+      fr.position.z = -.01 + .5 * pulse(t, .7, 1.9, dur - 1.9, dur - .7);
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
+// 03 — toʻrli savatlar: uchta savat navbat bilan chiqadi
+S.savat = () => {
+  const Wd = .7, D = .6, Hh = 1.0, s = wShell(Wd, D, Hh), g = s.g, y0 = s.y0, th = s.th;
+  const bs = [.06, .36, .66].map((yy, i) => {
+    const b = basket(Wd - .09, D - .1, .2); b.position.set(0, y0 + yy, 0);
+    [-.18, .02, .2].forEach((x, j) => { const st = stack(2 + (j + i) % 2, .17, .32, i * 3 + j); st.position.set(x, .01, 0); b.add(st); });
+    [-1, 1].forEach(sx => g.add(box(.012, .03, D - .06, 'metal', sx * (Wd / 2 - th - .01), y0 + yy + .02, -.01)));
+    g.add(b); return b;
+  });
+  const labels = [
+    { obj: anchor(bs[2], .25, .2, .2), text: 'Ichi koʻrinadi', style: 'yel', at: 1.3, side: 'right', until: 4.4 },
+    { obj: anchor(bs[1], -.25, .15, .15), text: 'Havo aylanadi', style: 'wht', at: 2.2, side: 'left', until: 4.6 }];
+  return {
+    group: g, dur: 6.0, cam: { pos: [1.9, 1.9, 2.8], target: [0, .5, .15], zoom: 1.6 }, labels,
+    update(t, dur) {
+      const o = [pulse(t, 1.5, 2.3, dur - 2.2, dur - 1.4), pulse(t, 1.0, 1.8, dur - 2.6, dur - 1.8), pulse(t, .5, 1.3, dur - 3.0, dur - 2.2)];
+      bs.forEach((b, i) => b.position.z = .42 * o[i]);
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
 // RO'YXAT: 3D kartochkalar ketma-ket chiqadi
 S.list = (sl) => {
   const g = new THREE.Group(), cards = [], items = sl.items || [], n = items.length, gap = .4;
