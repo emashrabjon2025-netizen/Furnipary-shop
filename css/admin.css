@@ -110,3 +110,6 @@ a.icon-btn { display: grid; place-items: center; text-decoration: none; }
 .pay-box .late { background: #fde8e8; color: var(--red); }
 .pay-box .ok { background: #e3f5ea; color: var(--green); }
 input.rest { background: #fde8e8; color: var(--red); font-weight: 800; }
+.reason-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.reason-btns .btn { padding: 12px 8px; font-size: 14px; }
+.reason-btns .btn.on { box-shadow: inset 0 0 0 2px var(--ink); }

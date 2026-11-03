@@ -39,6 +39,38 @@ export const SOURCES = ["Instagram", "Telegram", "Sayt", "Qo'ng'iroq", "Do'kon",
 export const LEAD_STAGES = ["Yangi", "Bog'lanildi", "O'ylab ko'radi", "Sotildi", "Rad etdi"];
 export const SALE_STATUSES = ["Yangi", "Tayyorlanmoqda", "Yo'lda", "Yetkazildi", "Bekor qilindi"];
 const CLOSED = ["Sotildi", "Rad etdi"];
+export const LOST_REASONS = ["Qimmat", "Yetkazib berish / uzoq", "Raqobatchidan oldi", "Javob bermadi", "Hozir kerak emas", "Kerakli mahsulot yo'q", "Shunchaki so'radi", "Boshqa"];
+
+// Viloyat/shahar nomini bir xil ko'rinishga keltiradi ("Тошкент вилояти", "toshkent jome krug" → "Toshkent")
+const REGIONS = [
+  ["Toshkent", ["toshken", "тошкен", "ташкен", "tashkent", "yashnobod", "chirchiq", "чирчик", "chilonzor"]],
+  ["Farg'ona", ["farg", "fergana", "фарг", "ферган", "marg", "марғ", "марг", "quvasoy", "toytepa"]],
+  ["Qo'qon", ["qo'qon", "qoʻqon", "qo‘qon", "kokand", "кукон", "қўқон", "коканд", "qoqon"]],
+  ["Andijon", ["andij", "андиж", "shahrixon", "asaka"]],
+  ["Namangan", ["namang", "наманг", "chust", "чуст", "uchqo'rg", "uchkurg", "pop"]],
+  ["Samarqand", ["samarq", "samark", "самарк", "самарқ"]],
+  ["Buxoro", ["buxor", "bukhar", "бухор", "бухар", "gijduv", "g'ijduv"]],
+  ["Qashqadaryo", ["qarshi", "карши", "қарши", "qashqa", "shahrisabz"]],
+  ["Surxondaryo", ["surxon", "термиз", "termiz", "angor"]],
+  ["Sirdaryo", ["sirdaryo", "сирдар", "guliston", "гулистон"]],
+  ["Jizzax", ["jizzax", "жиззах"]],
+  ["Navoiy", ["navoiy", "навоий"]],
+  ["Xorazm", ["xorazm", "urganch", "урганч", "xiva"]],
+  ["Qoraqalpog'iston", ["nukus", "нукус", "qoraqalp"]],
+  ["Chet el", ["астана", "astana", "moskva", "москва", "rossiya", "qozog"]],
+];
+function regionOf(t) {
+  const s = String(t || "").toLowerCase();
+  if (!s.trim()) return "Ko'rsatilmagan";
+  return (REGIONS.find(([, keys]) => keys.some((k) => s.includes(k))) || ["Boshqa"])[0];
+}
+// "Klipsa · Divan bosh tomoni" → ["klipsa", "divan bosh tomoni"]
+const interestsOf = (t) =>
+  String(t || "")
+    .split(/\s·\s|,|\+/)
+    .map((x) => x.replace(/×\s*\d+/, "").trim())
+    .filter((x) => x.length > 1)
+    .map((x) => x.charAt(0).toUpperCase() + x.slice(1));
 const DEFAULT_TARGET = 150;
 
 let leads = [];
@@ -264,6 +296,36 @@ function renderReport() {
 
   // Lid voronkasi (barcha ochiq lidlar)
   $("#rFunnel").innerHTML = bars(LEAD_STAGES.map((s) => [s, mLeads.filter((l) => l.stage === s).length]));
+
+  // Rad etish sabablari (shu oyda rad etilganlar)
+  const lost = leads.filter((l) => l.stage === "Rad etdi" && (l.lostDate || l.date || "").startsWith(ym));
+  $("#rLost").innerHTML = lost.length
+    ? bars(
+        [...LOST_REASONS, ""]
+          .map((r) => [r || "Sababi yozilmagan", lost.filter((l) => (l.lostReason || "") === r).length])
+          .filter((x) => x[1])
+          .sort((a, b) => b[1] - a[1])
+      )
+    : `<p class="muted">Bu oyda rad etilgan lid yo'q</p>`;
+
+  // Mahsulotlar va viloyatlar bo'yicha lidlar (qavsda — sotilgani)
+  const group = (keyFn) => {
+    const m = new Map();
+    mLeads.forEach((l) =>
+      [].concat(keyFn(l)).forEach((k) => {
+        const g = m.get(k) || { n: 0, won: 0 };
+        g.n++;
+        if (l.stage === "Sotildi") g.won++;
+        m.set(k, g);
+      })
+    );
+    return [...m.entries()]
+      .sort((a, b) => b[1].n - a[1].n)
+      .slice(0, 8)
+      .map(([k, g]) => [k, g.n, g.won ? `· ${g.won} sotildi (${Math.round((g.won / g.n) * 100)}%)` : ""]);
+  };
+  $("#rProducts").innerHTML = bars(group((l) => (interestsOf(l.interest).length ? interestsOf(l.interest) : ["Ko'rsatilmagan"])));
+  $("#rRegions").innerHTML = bars(group((l) => regionOf(l.region)));
 }
 
 document.addEventListener("click", async (e) => {
@@ -296,7 +358,7 @@ function renderLeads() {
   const list = leads.filter(
     (l) =>
       (src === "all" || l.source === src) &&
-      (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
+      (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
       (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q))
   );
   const open = leads.filter((l) => !CLOSED.includes(l.stage)).length;
@@ -314,6 +376,7 @@ function renderLeads() {
         ${l.interest ? `<div>🛏 ${escapeHtml(l.interest)}</div>` : ""}
         ${l.instagram ? `<div><a class="muted" href="https://instagram.com/${encodeURIComponent(l.instagram)}" target="_blank" rel="noopener">@${escapeHtml(l.instagram)}</a></div>` : ""}
         ${l.note ? `<div class="muted">${escapeHtml(l.note)}</div>` : ""}
+        ${l.stage === "Rad etdi" && l.lostReason ? `<div><span class="pill late">✖ ${escapeHtml(l.lostReason)}</span>${l.lostNote ? ` <small class="muted">${escapeHtml(l.lostNote)}</small>` : ""}</div>` : ""}
         ${
           l.nextCall && !CLOSED.includes(l.stage)
             ? `<div><span class="pill ${l.nextCall < t ? "late" : l.nextCall === t ? "today" : ""}">📞 ${fmtDate(l.nextCall)}</span></div>`
@@ -334,6 +397,7 @@ function renderLeads() {
 }
 
 $("#newLead").addEventListener("click", () => openLead(null));
+$("#leadForm").elements.stage.addEventListener("change", (e) => ($("#lostWrap").hidden = e.target.value !== "Rad etdi"));
 
 function openLead(id) {
   editLeadId = id;
@@ -344,6 +408,8 @@ function openLead(id) {
   f.phone.value = l.phone || "";
   f.source.innerHTML = opts(SOURCES, l.source || "Instagram");
   f.stage.innerHTML = opts(LEAD_STAGES, l.stage || "Yangi");
+  f.lostReason.innerHTML = `<option value="">— tanlang —</option>` + opts(LOST_REASONS, l.lostReason || "");
+  $("#lostWrap").hidden = f.stage.value !== "Rad etdi";
   f.interest.value = l.interest || "";
   f.region.value = l.region || "";
   f.instagram.value = l.instagram || "";
@@ -362,6 +428,7 @@ $("#leadForm").addEventListener("submit", async (e) => {
     phone,
     source: f.source.value,
     stage: f.stage.value,
+    lostReason: f.stage.value === "Rad etdi" ? f.lostReason.value : "",
     interest: f.interest.value.trim(),
     region: f.region.value.trim(),
     instagram: f.instagram.value.trim().replace(/^@/, ""),
@@ -370,6 +437,8 @@ $("#leadForm").addEventListener("submit", async (e) => {
     updatedAt: serverTimestamp(),
   };
   if (!data.name && !data.phone) return toast("Ism yoki telefon kiriting", "err");
+  if (data.stage === "Rad etdi" && !data.lostReason) return toast("Rad etish sababini tanlang", "err");
+  if (data.stage === "Rad etdi") data.lostDate = leads.find((l) => l.id === editLeadId)?.lostDate || today();
   try {
     if (editLeadId) await updateDoc(doc(db, "crmLeads", editLeadId), data);
     else await addDoc(collection(db, "crmLeads"), { ...data, date: today(), createdAt: serverTimestamp() });
@@ -380,11 +449,43 @@ $("#leadForm").addEventListener("submit", async (e) => {
   }
 });
 
+// Rad etish sababini so'raydi. Bekor qilinsa — null
+function askReason(name, current) {
+  return new Promise((resolve) => {
+    const dlg = $("#reasonDlg");
+    $("#reasonWho").textContent = name || "Mijoz";
+    $("#reasonBtns").innerHTML = LOST_REASONS.map(
+      (r) => `<button type="button" class="btn btn-line${r === current ? " on" : ""}" data-reason="${escapeHtml(r)}">${escapeHtml(r)}</button>`
+    ).join("");
+    $("#reasonNote").value = "";
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      dlg.close();
+      resolve(v);
+    };
+    $("#reasonBtns").onclick = (e) => {
+      const b = e.target.closest("[data-reason]");
+      if (b) finish({ lostReason: b.dataset.reason, lostNote: $("#reasonNote").value.trim() });
+    };
+    dlg.addEventListener("close", () => finish(null), { once: true });
+    dlg.showModal();
+  });
+}
+
 $("#leadList").addEventListener("change", async (e) => {
   const sel = e.target.closest("[data-lstage]");
   if (!sel) return;
+  const lead = leads.find((l) => l.id === sel.dataset.lstage);
+  let extra = {};
+  if (sel.value === "Rad etdi") {
+    const r = await askReason(lead?.name, lead?.lostReason);
+    if (!r) return renderLeads();
+    extra = { ...r, lostDate: today() };
+  }
   try {
-    await updateDoc(doc(db, "crmLeads", sel.dataset.lstage), { stage: sel.value, updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, "crmLeads", sel.dataset.lstage), { stage: sel.value, ...extra, updatedAt: serverTimestamp() });
     if (sel.value === "Sotildi") openSale(null, leads.find((l) => l.id === sel.dataset.lstage));
   } catch (err) {
     toast("Saqlanmadi: " + err.message, "err");

@@ -67,6 +67,9 @@
         <div class="panel"><h2>Lidlar manbasi</h2><div id="rSources"></div></div>
         <div class="panel"><h2>Lidlar bosqichi</h2><div id="rFunnel"></div></div>
         <div class="panel"><h2>Kategoriyalar bo'yicha (dona)</h2><div id="rCats"></div></div>
+        <div class="panel"><h2>❌ Nega sotilmadi (rad etish sabablari)</h2><div id="rLost"></div></div>
+        <div class="panel"><h2>🛏 Qaysi mahsulotga ko'p lid keldi</h2><div id="rProducts"></div></div>
+        <div class="panel"><h2>📍 Qaysi viloyatdan ko'p lid keldi</h2><div id="rRegions"></div></div>
       </div>
     </div>
 
@@ -192,6 +195,7 @@
         <label>Manba<select name="source"></select></label>
         <label>Bosqich<select name="stage"></select></label>
       </div>
+      <label id="lostWrap" hidden>Rad etish sababi *<select name="lostReason"></select></label>
       <label>Nimaga qiziqdi<input name="interest" maxlength="200" placeholder="Masalan: ortopedik matras 160×200" /></label>
       <div class="two">
         <label>Viloyat / manzil<input name="region" maxlength="120" /></label>
@@ -201,6 +205,17 @@
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
     </form>
+  </dialog>
+
+  <!-- CRM: Rad etish sababi -->
+  <dialog id="reasonDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div class="pform">
+      <h2>Nega sotilmadi?</h2>
+      <p class="muted" id="reasonWho"></p>
+      <label>Izoh (ixtiyoriy)<input id="reasonNote" maxlength="200" placeholder="Masalan: 2 mln qimmat dedi" /></label>
+      <div class="reason-btns" id="reasonBtns"></div>
+    </div>
   </dialog>
 
   <!-- CRM: Mijoz formasi -->
@@ -257,6 +272,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=5"></script>
+  <script type="module" src="js/crm.js?v=6"></script>
 </body>
 </html>
