@@ -3,9 +3,11 @@
 const { idToken, whoami } = require("./_crm");
 const KEY = "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU";
 
-async function probe(url, token) {
+async function probe(url, token, ref) {
   try {
-    const r = await fetch(url, { headers: token ? { Authorization: "Bearer " + token } : {} });
+    const h = token ? { Authorization: "Bearer " + token } : {};
+    if (ref) Object.assign(h, { Referer: "https://furnipart-shop.vercel.app/admin", Origin: "https://furnipart-shop.vercel.app" });
+    const r = await fetch(url, { headers: h });
     const t = await r.text();
     let msg = "";
     try { const j = JSON.parse(t); msg = j.error ? j.error.status + ": " + j.error.message : (j.documents ? j.documents.length + " ta hujjat" : "bo'sh"); } catch (_) { msg = t.slice(0, 120); }
@@ -31,7 +33,11 @@ module.exports = async (req, res) => {
     out.crm_token = await probe(base("default") + "/crmLeads?pageSize=1", tok);
     out.crm_token_key = await probe(base("default") + "/crmLeads?pageSize=1&key=" + KEY, tok);
     out.orders_token = await probe(base("default") + "/orders?pageSize=1", tok);
-    out.crm_default_db = await probe(base("(default)") + "/crmLeads?pageSize=1", tok);
+    out.products_key_ref = await probe(base("default") + "/products?pageSize=1&key=" + KEY, null, true);
+    out.crm_token_key_ref = await probe(base("default") + "/crmLeads?pageSize=1&key=" + KEY, tok, true);
+    out.crm_token_ref = await probe(base("default") + "/crmLeads?pageSize=1", tok, true);
+    const r = await fetch(base("default") + "/products?pageSize=1");
+    out.raw = (await r.text()).slice(0, 600);
   } catch (e) {
     out.error = e.message;
   }
