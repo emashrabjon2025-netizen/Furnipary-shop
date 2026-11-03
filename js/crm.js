@@ -469,7 +469,7 @@ function openClient(id) {
       (cs.length
         ? cs
             .map(
-              (s) => `<div class="mini-row"><div><b>${escapeHtml(s.product || categoryLabel(s.category))}</b> × ${s.qty || 1}<br><small class="muted">${fmtDate(s.date)} · ${escapeHtml(s.status)}</small></div><b>${money(s.amount, s.currency)}</b></div>`
+              (s) => `<div class="mini-row"><div><b>${escapeHtml(s.product || categoryLabel(s.category))}</b> × ${s.qty || 1}<br><small class="muted">${fmtDate(s.date)} · ${escapeHtml(s.status)}</small></div><div class="row-actions"><b>${money(s.amount, s.currency)}</b><button class="icon-btn del" type="button" data-sdel="${s.id}" title="Xaridni o'chirish">🗑</button></div></div>`
             )
             .join("")
         : `<p class="muted">Hali xarid yo'q</p>`) +
@@ -481,6 +481,11 @@ function openClient(id) {
 
 $("#clientDlg").addEventListener("click", async (e) => {
   const c = clients.find((x) => x.id === editClientId);
+  const sd = e.target.closest("[data-sdel]");
+  if (sd) {
+    if (await deleteSale(sd.dataset.sdel)) setTimeout(() => openClient(editClientId), 400);
+    return;
+  }
   if (e.target.closest("#clientSell") && c) {
     $("#clientDlg").close();
     openSale(null, { name: c.name, phone: c.phone, clientId: c.id, address: c.address });
@@ -619,6 +624,7 @@ function openSale(id, prefill) {
   const p = prefill || {};
   const f = $("#saleForm").elements;
   $("#saleTitle").textContent = id ? "Sotuvni o'zgartirish" : "Yangi sotuv";
+  $("#saleDel").hidden = !id;
   f.phone.value = s.phone ?? p.phone ?? "";
   f.name.value = s.name ?? p.name ?? "";
   f.address.value = s.address ?? p.address ?? p.region ?? "";
@@ -634,6 +640,10 @@ function openSale(id, prefill) {
   f.note.value = s.note || "";
   $("#saleDlg").showModal();
 }
+
+$("#saleDel").addEventListener("click", async () => {
+  if (editSaleId && (await deleteSale(editSaleId))) $("#saleDlg").close();
+});
 
 function updateRest() {
   const f = $("#saleForm").elements;
@@ -732,14 +742,26 @@ $("#salesList").addEventListener("click", async (e) => {
       toast(err.message, "err");
     }
   }
-  if (del && confirm("Sotuv o'chirilsinmi?")) {
-    try {
-      await deleteDoc(doc(db, "crmSales", del.dataset.sdel));
-    } catch (err) {
-      toast(err.message, "err");
-    }
-  }
+  if (del) deleteSale(del.dataset.sdel);
 });
+
+// Xaridni o'chiradi: hisobot, mijoz tarixi va qarzlar avtomatik qayta hisoblanadi
+async function deleteSale(id) {
+  const s = sales.find((x) => x.id === id);
+  if (!s) return;
+  const txt = `${s.name || "Mijoz"}: ${s.product || categoryLabel(s.category)} × ${s.qty || 1} — ${money(s.amount, s.currency)}`;
+  if (!confirm(`Xarid o'chirilsinmi?\n${txt}\n\nU umumiy hisobotdan ham olib tashlanadi.`)) return false;
+  try {
+    await deleteDoc(doc(db, "crmSales", id));
+    const lead = leads.find((l) => l.saleId === id || (s.leadId && l.id === s.leadId));
+    if (lead) await updateDoc(doc(db, "crmLeads", lead.id), { stage: "Bog'lanildi", saleId: "", updatedAt: serverTimestamp() });
+    toast("Xarid o'chirildi");
+    return true;
+  } catch (err) {
+    toast(err.message, "err");
+    return false;
+  }
+}
 
 // ================= Excel'ga eksport =================
 $("#crmExport").addEventListener("click", async () => {
