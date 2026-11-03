@@ -3,7 +3,8 @@
 FURNIPART premium — mebel furnitura, divan va matraslar internet-do'koni.
 
 - `index.html` — mijozlar uchun sayt (katalog, savat, buyurtma)
-- `admin.html` — admin panel (`/admin`): mahsulotlar, buyurtmalar, Excel import, zaxira
+- `admin.html` — admin panel (`/admin`): CRM (hisobot, lidlar, mijozlar, sotuvlar), mahsulotlar, buyurtmalar, Excel import, zaxira
+- `js/crm.js` — CRM bo'limi (Firestore: `crmLeads`, `crmClients`, `crmSales`, `crmSettings`)
 - `api/notify.js` — yangi buyurtmani Telegram'ga yuboradi
 - `firestore.rules` — baza himoyasi
 

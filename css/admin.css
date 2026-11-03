@@ -57,3 +57,49 @@ body.admin { padding-bottom: 60px; }
 .summary { font-weight: 700; }
 .summary .bad { color: var(--red); }
 code { background: #eee; padding: 1px 5px; border-radius: 4px; }
+
+/* ================= CRM ================= */
+.muted { color: var(--muted); }
+.crm-h { margin: 6px 0 0; font-size: 22px; }
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .kpis { grid-template-columns: repeat(6, 1fr); } }
+.kpi { background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi small { color: var(--muted); font-weight: 600; font-size: 12px; }
+.kpi b { font-size: 20px; line-height: 1.15; overflow-wrap: anywhere; }
+.crm-grid { display: grid; gap: 0 16px; }
+@media (min-width: 900px) { .crm-grid { grid-template-columns: 1fr 1fr; } }
+.plan-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.plan-top small { color: var(--muted); font-weight: 600; }
+.big-num { font-size: 44px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
+.big-num span { font-size: 22px; color: var(--muted); font-weight: 700; }
+.progress { position: relative; height: 14px; background: #f1efe9; border-radius: 999px; overflow: visible; }
+.progress i { display: block; height: 100%; background: var(--y); border-radius: 999px; transition: width 0.4s; }
+.progress em { position: absolute; top: -4px; width: 3px; height: 22px; background: var(--ink); border-radius: 2px; transform: translateX(-1px); }
+.bar-row { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; font-size: 14px; padding: 3px 0; }
+.bar-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row small { color: var(--muted); font-weight: 600; }
+.bar { height: 10px; background: #f1efe9; border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.daily { display: flex; align-items: flex-end; gap: 2px; height: 130px; padding-top: 6px; }
+.daily .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; align-items: center; gap: 4px; }
+.daily .col i { display: block; width: 100%; min-height: 2px; background: var(--y); border-radius: 3px 3px 0 0; }
+.daily .col small { font-size: 10px; color: var(--muted); height: 12px; }
+.mini-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mini-row:last-child { border-bottom: 0; }
+.mini-row a.phone, .crm-card a.phone { font-weight: 800; text-decoration: none; color: var(--ink); }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #f1efe9; color: var(--ink-2); white-space: nowrap; }
+.pill.late { background: #fde8e8; color: var(--red); }
+.pill.today { background: #fff3c4; color: #7a5b00; }
+.pill.ok { background: #e3f5ea; color: var(--green); }
+.crm-card[data-s="Yangi"] { border-left-color: var(--red); }
+.crm-card[data-s="Bog'lanildi"], .crm-card[data-s="Tayyorlanmoqda"] { border-left-color: var(--y); }
+.crm-card[data-s="O'ylab ko'radi"], .crm-card[data-s="Yo'lda"] { border-left-color: #4a7bd8; }
+.crm-card[data-s="Sotildi"], .crm-card[data-s="Yetkazildi"] { border-left-color: var(--green); }
+.crm-card[data-s="Rad etdi"], .crm-card[data-s="Bekor qilindi"] { border-left-color: #999; opacity: 0.7; }
+.crm-row { grid-template-columns: 44px 1fr auto; cursor: pointer; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--y); display: grid; place-items: center; font-weight: 900; font-size: 18px; }
+a.icon-btn { display: grid; place-items: center; text-decoration: none; }
+.three { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 10px; }
+.history h3 { margin: 14px 0 4px; font-size: 16px; }
+.history .btn-row { margin-top: 10px; }

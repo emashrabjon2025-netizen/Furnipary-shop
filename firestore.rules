@@ -24,6 +24,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // CRM: lidlar, mijozlar, sotuvlar, sozlamalar — faqat admin
+    match /crmLeads/{id} { allow read, write: if isAdmin(); }
+    match /crmClients/{id} { allow read, write: if isAdmin(); }
+    match /crmSales/{id} { allow read, write: if isAdmin(); }
+    match /crmSettings/{id} { allow read, write: if isAdmin(); }
+
     // Buyurtmalar: mijoz faqat yangi buyurtma yarata oladi, ko'rish/o'zgartirish — faqat admin
     match /orders/{id} {
       allow read, update, delete: if isAdmin();

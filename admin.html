@@ -39,13 +39,72 @@
   <!-- Asosiy panel -->
   <section id="appView" class="wrap" hidden>
     <nav class="tabs" role="tablist">
-      <button class="tab on" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
+      <button class="tab on" data-tab="report">📊 Hisobot</button>
+      <button class="tab" data-tab="leads">Lidlar <span id="lCount"></span></button>
+      <button class="tab" data-tab="clients">Mijozlar <span id="cCount"></span></button>
+      <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
+      <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
       <button class="tab" data-tab="orders">Buyurtmalar <span id="oNew"></span></button>
       <button class="tab" data-tab="excel">Excel / Zaxira</button>
     </nav>
 
+    <p id="crmRulesWarn" class="panel danger" hidden>
+      CRM ma'lumotlarini o'qib bo'lmadi. Firebase Console → Firestore → Rules bo'limiga yangi <code>firestore.rules</code> faylini qo'yib, "Publish" bosing.
+    </p>
+
+    <!-- CRM: Hisobot -->
+    <div class="tabpane" id="tab-report">
+      <div class="toolbar">
+        <input id="rMonth" type="month" />
+        <button class="btn btn-line" id="crmExport" type="button">⬇ Excel (hammasi)</button>
+      </div>
+      <h2 class="crm-h" id="rTitle"></h2>
+      <div class="panel" id="rPlan"></div>
+      <div class="kpis" id="rKpis"></div>
+      <div class="crm-grid">
+        <div class="panel"><h2>📞 Bugun qo'ng'iroq qilish kerak</h2><div id="rCalls"></div></div>
+        <div class="panel"><h2>Kunlik sotuv (reja kategoriyasi)</h2><div class="daily" id="rDaily"></div></div>
+        <div class="panel"><h2>Lidlar manbasi</h2><div id="rSources"></div></div>
+        <div class="panel"><h2>Lidlar bosqichi</h2><div id="rFunnel"></div></div>
+        <div class="panel"><h2>Kategoriyalar bo'yicha (dona)</h2><div id="rCats"></div></div>
+      </div>
+    </div>
+
+    <!-- CRM: Lidlar -->
+    <div class="tabpane" id="tab-leads" hidden>
+      <div class="toolbar">
+        <button class="btn btn-yellow" id="newLead" type="button">+ Yangi lid</button>
+        <select id="lStage"><option value="open">Ochiq lidlar</option><option value="all">Barchasi</option></select>
+        <select id="lSource"><option value="all">Barcha manbalar</option></select>
+        <input id="lSearch" type="search" placeholder="Ism, telefon…" />
+      </div>
+      <div id="leadList" class="rows"></div>
+    </div>
+
+    <!-- CRM: Mijozlar -->
+    <div class="tabpane" id="tab-clients" hidden>
+      <div class="toolbar">
+        <button class="btn btn-yellow" id="newClient" type="button">+ Yangi mijoz</button>
+        <select id="cSort"><option value="new">Yangilari</option><option value="last">Oxirgi xarid</option><option value="sales">Ko'p xarid qilgan</option><option value="name">Ism (A–Z)</option></select>
+        <input id="cSearch" type="search" placeholder="Ism, telefon, manzil…" />
+      </div>
+      <div id="clientsList" class="rows"></div>
+    </div>
+
+    <!-- CRM: Sotuvlar -->
+    <div class="tabpane" id="tab-sales" hidden>
+      <div class="toolbar">
+        <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
+        <select id="sStatus"><option value="all">Barcha holatlar</option><option value="open">Yetkazilmaganlar</option></select>
+        <input id="sMonth" type="month" />
+        <input id="sSearch" type="search" placeholder="Qidirish…" />
+      </div>
+      <p class="summary" id="sSummary"></p>
+      <div id="salesList" class="rows"></div>
+    </div>
+
     <!-- Mahsulotlar -->
-    <div class="tabpane" id="tab-products">
+    <div class="tabpane" id="tab-products" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newProduct">+ Yangi mahsulot</button>
         <select id="pCat"><option value="all">Barcha kategoriyalar</option></select>
@@ -119,6 +178,76 @@
     </form>
   </dialog>
 
-  <script type="module" src="js/admin.js?v=8"></script>
+  <!-- CRM: Lid formasi -->
+  <dialog id="leadDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="leadForm" class="pform">
+      <h2 id="leadTitle">Yangi lid</h2>
+      <div class="two">
+        <label>Ism<input name="name" maxlength="60" /></label>
+        <label>Telefon<input name="phone" type="tel" inputmode="tel" placeholder="90 123 45 67" /></label>
+      </div>
+      <div class="two">
+        <label>Manba<select name="source"></select></label>
+        <label>Bosqich<select name="stage"></select></label>
+      </div>
+      <label>Nimaga qiziqdi<input name="interest" maxlength="120" placeholder="Masalan: ortopedik matras 160×200" /></label>
+      <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
+      <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <!-- CRM: Mijoz formasi -->
+  <dialog id="clientDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="clientForm" class="pform">
+      <h2 id="clientTitle">Yangi mijoz</h2>
+      <div class="two">
+        <label>Ism *<input name="name" maxlength="60" required /></label>
+        <label>Telefon<input name="phone" type="tel" inputmode="tel" placeholder="90 123 45 67" /></label>
+      </div>
+      <div class="two">
+        <label>Manzil<input name="address" maxlength="120" placeholder="Shahar, mahalla" /></label>
+        <label>Manba<select name="source"></select></label>
+      </div>
+      <label>Izoh<textarea name="note" rows="2" maxlength="1000"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+      <div id="clientHistory" class="history"></div>
+    </form>
+  </dialog>
+
+  <!-- CRM: Sotuv formasi -->
+  <dialog id="saleDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="saleForm" class="pform">
+      <h2 id="saleTitle">Yangi sotuv</h2>
+      <div class="two">
+        <label>Telefon<input name="phone" type="tel" inputmode="tel" list="clientList" placeholder="90 123 45 67" /></label>
+        <label>Mijoz ismi<input name="name" maxlength="60" /></label>
+      </div>
+      <datalist id="clientList"></datalist>
+      <label>Mahsulot<input name="product" maxlength="120" placeholder="Masalan: Ortopedik matras 160×200" /></label>
+      <div class="two">
+        <label>Kategoriya<select name="category"></select></label>
+        <label>Soni<input name="qty" inputmode="numeric" value="1" /></label>
+      </div>
+      <div class="three">
+        <label>Summa<input name="amount" inputmode="decimal" placeholder="0" /></label>
+        <label>Valyuta<select name="currency"><option>$</option><option>so'm</option></select></label>
+        <label>To'langan<input name="paid" inputmode="decimal" placeholder="= summa" /></label>
+      </div>
+      <div class="two">
+        <label>Sana<input name="date" type="date" /></label>
+        <label>Holat<select name="status"></select></label>
+      </div>
+      <label>Yetkazish manzili<input name="address" maxlength="120" /></label>
+      <label>Izoh<textarea name="note" rows="2" maxlength="1000"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/admin.js?v=9"></script>
+  <script type="module" src="js/crm.js?v=1"></script>
 </body>
 </html>
