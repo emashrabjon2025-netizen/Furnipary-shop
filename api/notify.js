@@ -44,6 +44,28 @@ module.exports = async (req, res) => {
     .filter((l) => l !== null)
     .join("\n");
 
+  // Saytdan kelgan buyurtmani CRMga lid qilib qo'shamiz (admin login sozlangan bo'lsa)
+  if (process.env.FIREBASE_ADMIN_EMAIL) {
+    try {
+      const { findBy, addLead } = require("./_crm");
+      // Soxta so'rovlardan himoya: buyurtma bazada haqiqatan bormi?
+      const id = clip(o.id, 40);
+      const real = id && (await findBy("orders", "phone", phone)).some((x) => x.id === id);
+      if (real) {
+        await addLead({
+          name: o.name,
+          phone,
+          region: o.address,
+          interest: o.items.slice(0, 10).map((i) => `${clip(i.name, 60)} × ${Number(i.qty) || 1}`).join(", "),
+          note: `Saytdan buyurtma #${id.slice(0, 6).toUpperCase()}, jami ${money(o.total)}${o.comment ? " · " + clip(o.comment, 200) : ""}`,
+          source: "Sayt",
+        });
+      }
+    } catch (e) {
+      console.error("CRM lid:", e.message);
+    }
+  }
+
   try {
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
