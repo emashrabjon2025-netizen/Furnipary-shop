@@ -74,6 +74,7 @@
     <div class="tabpane" id="tab-leads" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newLead" type="button">+ Yangi lid</button>
+        <label class="btn btn-line file-btn">⬆ Excel'dan import<input id="leadImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
         <select id="lStage"><option value="open">Ochiq lidlar</option><option value="all">Barchasi</option></select>
         <select id="lSource"><option value="all">Barcha manbalar</option></select>
         <input id="lSearch" type="search" placeholder="Ism, telefon…" />
@@ -191,7 +192,11 @@
         <label>Manba<select name="source"></select></label>
         <label>Bosqich<select name="stage"></select></label>
       </div>
-      <label>Nimaga qiziqdi<input name="interest" maxlength="120" placeholder="Masalan: ortopedik matras 160×200" /></label>
+      <label>Nimaga qiziqdi<input name="interest" maxlength="200" placeholder="Masalan: ortopedik matras 160×200" /></label>
+      <div class="two">
+        <label>Viloyat / manzil<input name="region" maxlength="120" /></label>
+        <label>Instagram<input name="instagram" maxlength="60" placeholder="@username" /></label>
+      </div>
       <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
@@ -248,6 +253,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=1"></script>
+  <script type="module" src="js/crm.js?v=2"></script>
 </body>
 </html>

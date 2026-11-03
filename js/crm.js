@@ -18,9 +18,20 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
   onAuthStateChanged,
 } from "./firebase.js";
-import { $, $$, escapeHtml, categoryLabel, parsePrice, parseCount, toast, normalizePhone } from "./util.js";
+import { $, $$, escapeHtml, categoryLabel, parsePrice, parseCount, toast, normalizePhone as uzPhone } from "./util.js";
+
+// O'zbek raqamlarini +998… ko'rinishiga keltiradi, chet el raqamlarini (+7, +972…) ham qabul qiladi
+function normalizePhone(raw) {
+  const head = (String(raw || "").match(/^[\s+\d()\-.]+/) || [""])[0];
+  const d = head.replace(/\D/g, "");
+  const uz = uzPhone(d);
+  if (uz) return uz;
+  if (d.length >= 10 && d.length <= 15) return "+" + d;
+  return null;
+}
 
 const XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 
@@ -265,7 +276,7 @@ function renderLeads() {
     (l) =>
       (src === "all" || l.source === src) &&
       (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
-      (!q || `${l.name} ${l.phone} ${l.interest} ${l.note}`.toLowerCase().includes(q))
+      (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q))
   );
   const open = leads.filter((l) => !CLOSED.includes(l.stage)).length;
   $("#lCount").textContent = open || "";
@@ -278,7 +289,9 @@ function renderLeads() {
           <small>${escapeHtml(l.source || "")} · ${fmtDate(l.date)}</small>
         </div>
         ${telLink(l.phone)}
+        ${l.region ? `<div class="muted">📍 ${escapeHtml(l.region)}</div>` : ""}
         ${l.interest ? `<div>🛏 ${escapeHtml(l.interest)}</div>` : ""}
+        ${l.instagram ? `<div><a class="muted" href="https://instagram.com/${encodeURIComponent(l.instagram)}" target="_blank" rel="noopener">@${escapeHtml(l.instagram)}</a></div>` : ""}
         ${l.note ? `<div class="muted">${escapeHtml(l.note)}</div>` : ""}
         ${
           l.nextCall && !CLOSED.includes(l.stage)
@@ -311,6 +324,8 @@ function openLead(id) {
   f.source.innerHTML = opts(SOURCES, l.source || "Instagram");
   f.stage.innerHTML = opts(LEAD_STAGES, l.stage || "Yangi");
   f.interest.value = l.interest || "";
+  f.region.value = l.region || "";
+  f.instagram.value = l.instagram || "";
   f.nextCall.value = l.nextCall || "";
   f.note.value = l.note || "";
   $("#leadDlg").showModal();
@@ -327,6 +342,8 @@ $("#leadForm").addEventListener("submit", async (e) => {
     source: f.source.value,
     stage: f.stage.value,
     interest: f.interest.value.trim(),
+    region: f.region.value.trim(),
+    instagram: f.instagram.value.trim().replace(/^@/, ""),
     nextCall: f.nextCall.value || "",
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
@@ -573,7 +590,7 @@ function openSale(id, prefill) {
   $("#saleTitle").textContent = id ? "Sotuvni o'zgartirish" : "Yangi sotuv";
   f.phone.value = s.phone ?? p.phone ?? "";
   f.name.value = s.name ?? p.name ?? "";
-  f.address.value = s.address ?? p.address ?? "";
+  f.address.value = s.address ?? p.address ?? p.region ?? "";
   f.product.value = s.product ?? p.interest ?? "";
   f.category.innerHTML = catOpts(s.category || "matras");
   f.qty.value = s.qty ?? 1;
@@ -686,7 +703,7 @@ $("#crmExport").addEventListener("click", async () => {
     );
     sheet(
       leads.map((l) => ({
-        Sana: l.date, Ism: l.name, Telefon: l.phone, Manba: l.source, Qiziqish: l.interest,
+        Sana: l.date, Ism: l.name, Telefon: l.phone, Viloyat: l.region, Manba: l.source, Mahsulot: l.interest, Instagram: l.instagram,
         Bosqich: l.stage, "Keyingi qo'ng'iroq": l.nextCall, Izoh: l.note,
       })),
       "Lidlar"
@@ -694,5 +711,102 @@ $("#crmExport").addEventListener("click", async () => {
     XLSX.writeFile(wb, `FURNIPART-CRM-${today()}.xlsx`);
   } catch (err) {
     toast("Excel yaratilmadi: " + err.message, "err");
+  }
+});
+
+// ================= Lidlarni Excel / Google Sheets'dan import =================
+// Ustunlar: Sana, Ism, Telefon, Viloyat, Mahsulot, Manba, Holat, Izoh, Instagram, Keyingi qo'ng'iroq
+const pick = (r, ...keys) => {
+  for (const k of Object.keys(r)) {
+    const kk = k.toLowerCase().trim();
+    if (keys.some((x) => kk.startsWith(x))) return r[k];
+  }
+  return "";
+};
+function toYmd(v) {
+  if (v instanceof Date && !isNaN(v)) return ymd(v);
+  if (typeof v === "number") return ymd(new Date(Math.round((v - 25569) * 864e5)));
+  const s = String(v || "").trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+  if (m) {
+    // "10/31/2026" (oy/kun) yoki "31.10.2026" (kun.oy)
+    let [, a, b, y] = m;
+    const [mo, d] = s.includes("/") && Number(a) <= 12 ? [a, b] : [b, a];
+    return `${y}-${pad(mo)}-${pad(d)}`;
+  }
+  return "";
+}
+function mapStage(v) {
+  const t = String(v || "").toLowerCase();
+  if (!t || t.startsWith("yangi")) return "Yangi";
+  if (t.includes("bog")) return "Bog'lanildi";
+  if (t.includes("o'yla") || t.includes("oyla") || t.includes("o‘yla")) return "O'ylab ko'radi";
+  if (t.includes("sotil") || t.includes("sotdi")) return "Sotildi";
+  if (t.includes("bekor") || t.includes("rad")) return "Rad etdi";
+  return "Yangi";
+}
+function mapSource(v) {
+  const t = String(v || "").toLowerCase();
+  const hit = [["insta", "Instagram"], ["telegram", "Telegram"], ["sayt", "Sayt"], ["site", "Sayt"], ["qo'ng", "Qo'ng'iroq"], ["dokon", "Do'kon"], ["do'kon", "Do'kon"], ["tavsiya", "Tavsiya"]].find(([k]) => t.includes(k));
+  return hit ? hit[1] : t ? "Boshqa" : "Instagram";
+}
+
+$("#leadImport").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const XLSX = await import(XLSX_URL);
+    const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+    const known = new Set(leads.map((l) => l.phone).filter(Boolean));
+    const fresh = new Map();
+    let dup = 0;
+    for (const r of rows) {
+      const rawPhone = String(pick(r, "telefon", "phone", "tel") || "");
+      const phone = normalizePhone(rawPhone) || "";
+      const name = String(pick(r, "ism", "name", "mijoz") || "").trim();
+      if (!phone && !name) continue;
+      const extra = rawPhone.replace(/^[\s+\d()\-.]+/, "").trim();
+      const note = [String(pick(r, "izoh", "note") || "").trim(), extra].filter(Boolean).join(" · ");
+      const lead = {
+        name,
+        phone,
+        region: String(pick(r, "viloyat", "manzil", "shahar") || "").trim(),
+        interest: String(pick(r, "mahsulot", "qiziq") || "").trim(),
+        source: mapSource(pick(r, "manba", "source")),
+        stage: mapStage(pick(r, "holat", "bosqich", "status")),
+        note,
+        instagram: String(pick(r, "instagram") || "").trim().replace(/^@/, ""),
+        nextCall: toYmd(pick(r, "keyingi")),
+        date: toYmd(pick(r, "sana", "date")) || today(),
+      };
+      if (!lead.name && lead.instagram) lead.name = "@" + lead.instagram;
+      if (phone && known.has(phone)) { dup++; continue; }
+      const key = phone || "n:" + name;
+      const prev = fresh.get(key);
+      if (prev) {
+        // bir xil raqam qayta yozilgan bo'lsa — bitta lidga birlashtiriladi
+        dup++;
+        if (lead.interest && !prev.interest.includes(lead.interest)) prev.interest = [prev.interest, lead.interest].filter(Boolean).join(" · ");
+        if (lead.stage !== "Rad etdi") prev.stage = lead.stage;
+        prev.note = [prev.note, lead.note].filter(Boolean).join(" · ");
+        prev.name = prev.name || lead.name;
+      } else fresh.set(key, lead);
+    }
+    const list = [...fresh.values()];
+    if (!list.length) return toast(dup ? `Hammasi allaqachon bor (${dup} ta takroriy)` : "Faylda lid topilmadi", "err");
+    if (!confirm(`${list.length} ta yangi lid qo'shilsinmi?${dup ? `\n(${dup} ta takroriy/mavjud raqam o'tkazib yuborildi)` : ""}`)) return;
+    for (let i = 0; i < list.length; i += 400) {
+      const b = writeBatch(db);
+      list.slice(i, i + 400).forEach((l) => b.set(doc(collection(db, "crmLeads")), { ...l, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+      await b.commit();
+    }
+    toast(`${list.length} ta lid qo'shildi ✅`);
+  } catch (err) {
+    console.error(err);
+    toast("Import bo'lmadi: " + err.message, "err");
   }
 });
