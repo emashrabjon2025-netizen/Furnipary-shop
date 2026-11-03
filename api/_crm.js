@@ -96,6 +96,10 @@ function body(req) {
   return req.body || {};
 }
 
+const MEBELCHI_KEYS = ["klipsa", "derjatel", "shablon", "chamadon", "petlya", "stanok", "lazer", "konduktor", "legirovka", "planka", "mebel yig", "mebelchi", "mebel"];
+const guessType = (t) => (MEBELCHI_KEYS.some((k) => String(t || "").toLowerCase().includes(k)) ? "Mebelchi" : "Oddiy xaridor");
+const REPEAT_DAYS = { "Oddiy xaridor": 150, Mebelchi: 30, "Diler / do'kon": 21 };
+
 const clip = (s, n) => String(s ?? "").trim().slice(0, n);
 
 // Lid qo'shadi; shu raqam bilan ochiq lid bo'lsa — yangisini ochmay, unga qo'shib qo'yadi
@@ -123,6 +127,7 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     source: source || "Instagram",
     stage: "Yangi",
     instagram: clip(instagram, 60).replace(/^@/, ""),
+    ctype: guessType(interest),
     nextCall: today(),
     note: clip(note, 1000) + (existing.length ? (note ? " · " : "") + "Avval ham murojaat qilgan" : ""),
     date: today(),
@@ -130,4 +135,4 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
   return { ok: true, id, repeat: false };
 }
 
-module.exports = { whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
+module.exports = { guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };

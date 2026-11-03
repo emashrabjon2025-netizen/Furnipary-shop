@@ -1,6 +1,6 @@
 // Har kuni ertalab (09:00 Toshkent) Telegram'ga CRM xulosasini yuboradi.
 // Vercel Cron chaqiradi (vercel.json → crons). Qo'lda sinash: /api/digest?key=<CRM_LEAD_TOKEN>
-const { list, today, esc, tg } = require("./_crm");
+const { list, today, esc, tg, guessType, REPEAT_DAYS } = require("./_crm");
 
 const pad = (n) => String(n).padStart(2, "0");
 const fmt = (s) => (s ? s.slice(8, 10) + "." + s.slice(5, 7) : "");
@@ -19,11 +19,28 @@ module.exports = async (req, res) => {
 
   try {
     const t = today();
-    const [leads, sales, settings] = await Promise.all([
+    const [leads, sales, settings, clients] = await Promise.all([
       list("crmLeads"),
       list("crmSales"),
       list("crmSettings").catch(() => []),
+      list("crmClients").catch(() => []),
     ]);
+
+    // Qayta taklif vaqti kelgan mijozlar (CRM'dagi hisob bilan bir xil)
+    const addDays = (s, n) => new Date(Date.parse(s + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+    const due = clients
+      .map((c) => {
+        const cs = sales.filter((x) => x.status !== "Bekor qilindi" && ((c.phone && x.phone === c.phone) || x.clientId === c.id));
+        if (!cs.length) return null;
+        const lead = c.phone && leads.find((l) => l.phone === c.phone && l.ctype);
+        const type = c.ctype || (lead && lead.ctype) || guessType(cs.map((x) => x.product).join(" "));
+        const days = REPEAT_DAYS[type] || 150;
+        let d = addDays(cs.map((x) => x.date || "").sort().pop(), days);
+        if (c.followDone && c.followDone >= d) d = addDays(c.followDone, days);
+        return d <= t ? { ...c, type, d } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.d.localeCompare(b.d));
     const open = leads.filter((l) => !CLOSED.includes(l.stage));
     const calls = open.filter((l) => l.nextCall && l.nextCall <= t).sort((a, b) => a.nextCall.localeCompare(b.nextCall));
     const noDate = open.filter((l) => !l.nextCall);
@@ -67,6 +84,8 @@ module.exports = async (req, res) => {
       noDate.length ? `\n⚠️ Qo'ng'iroq sanasi qo'yilmagan ochiq lidlar: ${noDate.length} ta` : null,
       debts.length ? `\n💰 <b>Qoldiq (mijozlar berishi kerak): ${Object.entries(debtSum).map(([c, v]) => money(v, c)).join(" + ")}</b>` : null,
       ...debts.slice(0, 5).map((s) => `• ${esc(s.name || "Nomsiz")} — ${money(s.rest, s.currency)}`),
+      due.length ? `\n🔁 <b>Qayta taklif qilish vaqti kelgan: ${due.length} ta</b>` : null,
+      ...due.slice(0, 5).map((c) => `• ${esc(c.name || "Nomsiz")} (${esc(c.type)}) ${c.phone ? esc(c.phone) : ""}`),
       ``,
       `👉 https://furnipart-shop.vercel.app/admin`,
     ].filter((x) => x !== null);

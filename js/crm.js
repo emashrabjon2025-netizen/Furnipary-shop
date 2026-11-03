@@ -41,6 +41,20 @@ export const SALE_STATUSES = ["Yangi", "Tayyorlanmoqda", "Yo'lda", "Yetkazildi",
 const CLOSED = ["Sotildi", "Rad etdi"];
 export const LOST_REASONS = ["Qimmat", "Yetkazib berish / uzoq", "Raqobatchidan oldi", "Javob bermadi", "Hozir kerak emas", "Kerakli mahsulot yo'q", "Shunchaki so'radi", "Boshqa"];
 
+// Mijoz turlari va qayta taklif oralig'i (oxirgi xariddan keyin, kun)
+export const CLIENT_TYPES = ["Oddiy xaridor", "Mebelchi", "Diler / do'kon"];
+const REPEAT_DAYS = { "Oddiy xaridor": 150, Mebelchi: 30, "Diler / do'kon": 21 };
+const MEBELCHI_KEYS = ["klipsa", "derjatel", "shablon", "chamadon", "petlya", "stanok", "lazer", "konduktor", "legirovka", "planka", "mebel yig", "mebelchi", "mebel"];
+function guessType(text) {
+  const t = String(text || "").toLowerCase();
+  return MEBELCHI_KEYS.some((k) => t.includes(k)) ? "Mebelchi" : "Oddiy xaridor";
+}
+const addDays = (ymdStr, n) => {
+  const d = new Date(ymdStr + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+};
+
 // Viloyat/shahar nomini bir xil ko'rinishga keltiradi ("Тошкент вилояти", "toshkent jome krug" → "Toshkent")
 const REGIONS = [
   ["Toshkent", ["toshken", "тошкен", "ташкен", "tashkent", "yashnobod", "chirchiq", "чирчик", "chilonzor"]],
@@ -297,6 +311,17 @@ function renderReport() {
   // Lid voronkasi (barcha ochiq lidlar)
   $("#rFunnel").innerHTML = bars(LEAD_STAGES.map((s) => [s, mLeads.filter((l) => l.stage === s).length]));
 
+  // Qayta taklif vaqti kelgan mijozlar
+  const dueList = clients.filter(followDue).sort((a, b) => followUpDate(a).localeCompare(followUpDate(b)));
+  $("#rRepeat").innerHTML = dueList.length
+    ? dueList
+        .slice(0, 10)
+        .map(
+          (c) => `<div class="mini-row"><div><b>${escapeHtml(c.name || "Nomsiz")}</b> <small class="muted">${escapeHtml(clientType(c))}</small><br>${telLink(c.phone)}</div><span class="pill late">${fmtDate(followUpDate(c))}</span></div>`
+        )
+        .join("") + (dueList.length > 10 ? `<p class="muted">… yana ${dueList.length - 10} ta (Mijozlar → "Qayta taklif vaqti kelgan")</p>` : "")
+    : `<p class="muted">Hozircha yo'q. Mebelchilarga oxirgi xariddan 30 kun, dilerlarga 21 kun, oddiy xaridorlarga 150 kun o'tgach shu yerda chiqadi.</p>`;
+
   // Rad etish sabablari (shu oyda rad etilganlar)
   const lost = leads.filter((l) => l.stage === "Rad etdi" && (l.lostDate || l.date || "").startsWith(ym));
   $("#rLost").innerHTML = lost.length
@@ -373,6 +398,7 @@ function renderLeads() {
         </div>
         ${telLink(l.phone)}
         ${l.region ? `<div class="muted">📍 ${escapeHtml(l.region)}</div>` : ""}
+        ${(l.ctype || guessType(l.interest)) !== "Oddiy xaridor" ? `<div><span class="pill type">🔧 ${escapeHtml(l.ctype || guessType(l.interest))}</span></div>` : ""}
         ${l.interest ? `<div>🛏 ${escapeHtml(l.interest)}</div>` : ""}
         ${l.instagram ? `<div><a class="muted" href="https://instagram.com/${encodeURIComponent(l.instagram)}" target="_blank" rel="noopener">@${escapeHtml(l.instagram)}</a></div>` : ""}
         ${l.note ? `<div class="muted">${escapeHtml(l.note)}</div>` : ""}
@@ -413,6 +439,7 @@ function openLead(id) {
   f.interest.value = l.interest || "";
   f.region.value = l.region || "";
   f.instagram.value = l.instagram || "";
+  f.ctype.innerHTML = opts(CLIENT_TYPES, l.ctype || guessType(l.interest));
   f.nextCall.value = l.nextCall || "";
   f.note.value = l.note || "";
   $("#leadDlg").showModal();
@@ -432,6 +459,7 @@ $("#leadForm").addEventListener("submit", async (e) => {
     interest: f.interest.value.trim(),
     region: f.region.value.trim(),
     instagram: f.instagram.value.trim().replace(/^@/, ""),
+    ctype: f.ctype.value,
     nextCall: f.nextCall.value || "",
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
@@ -515,15 +543,44 @@ function clientSales(c) {
   return sales.filter((s) => (c.phone && s.phone === c.phone) || s.clientId === c.id);
 }
 
+// Mijoz turi: qo'lda tanlangan yoki xaridlaridan taxmin qilingan
+function clientType(c) {
+  if (c.ctype) return c.ctype;
+  const lead = c.phone && leads.find((l) => l.phone === c.phone && l.ctype);
+  if (lead) return lead.ctype;
+  return guessType(clientSales(c).map((s) => s.product).join(" "));
+}
+// Qayta taklif sanasi: oxirgi xarid + tur bo'yicha kun. Qilingan bo'lsa (followDone) — keyingisi
+function followUpDate(c) {
+  const cs = clientSales(c).filter((s) => s.status !== "Bekor qilindi");
+  if (!cs.length) return "";
+  const last = cs.map((s) => s.date || "").sort().pop();
+  let due = addDays(last, REPEAT_DAYS[clientType(c)] || 150);
+  if (c.followDone && c.followDone >= due) due = addDays(c.followDone, REPEAT_DAYS[clientType(c)] || 150);
+  return due;
+}
+const followDue = (c) => {
+  const d = followUpDate(c);
+  return d && d <= today();
+};
+
+$("#cType").insertAdjacentHTML("beforeend", CLIENT_TYPES.map((t) => `<option>${escapeHtml(t)}</option>`).join(""));
+$("#cType").addEventListener("change", renderClients);
+
 function renderClients() {
   const q = $("#cSearch").value.trim().toLowerCase();
   const sort = $("#cSort").value;
+  const ty = $("#cType").value;
   let list = clients
     .filter((c) => !q || `${c.name} ${c.phone} ${c.address} ${c.note}`.toLowerCase().includes(q))
+    .filter((c) => ty === "all" || (ty === "due" ? followDue(c) : clientType(c) === ty))
     .map((c) => {
       const cs = clientSales(c).filter((s) => s.status !== "Bekor qilindi");
-      return { ...c, _n: cs.length, _sum: sumByCur(cs), _last: cs[0]?.date || "" };
+      return { ...c, _n: cs.length, _sum: sumByCur(cs), _last: cs[0]?.date || "", _type: clientType(c), _fu: followUpDate(c) };
     });
+  const dueN = clients.filter(followDue).length;
+  $("#cDue").textContent = dueN ? `🔁 Qayta taklif vaqti kelgan: ${dueN} ta` : "";
+  $("#cDue").hidden = !dueN;
   if (sort === "sales") list.sort((a, b) => b._n - a._n);
   if (sort === "last") list.sort((a, b) => b._last.localeCompare(a._last));
   if (sort === "name") list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -537,6 +594,9 @@ function renderClients() {
           <b>${escapeHtml(c.name || "Nomsiz")}</b>
           <small>${escapeHtml(c.phone || "tel. yo'q")}${c.address ? " · " + escapeHtml(c.address) : ""}</small>
           <small>${c._n ? `${c._n} ta xarid · ${curText(c._sum)} · oxirgi ${fmtDate(c._last)}` : "xarid yo'q"}</small>
+          <div class="pills">${c._type !== "Oddiy xaridor" ? `<span class="pill type">🔧 ${escapeHtml(c._type)}</span>` : ""}${
+            c._fu ? `<span class="pill ${c._fu <= today() ? "late" : ""}">🔁 ${c._fu <= today() ? "qayta taklif vaqti keldi" : "qayta taklif " + fmtDate(c._fu)}</span>` : ""
+          }</div>
         </div>
         <div class="row-actions">
           ${c.phone ? `<a class="icon-btn" href="tel:${escapeHtml(c.phone)}" title="Qo'ng'iroq">📞</a>` : ""}
@@ -563,8 +623,10 @@ function openClient(id) {
   f.phone.value = c.phone || "";
   f.address.value = c.address || "";
   f.source.innerHTML = opts(SOURCES, c.source || "Do'kon");
+  f.ctype.innerHTML = opts(CLIENT_TYPES, id ? clientType(c) : "Oddiy xaridor");
   f.note.value = c.note || "";
   const cs = id ? clientSales(c) : [];
+  const fu = id ? followUpDate(c) : "";
   $("#clientHistory").innerHTML = id
     ? `<h3>Xaridlar tarixi</h3>` +
       (cs.length
@@ -574,6 +636,10 @@ function openClient(id) {
             )
             .join("")
         : `<p class="muted">Hali xarid yo'q</p>`) +
+      (fu
+        ? `<p class="muted">🔁 Qayta taklif: <b>${fmtDate(fu)}</b>${fu <= today() ? ` — vaqti keldi` : ""}${c.followDone ? ` · oxirgi marta ${fmtDate(c.followDone)} da bog'lanilgan` : ""}</p>
+           ${fu <= today() ? `<button class="btn btn-sm btn-line" type="button" id="clientFollow">✅ Qayta taklif qildim</button>` : ""}`
+        : "") +
       `<div class="btn-row"><button class="btn btn-sm btn-yellow" type="button" id="clientSell">+ Sotuv qo'shish</button>
        <button class="btn btn-sm btn-red" type="button" id="clientDel">Mijozni o'chirish</button></div>`
     : "";
@@ -585,6 +651,16 @@ $("#clientDlg").addEventListener("click", async (e) => {
   const sd = e.target.closest("[data-sdel]");
   if (sd) {
     if (await deleteSale(sd.dataset.sdel)) setTimeout(() => openClient(editClientId), 400);
+    return;
+  }
+  if (e.target.closest("#clientFollow") && c) {
+    try {
+      await updateDoc(doc(db, "crmClients", c.id), { followDone: today(), updatedAt: serverTimestamp() });
+      toast("Belgilandi. Keyingi eslatma: " + fmtDate(addDays(today(), REPEAT_DAYS[clientType(c)] || 150)));
+      setTimeout(() => openClient(c.id), 300);
+    } catch (err) {
+      toast(err.message, "err");
+    }
     return;
   }
   if (e.target.closest("#clientSell") && c) {
@@ -611,6 +687,7 @@ $("#clientForm").addEventListener("submit", async (e) => {
     phone,
     address: f.address.value.trim(),
     source: f.source.value,
+    ctype: f.ctype.value,
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
   };
@@ -631,12 +708,13 @@ $("#clientForm").addEventListener("submit", async (e) => {
 });
 
 // Sotuvda mijozni topadi yoki yangisini yaratadi
-async function upsertClient({ name, phone, address, source }) {
+async function upsertClient({ name, phone, address, source, ctype }) {
   let c = phone ? clients.find((x) => x.phone === phone) : clients.find((x) => x.name === name && !x.phone);
   if (c) {
     const patch = {};
     if (address && !c.address) patch.address = address;
     if (name && !c.name) patch.name = name;
+    if (ctype && !c.ctype) patch.ctype = ctype;
     if (Object.keys(patch).length) await updateDoc(doc(db, "crmClients", c.id), patch);
     return c.id;
   }
@@ -646,6 +724,7 @@ async function upsertClient({ name, phone, address, source }) {
     phone: phone || "",
     address: address || "",
     source: source || "Do'kon",
+    ctype: ctype || guessType(name),
     note: "",
     date: today(),
     createdAt: serverTimestamp(),
@@ -794,7 +873,7 @@ $("#saleForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   try {
     const lead = saleFromLead && leads.find((l) => l.id === saleFromLead);
-    data.clientId = await upsertClient({ name: data.name, phone, address: data.address, source: lead?.source });
+    data.clientId = await upsertClient({ name: data.name, phone, address: data.address, source: lead?.source, ctype: lead ? lead.ctype || guessType(lead.interest) : guessType(data.product) });
     if (editSaleId) await updateDoc(doc(db, "crmSales", editSaleId), data);
     else {
       const ref = await addDoc(collection(db, "crmSales"), { ...data, leadId: saleFromLead || "", createdAt: serverTimestamp() });
@@ -968,6 +1047,7 @@ $("#leadImport").addEventListener("change", async (e) => {
         date: toYmd(pick(r, "sana", "date")) || today(),
       };
       if (!lead.name && lead.instagram) lead.name = "@" + lead.instagram;
+      lead.ctype = guessType(lead.interest);
       if (phone && known.has(phone)) { dup++; continue; }
       const key = phone || "n:" + name;
       const prev = fresh.get(key);
@@ -993,4 +1073,110 @@ $("#leadImport").addEventListener("change", async (e) => {
     console.error(err);
     toast("Import bo'lmadi: " + err.message, "err");
   }
+});
+
+// ================= GURUHGA XABAR =================
+const TEMPLATES = {
+  Mebelchi: "Assalomu alaykum! FURNIPART'dan yozyapmiz. Mebelchilar uchun yangi mahsulotlar keldi: shablonlar, klipsalar, petlyalar. Ulgurji narxlar bor. Ro'yxat va narxlarni yuboraymi?",
+  "Oddiy xaridor": "Assalomu alaykum! FURNIPART premium'dan yozyapmiz. Sizga xizmat qilganimizdan xursandmiz. Hozir matras va mebel furniturasiga maxsus taklifimiz bor. Qiziqsangiz, javob yozing.",
+  "Diler / do'kon": "Assalomu alaykum! FURNIPART'dan. Yangi partiya keldi, dilerlar uchun narxlar yangilandi. Prays-listni yuboraymi?",
+  due: "Assalomu alaykum! FURNIPART'dan yozyapmiz. Oldingi xaridingiz bo'yicha hammasi joyidami? Sizga yana kerakli narsa bo'lsa, maxsus narx qilib beramiz.",
+  all: "Assalomu alaykum! FURNIPART premium'dan yozyapmiz. Yangi mahsulotlar va chegirmalar haqida bilishni xohlaysizmi?",
+};
+const BC_GROUPS = [
+  ["Mebelchi", "🔧 Mebelchilar (mijoz + lid)"],
+  ["Diler / do'kon", "🏪 Dilerlar / do'konlar"],
+  ["Oddiy xaridor", "🏠 Oddiy xaridorlar (xarid qilganlar)"],
+  ["due", "🔁 Qayta taklif vaqti kelganlar"],
+  ["lost", "❌ Rad etgan lidlar (qimmat / hozir kerak emas)"],
+  ["all", "👥 Barcha mijozlar"],
+];
+$("#bcGroup").innerHTML = BC_GROUPS.map(([v, l]) => `<option value="${escapeHtml(v)}">${escapeHtml(l)}</option>`).join("");
+
+function bcRecipients(g) {
+  const m = new Map();
+  const add = (x) => x.phone && !m.has(x.phone) && m.set(x.phone, x);
+  if (g === "all") clients.forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
+  else if (g === "due") clients.filter(followDue).forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
+  else if (g === "lost")
+    leads
+      .filter((l) => l.stage === "Rad etdi" && ["Qimmat", "Hozir kerak emas", "Javob bermadi"].includes(l.lostReason))
+      .forEach((l) => add({ name: l.name, phone: l.phone, kind: "lead", id: l.id, last: l.lastMsg, extra: l.lostReason }));
+  else {
+    clients.filter((c) => clientType(c) === g).forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
+    if (g !== "Oddiy xaridor")
+      leads
+        .filter((l) => (l.ctype || guessType(l.interest)) === g && l.stage !== "Sotildi")
+        .forEach((l) => add({ name: l.name, phone: l.phone, kind: "lead", id: l.id, last: l.lastMsg, extra: l.interest }));
+  }
+  return [...m.values()];
+}
+
+function renderBroadcast() {
+  const g = $("#bcGroup").value;
+  const list = bcRecipients(g);
+  const text = $("#bcText").value;
+  const enc = encodeURIComponent(text);
+  const sent = list.filter((r) => r.last === today()).length;
+  $("#bcInfo").textContent = `${list.length} ta qabul qiluvchi${sent ? ` · bugun ${sent} tasiga yuborildi` : ""}`;
+  $("#bcList").innerHTML = list.length
+    ? list
+        .map((r) => {
+          const d = r.phone.replace(/\D/g, "");
+          return `<div class="mini-row bc-row ${r.last === today() ? "sent" : ""}">
+        <div><b>${escapeHtml(r.name || "Nomsiz")}</b> <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
+        <div class="row-actions">
+          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
+          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://wa.me/${d}?text=${enc}" target="_blank" rel="noopener" title="WhatsApp">🟢</a>
+          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://t.me/+${d}" target="_blank" rel="noopener" title="Telegram (matnni nusxalab qo'ying)">✈️</a>
+        </div>
+      </div>`;
+        })
+        .join("")
+    : `<p class="muted">Bu guruhda telefon raqamli hech kim yo'q</p>`;
+}
+
+$("#bcOpen").addEventListener("click", () => {
+  $("#bcGroup").value = $("#cType").value === "all" ? "Mebelchi" : $("#cType").value;
+  $("#bcText").value = TEMPLATES[$("#bcGroup").value] || TEMPLATES.all;
+  renderBroadcast();
+  $("#bcDlg").showModal();
+});
+$("#bcGroup").addEventListener("change", () => {
+  $("#bcText").value = TEMPLATES[$("#bcGroup").value] || TEMPLATES.all;
+  renderBroadcast();
+});
+$("#bcText").addEventListener("input", renderBroadcast);
+
+$("#bcCopy").addEventListener("click", async () => {
+  const list = bcRecipients($("#bcGroup").value);
+  try {
+    await navigator.clipboard.writeText($("#bcText").value);
+    toast("Matn nusxalandi — Telegram'da qo'ying");
+  } catch {
+    toast(`${list.length} ta raqam — matnni qo'lda nusxalang`, "err");
+  }
+});
+$("#bcPhones").addEventListener("click", async () => {
+  const phones = bcRecipients($("#bcGroup").value).map((r) => r.phone).join("\n");
+  try {
+    await navigator.clipboard.writeText(phones);
+    toast("Raqamlar nusxalandi");
+  } catch {
+    prompt("Raqamlar:", phones.replace(/\n/g, ", "));
+  }
+});
+
+// Xabar tugmasi bosilganda — "bugun yuborildi" deb belgilaymiz
+$("#bcList").addEventListener("click", async (e) => {
+  const a = e.target.closest("[data-bcsent]");
+  if (!a) return;
+  if (a.title.startsWith("Telegram")) navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
+  const [kind, id] = a.dataset.bcsent.split(":");
+  try {
+    await updateDoc(doc(db, kind === "lead" ? "crmLeads" : "crmClients", id), { lastMsg: today() });
+  } catch (err) {
+    console.error(err);
+  }
+  setTimeout(renderBroadcast, 300);
 });

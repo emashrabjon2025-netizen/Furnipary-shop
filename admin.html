@@ -65,6 +65,7 @@
         <div class="panel"><h2>📞 Bugun qo'ng'iroq qilish kerak</h2><div id="rCalls"></div></div>
         <div class="panel"><h2>Kunlik sotuv (reja kategoriyasi)</h2><div class="daily" id="rDaily"></div></div>
         <div class="panel"><h2>Lidlar manbasi</h2><div id="rSources"></div></div>
+        <div class="panel"><h2>🔁 Qayta taklif vaqti kelgan mijozlar</h2><div id="rRepeat"></div></div>
         <div class="panel"><h2>Lidlar bosqichi</h2><div id="rFunnel"></div></div>
         <div class="panel"><h2>Kategoriyalar bo'yicha (dona)</h2><div id="rCats"></div></div>
         <div class="panel"><h2>❌ Nega sotilmadi (rad etish sabablari)</h2><div id="rLost"></div></div>
@@ -89,9 +90,12 @@
     <div class="tabpane" id="tab-clients" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newClient" type="button">+ Yangi mijoz</button>
+        <button class="btn btn-dark" id="bcOpen" type="button">📣 Guruhga xabar</button>
+        <select id="cType"><option value="all">Barcha turlar</option><option value="due">🔁 Qayta taklif vaqti kelgan</option></select>
         <select id="cSort"><option value="new">Yangilari</option><option value="last">Oxirgi xarid</option><option value="sales">Ko'p xarid qilgan</option><option value="name">Ism (A–Z)</option></select>
         <input id="cSearch" type="search" placeholder="Ism, telefon, manzil…" />
       </div>
+      <p class="summary bad" id="cDue" hidden></p>
       <div id="clientsList" class="rows"></div>
     </div>
 
@@ -201,10 +205,28 @@
         <label>Viloyat / manzil<input name="region" maxlength="120" /></label>
         <label>Instagram<input name="instagram" maxlength="60" placeholder="@username" /></label>
       </div>
+      <label>Mijoz turi<select name="ctype"></select></label>
       <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
     </form>
+  </dialog>
+
+  <!-- CRM: Guruhga xabar -->
+  <dialog id="bcDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div class="pform">
+      <h2>📣 Guruhga xabar</h2>
+      <label>Kimga<select id="bcGroup"></select></label>
+      <label>Xabar matni<textarea id="bcText" rows="5" maxlength="1000"></textarea></label>
+      <div class="btn-row">
+        <button class="btn btn-sm btn-line" type="button" id="bcCopy">📋 Matnni nusxalash</button>
+        <button class="btn btn-sm btn-line" type="button" id="bcPhones">📞 Raqamlarni nusxalash</button>
+      </div>
+      <p class="muted" id="bcInfo"></p>
+      <p class="muted small">💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bosilgan mijoz "bugun yuborildi" deb belgilanadi.</p>
+      <div id="bcList"></div>
+    </div>
   </dialog>
 
   <!-- CRM: Rad etish sababi -->
@@ -231,6 +253,7 @@
         <label>Manzil<input name="address" maxlength="120" placeholder="Shahar, mahalla" /></label>
         <label>Manba<select name="source"></select></label>
       </div>
+      <label>Mijoz turi<select name="ctype"></select></label>
       <label>Izoh<textarea name="note" rows="2" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
       <div id="clientHistory" class="history"></div>
@@ -272,6 +295,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=6"></script>
+  <script type="module" src="js/crm.js?v=7"></script>
 </body>
 </html>
