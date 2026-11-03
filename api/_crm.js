@@ -8,137 +8,53 @@
 //   TELEGRAM_BOT_TOKEN       — @BotFather bergan token
 //   TELEGRAM_CHAT_ID         — xabar boradigan chat ID
 
-const API_KEY = "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU";
-const PROJECT = "furbipart";
-const DB = "default";
-const BASE = `projects/${PROJECT}/databases/${DB}/documents`;
-const FS = `https://firestore.googleapis.com/v1/${BASE}`;
+// Firestore'ga Firebase JS SDK orqali ulanamiz (REST so'rovlari bu loyihada rad etiladi)
+const { initializeApp, getApps } = require("firebase/app");
+const { getAuth, signInWithEmailAndPassword } = require("firebase/auth");
+const fs = require("firebase/firestore");
 
-let cached = null;
+const app = getApps()[0] || initializeApp({ apiKey: "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU", authDomain: "furbipart.firebaseapp.com", projectId: "furbipart" });
+const db = fs.initializeFirestore(app, { experimentalForceLongPolling: true }, "default");
+const auth = getAuth(app);
+
+let loginP = null;
 async function idToken() {
-  if (cached && cached.exp > Date.now()) return cached.token;
+  if (auth.currentUser) return auth.currentUser.getIdToken();
   const email = process.env.FIREBASE_ADMIN_EMAIL;
   const password = process.env.FIREBASE_ADMIN_PASSWORD;
   if (!email || !password) throw new Error("FIREBASE_ADMIN_EMAIL / FIREBASE_ADMIN_PASSWORD sozlanmagan");
-  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, returnSecureToken: true }),
-  });
-  const j = await r.json();
-  if (!r.ok) throw new Error("Firebase login: " + (j.error?.message || r.status));
-  cached = { uid: j.localId, email: j.email, token: j.idToken, exp: Date.now() + (Number(j.expiresIn) - 120) * 1000 };
-  return cached.token;
+  loginP = loginP || signInWithEmailAndPassword(auth, email, password).catch((e) => { loginP = null; throw new Error("Firebase login: " + (e.code || e.message)); });
+  await loginP;
+  return auth.currentUser.getIdToken();
 }
+const whoami = async () => (await idToken(), { uid: auth.currentUser.uid, email: auth.currentUser.email });
 
-async function call(url, opts = {}) {
-  const r = await fetch(url, {
-    ...opts,
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (await idToken()) },
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error("Firestore: " + (j.error?.message || r.status));
-  return j;
-}
-
-// ---- qiymatlarni Firestore formatiga va qaytarib o'girish ----
-function enc(v) {
-  if (v === null || v === undefined) return { nullValue: null };
-  if (typeof v === "string") return { stringValue: v };
-  if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
-  if (typeof v === "boolean") return { booleanValue: v };
-  if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
-  return { mapValue: { fields: encFields(v) } };
-}
-function encFields(o) {
-  const f = {};
-  Object.entries(o).forEach(([k, v]) => (f[k] = enc(v)));
-  return f;
-}
-function dec(v) {
-  if (!v) return null;
-  if ("stringValue" in v) return v.stringValue;
-  if ("integerValue" in v) return Number(v.integerValue);
-  if ("doubleValue" in v) return v.doubleValue;
-  if ("booleanValue" in v) return v.booleanValue;
-  if ("timestampValue" in v) return v.timestampValue;
-  if ("nullValue" in v) return null;
-  if ("arrayValue" in v) return (v.arrayValue.values || []).map(dec);
-  if ("mapValue" in v) return decFields(v.mapValue.fields || {});
-  return null;
-}
-function decFields(f) {
-  const o = {};
-  Object.entries(f || {}).forEach(([k, v]) => (o[k] = dec(v)));
+const plain = (v) => (v && typeof v.toDate === "function" ? v.toDate().toISOString() : v);
+const docOf = (d) => {
+  const o = { id: d.id };
+  Object.entries(d.data()).forEach(([k, v]) => (o[k] = plain(v)));
   return o;
-}
-const docOf = (d) => ({ id: d.name.split("/").pop(), ...decFields(d.fields) });
+};
 
 async function list(col) {
-  const out = [];
-  let page = "";
-  do {
-    const j = await call(`${FS}/${col}?pageSize=300${page ? "&pageToken=" + page : ""}`);
-    (j.documents || []).forEach((d) => out.push(docOf(d)));
-    page = j.nextPageToken || "";
-  } while (page);
-  return out;
+  await idToken();
+  return (await fs.getDocs(fs.collection(db, col))).docs.map(docOf);
 }
 
 async function findBy(col, field, value) {
-  const j = await call(`${FS}:runQuery`, {
-    method: "POST",
-    body: JSON.stringify({
-      structuredQuery: {
-        from: [{ collectionId: col }],
-        where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: enc(value) } },
-        limit: 20,
-      },
-    }),
-  });
-  return j.filter((x) => x.document).map((x) => docOf(x.document));
+  await idToken();
+  return (await fs.getDocs(fs.query(fs.collection(db, col), fs.where(field, "==", value), fs.limit(20)))).docs.map(docOf);
 }
 
-function randomId() {
-  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from(require("crypto").randomBytes(20), (n) => abc[n % abc.length]).join("");
+async function create(col, data) {
+  await idToken();
+  const ref = await fs.addDoc(fs.collection(db, col), { ...data, createdAt: fs.serverTimestamp(), updatedAt: fs.serverTimestamp() });
+  return ref.id;
 }
 
-// Yangi hujjat yaratadi (createdAt/updatedAt — server vaqti)
-async function create(col, data, id = randomId()) {
-  await call(`${FS}:commit`, {
-    method: "POST",
-    body: JSON.stringify({
-      writes: [
-        {
-          update: { name: `${BASE}/${col}/${id}`, fields: encFields(data) },
-          updateTransforms: [
-            { fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" },
-            { fieldPath: "updatedAt", setToServerValue: "REQUEST_TIME" },
-          ],
-          currentDocument: { exists: false },
-        },
-      ],
-    }),
-  });
-  return id;
-}
-
-// Mavjud hujjatning faqat berilgan maydonlarini o'zgartiradi
 async function patch(col, id, data) {
-  await call(`${FS}:commit`, {
-    method: "POST",
-    body: JSON.stringify({
-      writes: [
-        {
-          update: { name: `${BASE}/${col}/${id}`, fields: encFields(data) },
-          updateMask: { fieldPaths: Object.keys(data) },
-          updateTransforms: [{ fieldPath: "updatedAt", setToServerValue: "REQUEST_TIME" }],
-          currentDocument: { exists: true },
-        },
-      ],
-    }),
-  });
+  await idToken();
+  await fs.updateDoc(fs.doc(db, col, id), { ...data, updatedAt: fs.serverTimestamp() });
 }
 
 // ---- umumiy ----
@@ -214,5 +130,4 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
   return { ok: true, id, repeat: false };
 }
 
-const whoami = async () => (await idToken(), { uid: cached.uid, email: cached.email });
 module.exports = { whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
