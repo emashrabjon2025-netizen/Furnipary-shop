@@ -27,7 +27,7 @@ async function idToken() {
   });
   const j = await r.json();
   if (!r.ok) throw new Error("Firebase login: " + (j.error?.message || r.status));
-  cached = { token: j.idToken, exp: Date.now() + (Number(j.expiresIn) - 120) * 1000 };
+  cached = { uid: j.localId, email: j.email, token: j.idToken, exp: Date.now() + (Number(j.expiresIn) - 120) * 1000 };
   return cached.token;
 }
 
@@ -214,4 +214,5 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
   return { ok: true, id, repeat: false };
 }
 
-module.exports = { list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
+const whoami = async () => (await idToken(), { uid: cached.uid, email: cached.email });
+module.exports = { whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
