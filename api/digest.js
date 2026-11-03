@@ -44,6 +44,8 @@ module.exports = async (req, res) => {
     const open = leads.filter((l) => !CLOSED.includes(l.stage));
     const calls = open.filter((l) => l.nextCall && l.nextCall <= t).sort((a, b) => a.nextCall.localeCompare(b.nextCall));
     const noDate = open.filter((l) => !l.nextCall);
+    const stale = leads.filter((l) => l.stage === "Yangi" && l.createdAt && Date.now() - Date.parse(l.createdAt) > 24 * 3600e3);
+    const overdue = open.filter((l) => l.nextCall && l.nextCall < t);
     const line = (l) =>
       `• <b>${esc(l.name || "Nomsiz")}</b> ${l.phone ? esc(l.phone) : ""}${l.interest ? " — " + esc(l.interest.slice(0, 50)) : ""}${
         l.nextCall && l.nextCall < t ? ` <i>(${fmt(l.nextCall)} dan beri)</i>` : ""
@@ -72,6 +74,24 @@ module.exports = async (req, res) => {
     const newYest = leads.filter((l) => l.date === yesterday).length;
     const soldYest = sales.filter((s) => s.date === yesterday && s.status !== "Bekor qilindi").length;
 
+    // Kechki eslatma (18:00): faqat muammo bo'lsa yuboriladi
+    if (req.query.mode === "evening") {
+      const todayCalls = open.filter((l) => l.nextCall === t);
+      if (!stale.length && !noDate.length && !todayCalls.length && !overdue.length) return res.status(200).json({ ok: true, sent: false });
+      const ev = [
+        `🌙 <b>Kechki eslatma</b>`,
+        stale.length ? `\n⏰ <b>24 soatdan beri javob berilmagan: ${stale.length} ta</b>` : null,
+        ...stale.slice(0, 10).map(line),
+        todayCalls.length ? `\n📞 Bugun qo'ng'iroq qilinishi kerak edi: ${todayCalls.length} ta (holati o'zgarmagan)` : null,
+        overdue.length ? `⌛ Muddati o'tgan qo'ng'iroqlar: ${overdue.length} ta` : null,
+        noDate.length ? `⚠️ Qo'ng'iroq sanasi qo'yilmagan: ${noDate.length} ta` : null,
+        ``,
+        `👉 https://furnipart-shop.vercel.app/admin`,
+      ].filter((x) => x !== null);
+      const r = await tg(ev.join("\n"));
+      return res.status(200).json({ ok: r.ok, sent: true });
+    }
+
     const parts = [
       `☀️ <b>CRM · ${d}-${MONTHS[m - 1]}</b>`,
       ``,
@@ -81,7 +101,8 @@ module.exports = async (req, res) => {
       calls.length ? `📞 <b>Bugun qo'ng'iroq qilish kerak: ${calls.length} ta</b>` : `📞 Bugun rejadagi qo'ng'iroq yo'q`,
       ...calls.slice(0, 15).map(line),
       calls.length > 15 ? `… yana ${calls.length - 15} ta` : null,
-      noDate.length ? `\n⚠️ Qo'ng'iroq sanasi qo'yilmagan ochiq lidlar: ${noDate.length} ta` : null,
+      stale.length ? `\n⏰ 24 soatdan beri javob berilmagan yangi lidlar: <b>${stale.length} ta</b>` : null,
+      noDate.length ? `${stale.length ? "" : "\n"}⚠️ Qo'ng'iroq sanasi qo'yilmagan ochiq lidlar: ${noDate.length} ta` : null,
       debts.length ? `\n💰 <b>Qoldiq (mijozlar berishi kerak): ${Object.entries(debtSum).map(([c, v]) => money(v, c)).join(" + ")}</b>` : null,
       ...debts.slice(0, 5).map((s) => `• ${esc(s.name || "Nomsiz")} — ${money(s.rest, s.currency)}`),
       due.length ? `\n🔁 <b>Qayta taklif qilish vaqti kelgan: ${due.length} ta</b>` : null,

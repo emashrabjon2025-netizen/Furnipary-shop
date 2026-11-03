@@ -41,6 +41,15 @@ export const SALE_STATUSES = ["Yangi", "Tayyorlanmoqda", "Yo'lda", "Yetkazildi",
 const CLOSED = ["Sotildi", "Rad etdi"];
 export const LOST_REASONS = ["Qimmat", "Yetkazib berish / uzoq", "Raqobatchidan oldi", "Javob bermadi", "Hozir kerak emas", "Kerakli mahsulot yo'q", "Shunchaki so'radi", "Boshqa"];
 
+// ---- Intizom: javobsiz va sanasiz lidlar ----
+const tsMs = (v) => (v && typeof v.toMillis === "function" ? v.toMillis() : typeof v === "number" ? v : v ? Date.parse(v) || 0 : 0);
+// "Yangi" bosqichida 24 soatdan ko'p turgan lid
+const isStale = (l) => l.stage === "Yangi" && tsMs(l.createdAt) && Date.now() - tsMs(l.createdAt) > 24 * 3600e3;
+// Ochiq, lekin keyingi qo'ng'iroq sanasi qo'yilmagan lid
+const noDate = (l) => !CLOSED.includes(l.stage) && !l.nextCall;
+// Lid yaratilgandan birinchi bog'lanishgacha o'tgan soat
+const replyHours = (l) => (l.contactedAt && tsMs(l.createdAt) ? (tsMs(l.contactedAt) - tsMs(l.createdAt)) / 3600e3 : null);
+
 // Mijoz turlari va qayta taklif oralig'i (oxirgi xariddan keyin, kun)
 export const CLIENT_TYPES = ["Oddiy xaridor", "Mebelchi", "Diler / do'kon"];
 const REPEAT_DAYS = { "Oddiy xaridor": 150, Mebelchi: 30, "Diler / do'kon": 21 };
@@ -264,6 +273,13 @@ function renderReport() {
     ["Yangi lidlar", mLeads.length],
     ["Konversiya", conv + "%"],
     ["Yangi mijozlar", mClients.length],
+    ["O'rtacha javob vaqti", (() => {
+      const hs = mLeads.map(replyHours).filter((h) => h !== null && h >= 0);
+      if (!hs.length) return "—";
+      const avg = hs.reduce((a, b) => a + b, 0) / hs.length;
+      return avg < 1 ? Math.round(avg * 60) + " daqiqa" : avg < 48 ? avg.toFixed(1) + " soat" : Math.round(avg / 24) + " kun";
+    })()],
+    ["Hozir javobsiz (24 soat+)", leads.filter(isStale).length],
   ]
     .map(([k, v]) => `<div class="kpi"><small>${k}</small><b>${v}</b></div>`)
     .join("");
@@ -383,15 +399,22 @@ function renderLeads() {
   const list = leads.filter(
     (l) =>
       (src === "all" || l.source === src) &&
-      (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
+      (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : st === "stale" ? isStale(l) : st === "nodate" ? noDate(l) : l.stage === st) &&
       (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q))
   );
   const open = leads.filter((l) => !CLOSED.includes(l.stage)).length;
   $("#lCount").textContent = open || "";
+  const nStale = leads.filter(isStale).length;
+  const nNoDate = leads.filter(noDate).length;
+  $("#lAlert").innerHTML = [
+    nStale ? `<button class="pill late" data-lf="stale">⏰ 24 soatdan beri javobsiz: ${nStale}</button>` : "",
+    nNoDate ? `<button class="pill late" data-lf="nodate">⚠️ Qo'ng'iroq sanasi yo'q: ${nNoDate}</button>` : "",
+  ].join(" ");
+  $("#lAlert").hidden = !nStale && !nNoDate;
   $("#leadList").innerHTML = list.length
     ? list
         .map(
-          (l) => `<div class="order crm-card" data-s="${escapeHtml(l.stage)}">
+          (l) => `<div class="order crm-card ${isStale(l) || noDate(l) ? "alarm" : ""}" data-s="${escapeHtml(l.stage)}">
         <div class="order-head">
           <b>${escapeHtml(l.name || "Nomsiz")}</b>
           <small>${escapeHtml(l.source || "")} · ${fmtDate(l.date)}</small>
@@ -408,6 +431,8 @@ function renderLeads() {
             ? `<div><span class="pill ${l.nextCall < t ? "late" : l.nextCall === t ? "today" : ""}">📞 ${fmtDate(l.nextCall)}</span></div>`
             : ""
         }
+        ${isStale(l) ? `<div><span class="pill late">⏰ ${Math.floor((Date.now() - tsMs(l.createdAt)) / 3600e3)} soatdan beri javobsiz</span></div>` : ""}
+        ${noDate(l) ? `<div><button class="pill late" data-lcall="${l.id}">⚠️ Qo'ng'iroq sanasi yo'q — qo'yish</button></div>` : ""}
         <div class="order-foot">
           <select data-lstage="${l.id}">${opts(LEAD_STAGES, l.stage)}</select>
           <div class="row-actions">
@@ -440,7 +465,7 @@ function openLead(id) {
   f.region.value = l.region || "";
   f.instagram.value = l.instagram || "";
   f.ctype.innerHTML = opts(CLIENT_TYPES, l.ctype || guessType(l.interest));
-  f.nextCall.value = l.nextCall || "";
+  f.nextCall.value = id ? l.nextCall || "" : today();
   f.note.value = l.note || "";
   $("#leadDlg").showModal();
 }
@@ -467,6 +492,8 @@ $("#leadForm").addEventListener("submit", async (e) => {
   if (!data.name && !data.phone) return toast("Ism yoki telefon kiriting", "err");
   if (data.stage === "Rad etdi" && !data.lostReason) return toast("Rad etish sababini tanlang", "err");
   if (data.stage === "Rad etdi") data.lostDate = leads.find((l) => l.id === editLeadId)?.lostDate || today();
+  const prev = leads.find((l) => l.id === editLeadId);
+  if (data.stage !== "Yangi" && !(prev && prev.contactedAt)) data.contactedAt = serverTimestamp();
   try {
     if (editLeadId) await updateDoc(doc(db, "crmLeads", editLeadId), data);
     else await addDoc(collection(db, "crmLeads"), { ...data, date: today(), createdAt: serverTimestamp() });
@@ -475,6 +502,36 @@ $("#leadForm").addEventListener("submit", async (e) => {
   } catch (err) {
     toast("Saqlanmadi: " + err.message, "err");
   }
+});
+
+// Keyingi qo'ng'iroq sanasini so'raydi (tez tugmalar bilan). Bekor qilinsa — null
+function askCallDate(name) {
+  return new Promise((resolve) => {
+    const dlg = $("#callDlg");
+    $("#callWho").textContent = name || "Mijoz";
+    $("#callPick").value = addDays(today(), 1);
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      dlg.close();
+      resolve(v);
+    };
+    $("#callBtns").onclick = (e) => {
+      const b = e.target.closest("[data-days]");
+      if (b) finish(addDays(today(), Number(b.dataset.days)));
+    };
+    $("#callOk").onclick = () => finish($("#callPick").value || null);
+    dlg.addEventListener("close", () => finish(null), { once: true });
+    dlg.showModal();
+  });
+}
+
+$("#lAlert").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-lf]");
+  if (!b) return;
+  $("#lStage").value = b.dataset.lf;
+  renderLeads();
 });
 
 // Rad etish sababini so'raydi. Bekor qilinsa — null
@@ -512,6 +569,11 @@ $("#leadList").addEventListener("change", async (e) => {
     if (!r) return renderLeads();
     extra = { ...r, lostDate: today() };
   }
+  if (lead && lead.stage === "Yangi" && sel.value !== "Yangi" && !lead.contactedAt) extra.contactedAt = serverTimestamp();
+  if (["Bog'lanildi", "O'ylab ko'radi"].includes(sel.value)) {
+    const d = await askCallDate(lead?.name);
+    if (d) extra.nextCall = d;
+  }
   try {
     await updateDoc(doc(db, "crmLeads", sel.dataset.lstage), { stage: sel.value, ...extra, updatedAt: serverTimestamp() });
     if (sel.value === "Sotildi") openSale(null, leads.find((l) => l.id === sel.dataset.lstage));
@@ -521,6 +583,17 @@ $("#leadList").addEventListener("change", async (e) => {
 });
 
 $("#leadList").addEventListener("click", async (e) => {
+  const lc = e.target.closest("[data-lcall]");
+  if (lc) {
+    const lead = leads.find((l) => l.id === lc.dataset.lcall);
+    const d = await askCallDate(lead?.name);
+    if (d) {
+      const upd = { nextCall: d, updatedAt: serverTimestamp() };
+      if (lead.stage === "Yangi") Object.assign(upd, { stage: "Bog'lanildi", contactedAt: serverTimestamp() });
+      await updateDoc(doc(db, "crmLeads", lead.id), upd).catch((err) => toast(err.message, "err"));
+    }
+    return;
+  }
   const ed = e.target.closest("[data-ledit]");
   const del = e.target.closest("[data-ldel]");
   const sell = e.target.closest("[data-lsell]");

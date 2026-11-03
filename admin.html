@@ -79,10 +79,11 @@
       <div class="toolbar">
         <button class="btn btn-yellow" id="newLead" type="button">+ Yangi lid</button>
         <label class="btn btn-line file-btn">⬆ Excel'dan import<input id="leadImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
-        <select id="lStage"><option value="open">Ochiq lidlar</option><option value="all">Barchasi</option></select>
+        <select id="lStage"><option value="open">Ochiq lidlar</option><option value="all">Barchasi</option><option value="stale">⏰ 24 soatdan beri javobsiz</option><option value="nodate">⚠️ Qo'ng'iroq sanasi yo'q</option></select>
         <select id="lSource"><option value="all">Barcha manbalar</option></select>
         <input id="lSearch" type="search" placeholder="Ism, telefon…" />
       </div>
+      <div id="lAlert" class="alert-row" hidden></div>
       <div id="leadList" class="rows"></div>
     </div>
 
@@ -229,6 +230,22 @@
     </div>
   </dialog>
 
+  <!-- CRM: Keyingi qo'ng'iroq sanasi -->
+  <dialog id="callDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div class="pform">
+      <h2>📞 Keyingi qo'ng'iroq qachon?</h2>
+      <p class="muted" id="callWho"></p>
+      <div class="reason-btns" id="callBtns">
+        <button type="button" class="btn btn-line" data-days="1">Ertaga</button>
+        <button type="button" class="btn btn-line" data-days="3">3 kundan keyin</button>
+        <button type="button" class="btn btn-line" data-days="7">1 haftadan keyin</button>
+        <button type="button" class="btn btn-line" data-days="30">1 oydan keyin</button>
+      </div>
+      <div class="two"><input id="callPick" type="date" /><button type="button" class="btn btn-yellow" id="callOk">Shu sana</button></div>
+    </div>
+  </dialog>
+
   <!-- CRM: Rad etish sababi -->
   <dialog id="reasonDlg" class="sheet">
     <button class="x" data-close type="button" aria-label="Yopish">×</button>
@@ -295,6 +312,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=7"></script>
+  <script type="module" src="js/crm.js?v=8"></script>
 </body>
 </html>
