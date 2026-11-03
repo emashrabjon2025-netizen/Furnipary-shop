@@ -1,0 +1,60 @@
+{
+ "kategoriya": "MATRAS",
+ "slides": [
+  {
+   "type": "cover",
+   "kicker": "Bilasizmi?",
+   "title": "Matras ichida nima yashiringan?",
+   "accent": "ichida",
+   "sub": "Prujinali va prujinasiz matraslar farqi — 4 ta sir shu yerda",
+   "anim": "matras"
+  },
+  {
+   "type": "point",
+   "num": "01",
+   "title": "Bogʻliq prujinali blok",
+   "text": "Prujinalar bir-biriga sim bilan bogʻlangan. Bir joyni bossangiz, atrofidagi prujinalar ham birga egiladi. Oddiy va mustahkam yechim.",
+   "tag": "Bonnel",
+   "anim": "bonnel"
+  },
+  {
+   "type": "point",
+   "num": "02",
+   "title": "Mustaqil prujinalar",
+   "text": "Har bir prujina alohida mato xaltachada. Faqat bosilgan joy egiladi — yoningizdagi odam aylansa ham, uning harakatini kam sezasiz.",
+   "tag": "Pocket spring",
+   "anim": "pocket"
+  },
+  {
+   "type": "point",
+   "num": "03",
+   "title": "Prujinasiz matras",
+   "text": "Ichida prujina yoʻq — koʻpik, lateks yoki kokos qatlamlari ustma-ust yopishtirilgan. Gʻijirlamaydi, qattiqligi qatlamlar tarkibiga bogʻliq.",
+   "tag": "Qatlamlar",
+   "anim": "qatlam"
+  },
+  {
+   "type": "point",
+   "num": "04",
+   "title": "Lamelli ortopedik asos",
+   "text": "Egiluvchan yogʻoch reykalar matras ostida prujinadek ishlaydi. Yuk teng taqsimlanadi, reykalar orasidan havo aylanadi.",
+   "tag": "Asos",
+   "anim": "lamel"
+  },
+  {
+   "type": "list",
+   "title": "Matras tanlashdan oldin",
+   "items": [
+    "Karavot oʻlchamini aniq oʻlchang",
+    "Doʻkonda yotib sinab koʻring",
+    "Vazn va uyqu holatini hisobga oling",
+    "Asos holatini ham tekshiring"
+   ]
+  },
+  {
+   "type": "cta",
+   "title": "Matrasni FURNIPART'dan tanlang",
+   "text": "Prujinali va prujinasiz matraslar, ortopedik asoslar. Sizga mosini tanlashga yordam beramiz."
+  }
+ ]
+}

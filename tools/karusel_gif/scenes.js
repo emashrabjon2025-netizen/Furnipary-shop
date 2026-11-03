@@ -409,6 +409,144 @@ S.savat = () => {
   };
 };
 
+// ===== MATRAS sahnalari =====
+class Helix extends THREE.Curve {
+  constructor(r, h, turns, hour) { super(); this.r = r; this.h = h; this.turns = turns; this.hour = hour; }
+  getPoint(t, o = new THREE.Vector3()) { const a = t * this.turns * Math.PI * 2, r = this.hour ? this.r * (.62 + .55 * Math.pow(2 * t - 1, 2)) : this.r; return o.set(Math.cos(a) * r, t * this.h, Math.sin(a) * r); }
+}
+const quiltTex = (base = '#f4f1ea') => ctex(512, 512, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(0,0,0,.13)'; g.lineWidth = 5; for (let i = -w; i < w * 2; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i, h); g.lineTo(i + h, 0); g.stroke(); } });
+const QUILT = quiltTex();
+const tmat = (tex, rep = [2, 2], col = '#ffffff', rough = .85) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(...rep); return new THREE.MeshStandardMaterial({ map: t, color: col, roughness: rough }); };
+// prujina panjarasi: set(i, s) — s = siqilish koeffitsienti (1 = boʻsh)
+function springGrid({ nx, nz, p, h, r, hour = false, pocket = false, yb = 0 }) {
+  const g = new THREE.Group(), geo = new THREE.TubeGeometry(new Helix(r, h, hour ? 4 : 5, hour), 150, .0042, 6, false), items = [];
+  const pGeo = new THREE.CylinderGeometry(r * 1.18, r * 1.18, h, 18), pMat = new THREE.MeshStandardMaterial({ color: '#efe9dc', roughness: .95, transparent: true, opacity: .42, depthWrite: false });
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+    const x = (i - (nx - 1) / 2) * p, z = (j - (nz - 1) / 2) * p;
+    const m = new THREE.Mesh(geo, mat('chrome')); m.castShadow = true; m.position.set(x, yb, z); g.add(m);
+    let pk = null; if (pocket) { pk = new THREE.Mesh(pGeo, pMat); pk.position.set(x, yb + h / 2, z); g.add(pk); }
+    items.push({ m, pk, x, z, i, j, s: 1 });
+  }
+  return { g, items, h, yb, set(it, s) { it.s = s; it.m.scale.y = s; if (it.pk) { it.pk.scale.y = s; it.pk.position.y = yb + h * s / 2; } }, top(it) { return yb + h * it.s; } };
+}
+const UP = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
+function rod(m) { const c = cyl(.0035, 1, m, 0, 0, 0, 6); return c; }
+function placeRod(c, a, b) { _d.subVectors(b, a); const L = _d.length(); c.position.addVectors(a, b).multiplyScalar(.5); c.quaternion.setFromUnitVectors(UP, _d.normalize()); c.scale.set(1, L, 1); }
+const gauss = (dx, dz, s) => Math.exp(-(dx * dx + dz * dz) / (2 * s * s));
+
+// MUQOVA (matras): yopiq matras -> ustki qatlamlar koʻtariladi, ichidagi prujinalar toʻlqin boʻlib ishlaydi -> yopiladi
+S.matras = () => {
+  const g = new THREE.Group(), nx = 12, nz = 8, p = .09, Wx = nx * p + .04, Dz = nz * p + .04, yb = .03, sp = springGrid({ nx, nz, p, h: .16, r: .036, pocket: true, yb });
+  g.add(box(Wx, .03, Dz, 'inner', 0, .015, 0)); g.add(sp.g);
+  const bordM = tmat(QUILT, [6, .5], '#e6e2d8');
+  [[Wx, .16, .02, 0, -Dz / 2 + .01], [Wx, .16, .02, 0, Dz / 2 - .01], [.02, .16, Dz, -Wx / 2 + .01, 0], [.02, .16, Dz, Wx / 2 - .01, 0]].forEach(([a, b, c, x, z]) => g.add(box(a, b, c, bordM, x, yb + .08, z)));
+  const foam = box(Wx, .04, Dz, '#f2df8a', 0, .21, 0); g.add(foam);
+  const topM = [bordM, bordM, tmat(QUILT, [3, 2]), bordM, bordM, bordM];
+  const cover = sh(new THREE.Mesh(new THREE.BoxGeometry(Wx + .01, .045, Dz + .01), topM)); cover.position.y = .2525; g.add(cover);
+  const labels = [{ obj: anchor(g, -.25, .2, .15), text: 'Ichida prujinalar', style: 'yel', at: 1.4, side: 'left', until: 3.2 }];
+  return {
+    group: g, dur: 4.8, cam: { pos: [2.2, 2.0, 2.6], target: [0, .26, 0], zoom: 1.08 }, labels,
+    update(t, dur) {
+      const o = pulse(t, .7, 1.4, 3.3, 4.0); cover.position.y = .2525 + .34 * o; foam.position.y = .21 + .18 * o; cover.rotation.x = -.16 * o; foam.rotation.x = -.07 * o;
+      const w = seg(t, 1.3, 3.3);
+      sp.items.forEach(it => { const ph = w * 2.4 - (it.x + .55) / 1.1; sp.set(it, 1 - .32 * Math.max(0, Math.sin(clamp(ph) * Math.PI)) * (w > 0 && w < 1 ? 1 : 0)); });
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .1;
+    }
+  };
+};
+
+// 01 — Bonnel: bogʻliq prujinalar, yuk bossa atrofi ham keng egiladi
+S.bonnel = () => {
+  const g = new THREE.Group(), nx = 9, nz = 6, p = .12, yb = .03, sp = springGrid({ nx, nz, p, h: .17, r: .05, hour: true, yb }), Wx = nx * p, Dz = nz * p;
+  g.add(box(Wx + .02, .03, Dz + .02, 'inner', 0, .015, 0)); g.add(sp.g);
+  const at = (i, j) => sp.items[i * nz + j], rods = [];
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { if (i < nx - 1) rods.push([at(i, j), at(i + 1, j)]); if (j < nz - 1) rods.push([at(i, j), at(i, j + 1)]); }
+  const rm = rods.map(() => { const c = rod('metal'); g.add(c); return c; });
+  const ball = cyl(.16, .05, 'yellow', 0, 0, 0, 40); g.add(ball);
+  const A = new THREE.Vector3(), B = new THREE.Vector3();
+  const labels = [{ obj: anchor(g, .36, .2, .2), text: 'Atrofi ham egiladi', style: 'yel', at: 1.5, side: 'right', until: 4.2 },
+    { obj: anchor(g, -.42, .2, -.1), text: 'Sim bilan bogʻlangan', style: 'wht', at: .2, side: 'left', until: 1.3 }];
+  return {
+    group: g, dur: 5.4, cam: { pos: [2.0, 2.1, 2.6], target: [0, .12, .02], zoom: .95 }, labels,
+    update(t, dur) {
+      const d = pulse(t, 1.1, 2.0, 3.6, 4.5);
+      sp.items.forEach(it => sp.set(it, 1 - .42 * d * gauss(it.x, it.z, .3)));
+      rods.forEach(([a, b], k) => { A.set(a.x, sp.top(a), a.z); B.set(b.x, sp.top(b), b.z); placeRod(rm[k], A, B); });
+      ball.position.y = yb + .17 * (1 - .42 * d) + .028 + .22 * (1 - pulse(t, .3, 1.1, 4.4, 5.1));
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
+// 02 — mustaqil prujinalar: faqat bosilgan joy egiladi, qoʻshni joy tinch
+S.pocket = () => {
+  const g = new THREE.Group(), nx = 12, nz = 8, p = .09, yb = .03, sp = springGrid({ nx, nz, p, h: .16, r: .036, pocket: true, yb }), Wx = nx * p, Dz = nz * p;
+  g.add(box(Wx + .02, .03, Dz + .02, 'inner', 0, .015, 0)); g.add(sp.g);
+  const bx = -.28, ball = cyl(.13, .05, 'yellow', bx, 0, 0, 40), ball2 = cyl(.13, .05, '#ffffff', .3, 0, 0, 40); g.add(ball, ball2);
+  const labels = [{ obj: anchor(ball, 0, .03, 0), text: 'Faqat shu joy egiladi', style: 'yel', at: 1.4, side: 'left', until: 4.0 },
+    { obj: anchor(ball2, 0, .03, 0), text: 'Bu tomon tinch', style: 'wht', at: 1.9, side: 'right', until: 4.2 }];
+  return {
+    group: g, dur: 5.4, cam: { pos: [1.9, 2.1, 2.6], target: [0, .12, .02], zoom: 1.0 }, labels,
+    update(t, dur) {
+      const d = pulse(t, 1.1, 2.0, 3.6, 4.5);
+      sp.items.forEach(it => sp.set(it, 1 - .45 * d * gauss(it.x - bx, it.z, .085)));
+      ball.position.y = yb + .16 * (1 - .45 * d) + .028 + .22 * (1 - pulse(t, .3, 1.1, 4.4, 5.1));
+      ball2.position.y = yb + .16 + .028;
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
+// 03 — prujinasiz: qatlamlar ajralib koʻrinadi va qayta yigʻiladi
+S.qatlam = () => {
+  const g = new THREE.Group(), Wx = 1.1, Dz = .74;
+  const coco = ctex(256, 256, (c, w, h) => { c.fillStyle = '#7a5532'; c.fillRect(0, 0, w, h); const r = rng(5); for (let i = 0; i < 900; i++) { c.strokeStyle = r() > .5 ? '#5a3c22' : '#a57a4c'; c.lineWidth = 1.5; const x = r() * w, y = r() * h, a = r() * 6.3; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 18, y + Math.sin(a) * 18); c.stroke(); } });
+  const latex = ctex(256, 256, (c, w, h) => { c.fillStyle = '#f3ead2'; c.fillRect(0, 0, w, h); c.fillStyle = '#d9cba8'; for (let x = 16; x < w; x += 32) for (let y = 16; y < h; y += 32) { c.beginPath(); c.arc(x + (y / 32 % 2) * 16, y, 7, 0, 7); c.fill(); } });
+  const L = [[.07, new THREE.MeshStandardMaterial({ color: '#e7dcc0', roughness: .9 })], [.03, tmat(coco, [3, 2])], [.05, tmat(latex, [4, 3])], [.04, new THREE.MeshStandardMaterial({ color: '#9fc4e0', roughness: .9 })], [.04, null]];
+  let y = 0; const slabs = L.map(([hh, m], i) => {
+    const mm = m || [tmat(QUILT, [6, .5], '#e6e2d8'), tmat(QUILT, [6, .5], '#e6e2d8'), tmat(QUILT, [3, 2]), tmat(QUILT, [6, .5], '#e6e2d8'), tmat(QUILT, [6, .5], '#e6e2d8'), tmat(QUILT, [6, .5], '#e6e2d8')];
+    const s = sh(new THREE.Mesh(new THREE.BoxGeometry(Wx, hh, Dz), mm)); s.position.y = y + hh / 2; s.userData.y = s.position.y; y += hh; g.add(s); return s;
+  });
+  const labels = [{ obj: anchor(slabs[1], Wx / 2, 0, Dz / 2), text: 'Kokos', style: 'wht', at: 1.5, side: 'right', until: 3.9 },
+    { obj: anchor(slabs[2], -Wx / 2, 0, Dz / 2), text: 'Lateks', style: 'yel', at: 1.7, side: 'left', until: 4.0 }];
+  return {
+    group: g, dur: 5.2, cam: { pos: [2.0, 1.7, 2.7], target: [0, .28, 0], zoom: 1.3 }, labels,
+    update(t, dur) {
+      const o = pulse(t, .6, 1.5, 3.9, 4.7);
+      slabs.forEach((s, i) => { s.position.y = s.userData.y + o * i * .1; s.rotation.y = o * (i - 2) * .05; });
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .1;
+    }
+  };
+};
+
+// 04 — lamelli asos: yuk bosilganda reykalar egiladi va qaytadi
+S.lamel = () => {
+  const g = new THREE.Group(), Wx = 1.2, Dz = 1.15, n = 13, Ll = Wx - .1, ry = .2;
+  [-1, 1].forEach(sx => { g.add(box(.05, .1, Dz + .1, 'oak', sx * Wx / 2, ry - .02, 0)); });
+  [-1, 1].forEach(sz => g.add(box(Wx + .05, .1, .05, 'oak', 0, ry - .02, sz * (Dz / 2 + .05))));
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => g.add(box(.05, ry - .07, .05, 'oak', sx * Wx / 2, (ry - .07) / 2, sz * (Dz / 2 + .05))));
+  const lam = [];
+  for (let k = 0; k < n; k++) {
+    const z = -Dz / 2 + .05 + k * (Dz - .1) / (n - 1), geo = new THREE.BoxGeometry(Ll, .012, .055, 30, 1, 1), m = sh(new THREE.Mesh(geo, mat('oak')));
+    m.position.set(0, ry + .045, z); g.add(m); lam.push({ m, z, base: geo.attributes.position.array.slice() });
+    [-1, 1].forEach(sx => g.add(box(.045, .025, .07, '#1c1c1e', sx * (Ll / 2 - .01), ry + .042, z)));
+  }
+  const ball = cyl(.17, .05, 'yellow', 0, 0, 0, 40); g.add(ball);
+  const bend = (k, d) => { const P = lam[k].m.geometry.attributes.position, b = lam[k].base, w = gauss(0, lam[k].z, .26);
+    for (let i = 0; i < P.count; i++) { const x = b[i * 3], f = 1 - Math.pow(2 * x / Ll, 2); P.array[i * 3 + 1] = b[i * 3 + 1] + .03 * f - .1 * d * w * f; } P.needsUpdate = true; lam[k].m.geometry.computeVertexNormals(); };
+  const labels = [{ obj: anchor(g, .35, ry + .07, .45), text: 'Egiluvchan reyka', style: 'yel', at: 1.4, side: 'right', until: 4.3 },
+    { obj: anchor(g, -.4, ry + .07, -.1), text: 'Yuk taqsimlanadi', style: 'wht', at: 2.0, side: 'left', until: 4.4 }];
+  return {
+    group: g, dur: 5.4, cam: { pos: [1.9, 2.3, 2.5], target: [0, .02, .02], zoom: 1.32 }, labels,
+    update(t, dur) {
+      const d = pulse(t, 1.1, 2.0, 3.6, 4.5);
+      lam.forEach((_, k) => bend(k, d));
+      ball.position.set(0, ry + .045 + .03 - .1 * d * gauss(0, lam[6].z, .26) + .006 + .025 + .25 * (1 - pulse(t, .3, 1.1, 4.4, 5.1)), lam[6].z);
+      g.rotation.y = Math.sin(t / dur * Math.PI * 2) * .08;
+    }
+  };
+};
+
 // RO'YXAT: 3D kartochkalar ketma-ket chiqadi
 S.list = (sl) => {
   const g = new THREE.Group(), cards = [], items = sl.items || [], n = items.length, gap = .4;
