@@ -98,7 +98,27 @@ function onErr(where) {
   };
 }
 
+// Havola orqali tayyor sotuv formasi: /admin#sotuv?name=..&product=..&category=divan&qty=..&amount=..&paid=..&currency=so'm
+function openFromHash() {
+  const h = decodeURIComponent(location.hash || "");
+  if (!h.startsWith("#sotuv")) return;
+  const q = new URLSearchParams(location.hash.split("?")[1] || "");
+  history.replaceState(null, "", location.pathname);
+  $$(".tab").forEach((x) => x.classList.toggle("on", x.dataset.tab === "sales"));
+  $$(".tabpane").forEach((p) => (p.hidden = p.id !== "tab-sales"));
+  openSale(null, { name: q.get("name") || "", phone: q.get("phone") || "", interest: q.get("product") || "", address: q.get("address") || "" });
+  const f = $("#saleForm").elements;
+  if (q.get("category")) f.category.value = q.get("category");
+  if (q.get("qty")) f.qty.value = q.get("qty");
+  if (q.get("amount")) f.amount.value = q.get("amount");
+  if (q.get("paid")) f.paid.value = q.get("paid");
+  if (q.get("currency")) f.currency.value = q.get("currency");
+  if (q.get("note")) f.note.value = q.get("note");
+  updateRest();
+}
+
 function start() {
+  setTimeout(openFromHash, 300);
   unsub.push(
     onSnapshot(query(collection(db, "crmLeads"), orderBy("createdAt", "desc")), (snap) => {
       leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
