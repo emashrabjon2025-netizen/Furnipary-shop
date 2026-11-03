@@ -192,8 +192,9 @@ function renderReport() {
   Object.keys(total).forEach((c) => (debt[c] = (total[c] || 0) - (paid[c] || 0)));
   $("#rKpis").innerHTML = [
     ["Sotuvlar", mSales.length],
-    ["Tushum", curText(total)],
-    ["Qarz (to'lanmagan)", curText(debt)],
+    ["Sotuv summasi", curText(total)],
+    ["Olingan pul (zaklad + to'lovlar)", curText(paid)],
+    ["Qoldiq (mijozlar berishi kerak)", curText(debt)],
     ["Yangi lidlar", mLeads.length],
     ["Konversiya", conv + "%"],
     ["Yangi mijozlar", mClients.length],
@@ -275,7 +276,7 @@ function renderLeads() {
   const list = leads.filter(
     (l) =>
       (src === "all" || l.source === src) &&
-      (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
+      (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !CLOSED.includes(l.stage) : l.stage === st) &&
       (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q))
   );
   const open = leads.filter((l) => !CLOSED.includes(l.stage)).length;
@@ -538,7 +539,7 @@ function renderSales() {
   const q = $("#sSearch").value.trim().toLowerCase();
   const list = sales.filter(
     (s) =>
-      (st === "all" ? true : st === "open" ? !["Yetkazildi", "Bekor qilindi"].includes(s.status) : s.status === st) &&
+      (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !["Yetkazildi", "Bekor qilindi"].includes(s.status) : s.status === st) &&
       (!ym || (s.date || "").startsWith(ym)) &&
       (!q || `${s.name} ${s.phone} ${s.product} ${s.address}`.toLowerCase().includes(q))
   );
@@ -546,7 +547,11 @@ function renderSales() {
   $("#sCount").textContent = open || "";
   const valid = list.filter((s) => s.status !== "Bekor qilindi");
   $("#sSummary").innerHTML = list.length
-    ? `${valid.length} ta sotuv · ${curText(sumByCur(valid))} · to'langan ${curText(sumByCur(valid, "paid"))}`
+    ? (() => {
+        const t = sumByCur(valid), pd = sumByCur(valid, "paid"), r = {};
+        Object.keys(t).forEach((c) => (r[c] = (t[c] || 0) - (pd[c] || 0)));
+        return `${valid.length} ta sotuv · jami ${curText(t)}<br>olingan ${curText(pd)} · <span class="bad">qoldiq ${curText(r)}</span>`;
+      })()
     : "";
   $("#salesList").innerHTML = list.length
     ? list
@@ -561,11 +566,17 @@ function renderSales() {
         <div>🛏 <b>${escapeHtml(s.product || categoryLabel(s.category))}</b> × ${s.qty || 1} <small class="muted">· ${escapeHtml(s.category === "boshqa" ? "Boshqa" : categoryLabel(s.category))}</small></div>
         ${s.address ? `<div class="muted">📍 ${escapeHtml(s.address)}</div>` : ""}
         ${s.note ? `<div class="muted">${escapeHtml(s.note)}</div>` : ""}
-        <div class="order-foot">
-          <div><b>${money(s.amount, s.currency)}</b> ${
-            debt > 0 && s.status !== "Bekor qilindi" ? `<span class="pill late">qarz ${money(debt, s.currency)}</span>` : `<span class="pill ok">to'langan</span>`
-          }</div>
+        <div class="pay-box">
+          <div><small>Jami</small><b>${money(s.amount, s.currency)}</b></div>
+          <div><small>Zaklad / berdi</small><b>${money(s.paid, s.currency)}</b></div>
+          <div class="${debt > 0 ? "late" : "ok"}"><small>Qoldiq</small><b>${debt > 0 ? money(debt, s.currency) : "✅ to'landi"}</b></div>
         </div>
+        ${
+          debt > 0 && s.status !== "Bekor qilindi"
+            ? `<button class="btn btn-sm btn-line" data-spay="${s.id}">💵 Qoldiqdan to'lov qo'shish</button>`
+            : ""
+        }
+        ${(s.payments || []).length ? `<small class="muted">To'lovlar: ${s.payments.map((x) => `${fmtDate(x.date)} — ${money(x.amount, s.currency)}`).join(" · ")}</small>` : ""}
         <div class="order-foot">
           <select data-sstatus="${s.id}">${opts(SALE_STATUSES, s.status)}</select>
           <div class="row-actions">
@@ -594,14 +605,23 @@ function openSale(id, prefill) {
   f.product.value = s.product ?? p.interest ?? "";
   f.category.innerHTML = catOpts(s.category || "matras");
   f.qty.value = s.qty ?? 1;
-  f.amount.value = s.amount ?? "";
+  f.amount.value = s.amount ?? 0;
   f.currency.value = s.currency || "$";
-  f.paid.value = s.paid ?? "";
+  f.paid.value = s.paid ?? 0;
+  updateRest();
   f.date.value = s.date || today();
   f.status.innerHTML = opts(SALE_STATUSES, s.status || "Yangi");
   f.note.value = s.note || "";
   $("#saleDlg").showModal();
 }
+
+function updateRest() {
+  const f = $("#saleForm").elements;
+  const r = parsePrice(f.amount.value) - parsePrice(f.paid.value);
+  f.rest.value = r > 0 ? money(r, f.currency.value) : "0";
+}
+["amount", "paid", "currency"].forEach((n) => $("#saleForm").elements[n].addEventListener("input", updateRest));
+["amount", "paid"].forEach((n) => $("#saleForm").elements[n].addEventListener("focus", (e) => e.target.value === "0" && e.target.select()));
 
 // Telefon kiritilganda mavjud mijoz ma'lumotini to'ldiradi
 $("#saleForm").elements.phone.addEventListener("change", (e) => {
@@ -621,7 +641,6 @@ $("#saleForm").addEventListener("submit", async (e) => {
   const phone = f.phone.value.trim() ? normalizePhone(f.phone.value) : "";
   if (phone === null) return toast("Telefon raqam noto'g'ri", "err");
   const amount = parsePrice(f.amount.value);
-  const paidRaw = f.paid.value.trim();
   const data = {
     phone,
     name: f.name.value.trim(),
@@ -631,13 +650,15 @@ $("#saleForm").addEventListener("submit", async (e) => {
     qty: parseCount(f.qty.value) || 1,
     amount,
     currency: f.currency.value,
-    paid: paidRaw === "" ? amount : parsePrice(paidRaw),
+    paid: parsePrice(f.paid.value),
     date: f.date.value || today(),
     status: f.status.value,
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
   };
   if (!data.name && !data.phone) return toast("Mijoz ismi yoki telefonini kiriting", "err");
+  if (data.paid > data.amount && data.amount > 0) return toast("Zaklad sotuv summasidan katta bo'lishi mumkin emas", "err");
+  if (!editSaleId) data.deposit = data.paid;
   const btn = e.target.querySelector("[type=submit]");
   btn.disabled = true;
   try {
@@ -671,6 +692,26 @@ $("#salesList").addEventListener("click", async (e) => {
   const ed = e.target.closest("[data-sedit]");
   const del = e.target.closest("[data-sdel]");
   if (ed) openSale(ed.dataset.sedit);
+  const pay = e.target.closest("[data-spay]");
+  if (pay) {
+    const s = sales.find((x) => x.id === pay.dataset.spay);
+    const rest = (Number(s.amount) || 0) - (Number(s.paid) || 0);
+    const v = prompt(`${s.name || "Mijoz"} qancha to'ladi?\nQoldiq: ${money(rest, s.currency)}`, rest);
+    if (v === null) return;
+    const n = parsePrice(v);
+    if (!n || n <= 0) return toast("Summani kiriting", "err");
+    if (n > rest) return toast("Qoldiqdan ko'p bo'lishi mumkin emas", "err");
+    try {
+      await updateDoc(doc(db, "crmSales", s.id), {
+        paid: (Number(s.paid) || 0) + n,
+        payments: [...(s.payments || []), { date: today(), amount: n }],
+        updatedAt: serverTimestamp(),
+      });
+      toast(n === rest ? "To'liq to'landi ✅" : "To'lov qo'shildi");
+    } catch (err) {
+      toast(err.message, "err");
+    }
+  }
   if (del && confirm("Sotuv o'chirilsinmi?")) {
     try {
       await deleteDoc(doc(db, "crmSales", del.dataset.sdel));
@@ -690,7 +731,7 @@ $("#crmExport").addEventListener("click", async () => {
       sales.map((s) => ({
         Sana: s.date, Mijoz: s.name, Telefon: s.phone, Mahsulot: s.product,
         Kategoriya: s.category === "boshqa" ? "Boshqa" : categoryLabel(s.category), Soni: s.qty,
-        Summa: s.amount, "To'langan": s.paid, Valyuta: s.currency, Holat: s.status, Manzil: s.address, Izoh: s.note,
+        Summa: s.amount, Zaklad: s.deposit ?? "", "Jami to'langan": s.paid, Qoldiq: (Number(s.amount) || 0) - (Number(s.paid) || 0), Valyuta: s.currency, Holat: s.status, Manzil: s.address, Izoh: s.note,
       })),
       "Sotuvlar"
     );

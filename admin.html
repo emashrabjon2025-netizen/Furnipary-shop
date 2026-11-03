@@ -96,7 +96,7 @@
     <div class="tabpane" id="tab-sales" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
-        <select id="sStatus"><option value="all">Barcha holatlar</option><option value="open">Yetkazilmaganlar</option></select>
+        <select id="sStatus"><option value="all">Barcha holatlar</option><option value="debt">Qoldig'i borlar</option><option value="open">Yetkazilmaganlar</option></select>
         <input id="sMonth" type="month" />
         <input id="sSearch" type="search" placeholder="Qidirish…" />
       </div>
@@ -237,10 +237,13 @@
         <label>Kategoriya<select name="category"></select></label>
         <label>Soni<input name="qty" inputmode="numeric" value="1" /></label>
       </div>
-      <div class="three">
-        <label>Summa<input name="amount" inputmode="decimal" placeholder="0" /></label>
+      <div class="two">
+        <label>Sotuv summasi (jami)<input name="amount" inputmode="decimal" value="0" /></label>
         <label>Valyuta<select name="currency"><option>$</option><option>so'm</option></select></label>
-        <label>To'langan<input name="paid" inputmode="decimal" placeholder="= summa" /></label>
+      </div>
+      <div class="two">
+        <label>Zaklad (oldindan berdi)<input name="paid" inputmode="decimal" value="0" /></label>
+        <label>Qoldiq (yana berishi kerak)<input name="rest" readonly tabindex="-1" class="rest" /></label>
       </div>
       <div class="two">
         <label>Sana<input name="date" type="date" /></label>
@@ -253,6 +256,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=2"></script>
+  <script type="module" src="js/crm.js?v=3"></script>
 </body>
 </html>
