@@ -1,0 +1,23 @@
+{
+ "topic": "Mebel tarixi 1-qism: Mebel qanday paydo bo'lgan?",
+ "style": "Photorealistic cinematic, vertical 9:16, warm soft light, shallow depth of field, slow smooth camera movement, rich detail, no on-screen text.",
+ "shots": [
+  {"prompt": "Close-up of a hand giving a light push to a modern matte kitchen drawer; it glides and closes slowly and silently. As it closes, the scene seamlessly transforms: the drawer front turns into rough grey stone and the camera reveals an ancient stone shelf inside a dim prehistoric stone house lit by firelight.",
+   "say": "Ota-bobolarimiz shkaf o'rniga nima ishlatgan? Bu tortmaning tarixi besh ming yil oldin toshdan boshlangan.",
+   "show": "Shkaf o'rniga *nima* ishlatgan?"},
+  {"prompt": "Inside a Neolithic stone house with a low roof, flat stone slab shelves (a stone dresser) and a stone box bed covered with furs, a small fire glowing in the central hearth, slow cinematic dolly forward through smoke and warm firelight.",
+   "say": "Birinchi tokcha va karavotlar toshdan yasalgan. Ular hali ham saqlanib qolgan.",
+   "show": "5000 yil oldin · *TOSH*"},
+  {"prompt": "Ancient Egyptian workshop in golden sunlight: a carpenter carves a wooden chair with lion-paw legs, behind him a gilded wooden throne and a painted wooden chest; slow orbit camera around the gilded throne, dust in sunbeams.",
+   "say": "Misrda yog'och stul paydo bo'ldi. Lekin unda faqat podsho va boylar o'tirgan.",
+   "show": "Misr · birinchi *STUL*"},
+  {"prompt": "A 19th century furniture factory with steam machines and large windows: workers bend steamed wooden rods into curved chair parts, and rows of identical bentwood chairs stand in long lines; slow camera tracking along the rows of chairs.",
+   "say": "Fabrikalar ochilgach, mebel boylarning hashamati bo'lmay qoldi va har bir uyga kirib keldi.",
+   "show": "1800-yillar · mebel *HAMMAGA*"},
+  {"prompt": "A modern bright kitchen with light wood and white cabinets: a wide drawer full of plates closes softly by itself, then an upper cabinet door lifts up smoothly on a lift mechanism with one light touch; close-up of the metal hinge and drawer mechanism at the end.",
+   "say": "Bugun esa mebelni mexanizm boshqaradi: ovozsiz tortma, bir tegishda ochiladigan eshik.",
+   "show": "Bugun · *AQLLI* furnitura"}
+ ],
+ "cta": {"say": "Uyingizda qaysi davr mebeli bor? Izohda yozing. Keyingi qismda stulning tarixi. Saqlab qo'ying!",
+         "show": "Uyingizda qaysi davr mebeli bor?"}
+}

@@ -1,0 +1,28 @@
+{
+ "scenes": [
+  {
+   "say": "Ota-bobolarimiz shkaf o'rniga nima ishlatgan? Bu tortmaning tarixi besh ming yil oldin toshdan boshlangan.",
+   "audio": "s1.wav"
+  },
+  {
+   "say": "Birinchi tokcha va karavotlar toshdan yasalgan. Ular hali ham saqlanib qolgan.",
+   "audio": "s2.wav"
+  },
+  {
+   "say": "Misrda yog'och stul paydo bo'ldi. Lekin unda faqat podsho va boylar o'tirgan.",
+   "audio": "s3.wav"
+  },
+  {
+   "say": "Fabrikalar ochilgach, mebel boylarning hashamati bo'lmay qoldi va har bir uyga kirib keldi.",
+   "audio": "s4.wav"
+  },
+  {
+   "say": "Bugun esa mebelni mexanizm boshqaradi: ovozsiz tortma, bir tegishda ochiladigan eshik.",
+   "audio": "s5.wav"
+  },
+  {
+   "say": "Uyingizda qaysi davr mebeli bor? Izohda yozing. Keyingi qismda stulning tarixi. Saqlab qo'ying!",
+   "audio": "s6.wav"
+  }
+ ]
+}
