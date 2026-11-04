@@ -1,4 +1,4 @@
-# FURNIPART Telegram stiker to'plamini bot orqali yaratadi (bor bo'lsa — yangilaydi).
+# FURNIPART Telegram video-stiker to'plamini (logo + yozuv animatsiyasi) bot orqali yaratadi (bor bo'lsa — yangilaydi).
 # GitHub Actions: .github/workflows/stickers.yml
 import json, os, sys, urllib.request, uuid
 
@@ -15,7 +15,7 @@ def call(method, fields=None, files=None):
         for k, v in fields.items():
             body += f"--{b}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode()
         for k, path in files.items():
-            body += f"--{b}\r\nContent-Disposition: form-data; name=\"{k}\"; filename=\"{os.path.basename(path)}\"\r\nContent-Type: image/png\r\n\r\n".encode()
+            body += f"--{b}\r\nContent-Disposition: form-data; name=\"{k}\"; filename=\"{os.path.basename(path)}\"\r\nContent-Type: video/webm\r\n\r\n".encode()
             body += open(path, "rb").read() + b"\r\n"
         body += f"--{b}--\r\n".encode()
         req = urllib.request.Request(API + method, data=body, headers={"Content-Type": f"multipart/form-data; boundary={b}"})
@@ -38,13 +38,13 @@ if call("getStickerSet", {"name": name}).get("ok"):
 stickers, files = [], {}
 for i, it in enumerate(items):
     key = f"s{i}"
-    files[key] = os.path.join(HERE, "png", it["file"])
-    stickers.append({"sticker": f"attach://{key}", "format": "static", "emoji_list": [it["emoji"]]})
+    files[key] = os.path.join(HERE, "webm", it["file"])
+    stickers.append({"sticker": f"attach://{key}", "format": "video", "emoji_list": [it["emoji"]]})
 r = call("createNewStickerSet", {"user_id": USER_ID, "name": name, "title": title, "stickers": json.dumps(stickers, ensure_ascii=False)}, files)
 print(r)
 if not r.get("ok"):
     call("sendMessage", {"chat_id": USER_ID, "text": "⚠️ Stiker to'plamini yaratib bo'lmadi: " + str(r.get("description"))})
     sys.exit(1)
 link = f"https://t.me/addstickers/{name}"
-call("sendMessage", {"chat_id": USER_ID, "text": f"🎉 FURNIPART stikerlari tayyor! ({len(items)} ta)\n\nQo'shish uchun bosing:\n{link}"})
+call("sendMessage", {"chat_id": USER_ID, "text": f"🎉 FURNIPART animatsiyali stikerlari tayyor! ({len(items)} ta)\n\nQo'shish uchun bosing:\n{link}"})
 print(link)
