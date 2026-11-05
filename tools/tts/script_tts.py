@@ -6,7 +6,7 @@ Natija: out_dir/<sahna "audio" nomi yoki sN.wav>. GEMINI_API_KEY kerak.
 """
 import argparse, json, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from gemini_tts import synth, best_model
+from gemini_tts import synth, best_model, STYLE
 
 ap = argparse.ArgumentParser(); ap.add_argument("script"); ap.add_argument("out"); ap.add_argument("--voice", default="Charon"); ap.add_argument("--model")
 a = ap.parse_args()
@@ -19,6 +19,6 @@ for i, s in enumerate(sc["scenes"], 1):
     name = s.get("audio") or f"s{i}.wav"
     if (out / name).exists() and (out / name).stat().st_size > 10000:
         print(f"{name}: bor, o'tkazildi"); continue  # qayta ishga tushirishda limitni tejash
-    synth(text, str(out / name), a.voice, model)
+    synth(text, str(out / name), a.voice, model, sc.get("style") or STYLE)
     print(f"{name}: {text[:60]}…", flush=True)
 print("model:", model, "ovoz:", a.voice)
