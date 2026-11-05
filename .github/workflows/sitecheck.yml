@@ -1,0 +1,10 @@
+name: sitecheck
+on: workflow_dispatch
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sL https://furnipart-shop.vercel.app/admin | grep -o 'crm.js?v=[0-9]*' || echo "no-version"
+          curl -sL "https://furnipart-shop.vercel.app/js/crm.js" | grep -c planRevenue || true
+          curl -sIL https://furnipart-shop.vercel.app/js/crm.js | grep -i 'age\|x-vercel\|last-mod\|etag'
