@@ -95,11 +95,16 @@ const interestsOf = (t) =>
     .filter((x) => x.length > 1)
     .map((x) => x.charAt(0).toUpperCase() + x.slice(1));
 const DEFAULT_TARGET = 150;
+const DEFAULT_REVENUE = 150000000; // oylik umumiy online savdo rejasi, so'm
 
 let leads = [];
 let clients = [];
 let sales = [];
-let settings = { monthlyTarget: DEFAULT_TARGET, targetCategory: "matras" };
+let settings = { monthlyTarget: DEFAULT_TARGET, targetCategory: "matras", planRevenue: DEFAULT_REVENUE };
+const mln = (v) => {
+  const x = (Number(v) || 0) / 1e6;
+  return (x >= 100 ? Math.round(x) : Math.round(x * 10) / 10).toString().replace(".", ",") + " mln";
+};
 let tgt = { usdRate: 12050, margin: 30, campaigns: [] }; // crmSettings/target
 let campFilter = "";
 let unsub = [];
@@ -244,32 +249,33 @@ function renderReport() {
   const mLeads = leads.filter((l) => (l.date || "").startsWith(ym));
   const mClients = clients.filter((c) => (c.date || "").startsWith(ym));
 
-  // Reja
-  const tCat = settings.targetCategory || "matras";
-  const target = Number(settings.monthlyTarget) || DEFAULT_TARGET;
-  const done = mSales.filter((s) => s.category === tCat).reduce((a, s) => a + (Number(s.qty) || 0), 0);
+  // Reja: oylik umumiy online savdo (barcha sotuvlar, so'mda; dollar kurs bo'yicha)
+  const target = Number(settings.planRevenue) || DEFAULT_REVENUE;
+  const saleSom = (x) => toSom(x.amount, x.currency || "$");
+  const done = mSales.reduce((a, x) => a + saleSom(x), 0);
   const pct = Math.min(100, Math.round((done / target) * 100));
   const [y, m] = ym.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const isCur = ym === thisMonth();
   const dayNow = isCur ? new Date().getDate() : daysInMonth;
   const daysLeft = isCur ? daysInMonth - dayNow + 1 : 0;
-  const perDay = daysLeft > 0 ? Math.ceil(Math.max(0, target - done) / daysLeft) : 0;
-  const expected = Math.round((target * dayNow) / daysInMonth);
+  const perDay = daysLeft > 0 ? Math.max(0, target - done) / daysLeft : 0;
+  const expected = (target * dayNow) / daysInMonth;
 
   $("#rPlan").innerHTML = `
     <div class="plan-top">
-      <div><small>Reja: ${escapeHtml(categoryLabel(tCat))}</small><div class="big-num">${done}<span> / ${target}</span></div></div>
+      <div><small>Oylik reja: umumiy online savdo</small><div class="big-num">${mln(done)}<span> / ${mln(target)} so'm</span></div></div>
       <button class="btn btn-sm btn-line" id="editTarget" type="button">Rejani o'zgartirish</button>
     </div>
-    <div class="progress"><i style="width:${pct}%"></i><em style="left:${Math.min(100, (expected / target) * 100)}%" title="Bugungacha bo'lishi kerak: ${expected}"></em></div>
-    <p class="muted">${pct}% bajarildi${
+    <div class="progress"><i style="width:${pct}%"></i><em style="left:${Math.min(100, (expected / target) * 100)}%" title="Bugungacha bo'lishi kerak: ${mln(expected)} so'm"></em></div>
+    <p class="muted">${pct}% bajarildi · qolgani ${mln(Math.max(0, target - done))} so'm${
       isCur
         ? done >= target
           ? " · 🎉 Reja bajarildi!"
-          : ` · qolgan ${daysLeft} kunda kuniga ~${perDay} ta kerak · bugungacha ${expected} ta bo'lishi kerak edi ${done >= expected ? "✅" : "⚠️"}`
+          : ` · qolgan ${daysLeft} kunda kuniga ~${mln(perDay)} so'm kerak · bugungacha ${mln(expected)} bo'lishi kerak edi ${done >= expected ? "✅" : "⚠️"}`
         : ""
-    }</p>`;
+    }</p>
+    <p class="muted small">Barcha sotuvlar summasi (bekor qilinganlarsiz). Dollardagi sotuvlar 1$ = ${Number(tgt.usdRate || 0).toLocaleString("ru-RU")} so'm kurs bilan hisoblanadi.</p>`;
 
   const conv = mLeads.length ? Math.round((mLeads.filter((l) => l.stage === "Sotildi").length / mLeads.length) * 100) : 0;
   const paid = sumByCur(mSales, "paid");
@@ -328,11 +334,11 @@ function renderReport() {
   // Kunlik grafik
   const perDayArr = Array.from({ length: daysInMonth }, (_, i) => {
     const d = `${ym}-${pad(i + 1)}`;
-    return mSales.filter((s) => s.date === d && s.category === tCat).reduce((a, s) => a + (Number(s.qty) || 0), 0);
+    return mSales.filter((s) => s.date === d).reduce((a, s) => a + saleSom(s), 0);
   });
   const mx = Math.max(1, ...perDayArr);
   $("#rDaily").innerHTML = perDayArr
-    .map((v, i) => `<div class="col" title="${i + 1}-kun: ${v} ta"><i style="height:${(v / mx) * 100}%"></i><small>${(i + 1) % 5 === 0 || i === 0 ? i + 1 : ""}</small></div>`)
+    .map((v, i) => `<div class="col" title="${i + 1}-kun: ${mln(v)} so'm"><i style="height:${(v / mx) * 100}%"></i><small>${(i + 1) % 5 === 0 || i === 0 ? i + 1 : ""}</small></div>`)
     .join("");
 
   // Lid voronkasi (barcha ochiq lidlar)
@@ -394,15 +400,12 @@ function renderReport() {
 
 document.addEventListener("click", async (e) => {
   if (!e.target.closest("#editTarget")) return;
-  const v = prompt(
-    `Oylik reja (${categoryLabel(settings.targetCategory || "matras")}, dona):`,
-    settings.monthlyTarget || DEFAULT_TARGET
-  );
+  const v = prompt("Oylik umumiy online savdo rejasi (so'm):", settings.planRevenue || DEFAULT_REVENUE);
   if (v === null) return;
   const n = parseCount(v);
-  if (!n) return toast("Son kiriting", "err");
+  if (n < 1000000) return toast("Summani so'mda kiriting, masalan 150000000", "err");
   try {
-    await setDoc(doc(db, "crmSettings", "main"), { monthlyTarget: n, targetCategory: settings.targetCategory || "matras" }, { merge: true });
+    await setDoc(doc(db, "crmSettings", "main"), { planRevenue: n }, { merge: true });
     toast("Reja saqlandi");
   } catch (err) {
     toast("Saqlanmadi: " + err.message, "err");

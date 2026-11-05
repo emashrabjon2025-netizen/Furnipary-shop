@@ -61,12 +61,15 @@ module.exports = async (req, res) => {
 
     // Oylik reja
     const st = settings.find((s) => s.id === "main") || {};
-    const cat = st.targetCategory || "matras";
-    const target = Number(st.monthlyTarget) || 150;
+    // Oylik reja: umumiy online savdo, so'mda
+    const target = Number(st.planRevenue) || 150000000;
+    const rate = Number((settings.find((s) => s.id === "target") || {}).usdRate) || 12050;
+    const som = (s) => (Number(s.amount) || 0) * ((s.currency || "$") === "$" ? rate : 1);
+    const mlnS = (v) => (Math.round((v / 1e6) * 10) / 10).toString().replace(".", ",") + " mln";
     const ym = t.slice(0, 7);
     const done = sales
-      .filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi" && s.category === cat)
-      .reduce((a, s) => a + (Number(s.qty) || 0), 0);
+      .filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi")
+      .reduce((a, s) => a + som(s), 0);
     const [y, m, d] = t.split("-").map(Number);
     const days = new Date(y, m, 0).getDate();
     const left = days - d + 1;
@@ -95,7 +98,7 @@ module.exports = async (req, res) => {
     const parts = [
       `☀️ <b>CRM · ${d}-${MONTHS[m - 1]}</b>`,
       ``,
-      `📊 Reja (${cat}): <b>${done} / ${target}</b>${done < target ? ` — kuniga ~${Math.ceil((target - done) / left)} ta kerak` : " 🎉"}`,
+      `📊 Oylik savdo rejasi: <b>${mlnS(done)} / ${mlnS(target)} so'm</b> (${Math.round((done / target) * 100)}%)${done < target ? ` — kuniga ~${mlnS((target - done) / left)} so'm kerak` : " 🎉"}`,
       `Kecha: ${newYest} ta yangi lid, ${soldYest} ta sotuv`,
       ``,
       calls.length ? `📞 <b>Bugun qo'ng'iroq qilish kerak: ${calls.length} ta</b>` : `📞 Bugun rejadagi qo'ng'iroq yo'q`,

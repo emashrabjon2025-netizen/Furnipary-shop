@@ -147,3 +147,5 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 #lCamp { background: #e9e6ff; color: #3b2fb0; padding: 8px 12px; border-radius: 12px; margin: 0 0 8px; }
 #lCamp .pill { border: 0; margin-left: 6px; cursor: pointer; }
 .toolbar .check { flex: none; flex-direction: row; align-items: center; gap: 6px; font-size: 14px; }
+.big-num { font-size: 38px; }
+.big-num span { white-space: nowrap; font-size: 18px; }
