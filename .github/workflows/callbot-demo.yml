@@ -1,0 +1,26 @@
+name: Qo'ng'iroq bot — namuna ovoz
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["tools/callbot/**"]
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Namuna qo'ng'iroqni yozish va botga yuborish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID || '5345741396' }}
+        run: |
+          set -euo pipefail
+          python3 tools/callbot/demo.py tools/callbot/scenario.json qongiroq_namuna.mp3
+          api="https://api.telegram.org/bot${TOKEN}"
+          curl -sS "$api/sendAudio" --form-string "chat_id=$CHAT" --form-string "title=Qo'ng'iroq bot — namuna" --form-string "performer=FURNIPART" \
+            --form-string "caption=📞 Qo'ng'iroq bot sinovi: bot (ayol ovozi) Instagram lidiga qo'ng'iroq qilmoqda. Eshitib ko'ring, ovoz va gaplari yoqdimi?" \
+            -F "audio=@qongiroq_namuna.mp3" | jq -c '{ok, description}'

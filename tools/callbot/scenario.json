@@ -1,0 +1,16 @@
+{
+  "title": "Qo'ng'iroq bot — namuna: tepadan tushadigan sushilka",
+  "bot_voice": "Kore",
+  "client_voice": "Charon",
+  "turns": [
+    ["bot", "Assalomu alaykum! Men FURNIPART do'konining ovozli yordamchisiman. Siz Instagramda tepadan tushadigan sushilka bilan qiziqqan ekansiz. Bir daqiqa gaplashsak bo'ladimi?"],
+    ["client", "Ha, gapiravering."],
+    ["bot", "Rahmat. Bu sushilka gazlift bilan ishlaydi, bir harakat bilan pastga tushadi. Shkafingiz kengligi necha santimetr: oltmish, yetmish yoki sakson?"],
+    ["client", "Saksonlik kerak edi. Narxi qancha?"],
+    ["bot", "Saksonlik sushilka bir million to'rt yuz sakson ming so'm. Qaysi shahardansiz?"],
+    ["client", "Namangandanman."],
+    ["bot", "Zo'r, O'zbekiston bo'ylab dastavka bor, Namanganga ham yetkazib beramiz. Buyurtmani rasmiylashtirish uchun sotuvchimiz qachon qo'ng'iroq qilsin: hozirmi yoki boshqa vaqt qulaymi?"],
+    ["client", "Ertaga tushdan keyin qiling."],
+    ["bot", "Yaxshi, ertaga soat ikkidan keyin sotuvchimiz sizga qo'ng'iroq qiladi. Vaqt ajratganingiz uchun rahmat, yaxshi kun tilayman!"]
+  ]
+}
