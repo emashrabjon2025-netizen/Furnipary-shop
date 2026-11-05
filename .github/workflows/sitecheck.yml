@@ -5,6 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sL https://furnipart-shop.vercel.app/admin | grep -o 'crm.js?v=[0-9]*' || echo "no-version"
-          curl -sL "https://furnipart-shop.vercel.app/js/crm.js" | grep -c planRevenue || true
-          curl -sIL https://furnipart-shop.vercel.app/js/crm.js | grep -i 'age\|x-vercel\|last-mod\|etag'
+          B=https://furnipart-shop.vercel.app
+          curl -sL $B/admin | grep -o 'crm.js?v=[0-9]*'
+          J=$(curl -sL "$B/js/crm.js?x=$RANDOM")
+          for m in campMetrics planRevenue evening askReason noAnswer; do echo "$m: $(echo "$J" | grep -c $m)"; done
+          curl -s "$B/api/digest?mode=evening&dry=1" -o /dev/null -w "digest %{http_code}\n"
+          curl -s "$B/stickers/stickers.json" -o /dev/null -w "stickers %{http_code}\n"
+          curl -s "$B/tools/callbot/scenario.json" -o /dev/null -w "callbot %{http_code}\n"
+          curl -s "$B/img/video/2026-11-05/audio-v2" -o /dev/null -w "v2 %{http_code}\n"
