@@ -35,7 +35,7 @@ function normalizePhone(raw) {
 
 const XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 
-export const SOURCES = ["Instagram", "Telegram", "Sayt", "Qo'ng'iroq", "Do'kon", "Tavsiya", "Boshqa"];
+export const SOURCES = ["Instagram", "Instagram target", "Telegram", "Sayt", "Qo'ng'iroq", "Do'kon", "Tavsiya", "Boshqa"];
 export const LEAD_STAGES = ["Yangi", "Bog'lanildi", "O'ylab ko'radi", "Sotildi", "Rad etdi"];
 export const SALE_STATUSES = ["Yangi", "Tayyorlanmoqda", "Yo'lda", "Yetkazildi", "Bekor qilindi"];
 const CLOSED = ["Sotildi", "Rad etdi"];
@@ -100,6 +100,8 @@ let leads = [];
 let clients = [];
 let sales = [];
 let settings = { monthlyTarget: DEFAULT_TARGET, targetCategory: "matras" };
+let tgt = { usdRate: 12050, margin: 30, campaigns: [] }; // crmSettings/target
+let campFilter = "";
 let unsub = [];
 let editLeadId = null;
 let editClientId = null;
@@ -204,6 +206,15 @@ function start() {
       if (d.exists()) settings = { ...settings, ...d.data() };
       renderReport();
     }, onErr("settings"))
+  );
+  unsub.push(
+    onSnapshot(doc(db, "crmSettings", "target"), (d) => {
+      if (d.exists()) tgt = { ...tgt, ...d.data() };
+      tgt.campaigns = tgt.campaigns || [];
+      renderTarget();
+      renderLeads();
+      renderReport();
+    }, onErr("target"))
   );
 }
 
@@ -327,6 +338,18 @@ function renderReport() {
   // Lid voronkasi (barcha ochiq lidlar)
   $("#rFunnel").innerHTML = bars(LEAD_STAGES.map((s) => [s, mLeads.filter((l) => l.stage === s).length]));
 
+  // Instagram target (shu oy bilan kesishgan kampaniyalar)
+  if ($("#rTarget")) {
+    const tc = tgt.campaigns.filter((c) => campInMonth(c, ym));
+    const tm = sumMetrics(tc.map(campMetrics));
+    $("#rTarget").innerHTML = tc.length
+      ? `<div class="tgrid">${[
+          ["Sarf", sm(tm.spend)], ["Lidlar", tm.leads], ["1 lid narxi", sm(tm.cpl)], ["Sotuvlar", tm.buyers],
+          ["Tushum", sm(tm.revenue)], ["ROMI", `<span class="${tm.romi >= 0 ? "pos" : "neg"}">${Math.round(tm.romi)}%</span>`],
+        ].map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div><p class="muted">Batafsil: <b>📣 Target</b> bo'limida</p>`
+      : `<p class="muted">Bu oyda kampaniya kiritilmagan. <b>📣 Target</b> bo'limida "+ Kampaniya" bosing.</p>`;
+  }
+
   // Qayta taklif vaqti kelgan mijozlar
   const dueList = clients.filter(followDue).sort((a, b) => followUpDate(a).localeCompare(followUpDate(b)));
   $("#rRepeat").innerHTML = dueList.length
@@ -400,8 +423,12 @@ function renderLeads() {
     (l) =>
       (src === "all" || l.source === src) &&
       (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : st === "stale" ? isStale(l) : st === "nodate" ? noDate(l) : l.stage === st) &&
-      (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q))
+      (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q)) &&
+      (!campFilter || campaignOf(l)?.id === campFilter)
   );
+  const cf = campFilter && tgt.campaigns.find((c) => c.id === campFilter);
+  $("#lCamp").hidden = !cf;
+  if (cf) $("#lCamp").innerHTML = `📣 Kampaniya: <b>${escapeHtml(cf.name)}</b> — ${list.length} ta lid <button class="pill" type="button" id="lCampX">✕ filtrni olish</button>`;
   const open = leads.filter((l) => !CLOSED.includes(l.stage)).length;
   $("#lCount").textContent = open || "";
   const nStale = leads.filter(isStale).length;
@@ -421,6 +448,7 @@ function renderLeads() {
         </div>
         ${telLink(l.phone)}
         ${l.region ? `<div class="muted">📍 ${escapeHtml(l.region)}</div>` : ""}
+        ${campaignOf(l) ? `<div><span class="pill camp">📣 ${escapeHtml(campaignOf(l).name)}</span></div>` : ""}
         ${(l.ctype || guessType(l.interest)) !== "Oddiy xaridor" ? `<div><span class="pill type">🔧 ${escapeHtml(l.ctype || guessType(l.interest))}</span></div>` : ""}
         ${l.interest ? `<div>🛏 ${escapeHtml(l.interest)}</div>` : ""}
         ${l.instagram ? `<div><a class="muted" href="https://instagram.com/${encodeURIComponent(l.instagram)}" target="_blank" rel="noopener">@${escapeHtml(l.instagram)}</a></div>` : ""}
@@ -465,6 +493,9 @@ function openLead(id) {
   f.region.value = l.region || "";
   f.instagram.value = l.instagram || "";
   f.ctype.innerHTML = opts(CLIENT_TYPES, l.ctype || guessType(l.interest));
+  f.campaign.innerHTML =
+    `<option value="">Avtomatik (kalit so'z va sana bo'yicha)</option><option value="none"${l.campaign === "none" ? " selected" : ""}>Reklamadan emas</option>` +
+    tgt.campaigns.map((c) => `<option value="${escapeHtml(c.id)}"${l.campaign === c.id ? " selected" : ""}>📣 ${escapeHtml(c.name)}</option>`).join("");
   f.nextCall.value = id ? l.nextCall || "" : today();
   f.note.value = l.note || "";
   $("#leadDlg").showModal();
@@ -485,6 +516,7 @@ $("#leadForm").addEventListener("submit", async (e) => {
     region: f.region.value.trim(),
     instagram: f.instagram.value.trim().replace(/^@/, ""),
     ctype: f.ctype.value,
+    campaign: f.campaign.value,
     nextCall: f.nextCall.value || "",
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
@@ -1044,6 +1076,17 @@ $("#crmExport").addEventListener("click", async () => {
       })),
       "Lidlar"
     );
+    sheet(
+      tgt.campaigns.map((c) => {
+        const m = campMetrics(c);
+        return {
+          Kampaniya: c.name, Boshlanish: c.start, Tugash: c.end || "davom etmoqda", "Kalit so'zlar": c.keywords,
+          "Sarf (so'm)": Math.round(m.spend), Lidlar: m.leads, "1 lid narxi (so'm)": Math.round(m.cpl), Sotuvlar: m.buyers,
+          "Konversiya %": Math.round(m.conv), "Tushum (so'm)": Math.round(m.revenue), "Foyda (so'm)": Math.round(m.profit), "ROMI %": Math.round(m.romi),
+        };
+      }),
+      "Target"
+    );
     XLSX.writeFile(wb, `FURNIPART-CRM-${today()}.xlsx`);
   } catch (err) {
     toast("Excel yaratilmadi: " + err.message, "err");
@@ -1252,4 +1295,243 @@ $("#bcList").addEventListener("click", async (e) => {
     console.error(err);
   }
   setTimeout(renderBroadcast, 300);
+});
+
+// ================= 📣 INSTAGRAM TARGET =================
+const toSom = (n, cur) => (Number(n) || 0) * (cur === "$" ? Number(tgt.usdRate) || 0 : 1);
+const sm = (n) => money(n, "so'm");
+const campEnd = (c) => c.end || today();
+function campInMonth(c, ym) {
+  return (c.start || "") <= ym + "-31" && campEnd(c) >= ym + "-01";
+}
+const kwList = (c) => String(c.keywords || "").toLowerCase().split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+// Lid qaysi kampaniyadan kelgan: qo'lda tanlangan yoki Instagram lidi + sana oralig'i + kalit so'z
+function campaignOf(l) {
+  if (!l || l.campaign === "none") return null;
+  if (l.campaign) return tgt.campaigns.find((c) => c.id === l.campaign) || null;
+  if (!["Instagram", "Instagram target"].includes(l.source)) return null;
+  const d = l.date || "";
+  const text = `${l.interest || ""} ${l.note || ""}`.toLowerCase();
+  const hits = tgt.campaigns.filter((c) => c.start && d >= c.start && d <= campEnd(c) && (kwList(c).length ? kwList(c).some((k) => text.includes(k)) : true));
+  hits.sort((a, b) => (b.start || "").localeCompare(a.start || "") || kwList(b).length - kwList(a).length);
+  return hits[0] || null;
+}
+function campMetrics(c) {
+  const ls = leads.filter((l) => campaignOf(l)?.id === c.id);
+  const phones = new Set(ls.map((l) => l.phone).filter(Boolean));
+  const ids = new Set(ls.map((l) => l.id));
+  const ss = sales.filter((x) => x.status !== "Bekor qilindi" && (ids.has(x.leadId) || (x.phone && phones.has(x.phone) && (x.date || "") >= (c.start || ""))));
+  const buyers = new Set(ss.map((x) => x.phone || x.leadId || x.id)).size;
+  const spend = toSom(c.spend, c.currency);
+  const revenue = ss.reduce((a, x) => a + toSom(x.amount, x.currency || "$"), 0);
+  const cash = ss.reduce((a, x) => a + toSom(x.paid, x.currency || "$"), 0);
+  const profit = revenue * ((Number(tgt.margin) || 0) / 100) - spend;
+  return {
+    spend, leads: ls.length, cpl: ls.length ? spend / ls.length : 0, buyers, sales: ss.length,
+    conv: ls.length ? (buyers / ls.length) * 100 : 0, revenue, cash, profit,
+    roas: spend ? revenue / spend : 0, romi: spend ? (profit / spend) * 100 : 0, cac: buyers ? spend / buyers : 0,
+    lost: ls.filter((l) => l.stage === "Rad etdi").length, open: ls.filter((l) => !CLOSED.includes(l.stage)).length,
+    reach: Number(c.reach) || 0, clicks: Number(c.clicks) || 0,
+  };
+}
+function sumMetrics(ms) {
+  const t = { spend: 0, leads: 0, buyers: 0, sales: 0, revenue: 0, cash: 0, profit: 0, lost: 0, open: 0 };
+  ms.forEach((m) => Object.keys(t).forEach((k) => (t[k] += m[k])));
+  t.cpl = t.leads ? t.spend / t.leads : 0;
+  t.conv = t.leads ? (t.buyers / t.leads) * 100 : 0;
+  t.roas = t.spend ? t.revenue / t.spend : 0;
+  t.romi = t.spend ? (t.profit / t.spend) * 100 : 0;
+  t.cac = t.buyers ? t.spend / t.buyers : 0;
+  return t;
+}
+async function saveTarget(patch) {
+  await setDoc(doc(db, "crmSettings", "target"), patch, { merge: true });
+}
+
+$("#tMonth").value = thisMonth();
+$("#tMonth").addEventListener("input", renderTarget);
+$("#tShowAll").addEventListener("change", renderTarget);
+
+function renderTarget() {
+  const ym = $("#tMonth").value || thisMonth();
+  const all = $("#tShowAll").checked;
+  const list = tgt.campaigns
+    .filter((c) => all || campInMonth(c, ym))
+    .sort((a, b) => (b.start || "").localeCompare(a.start || ""));
+  const ms = list.map(campMetrics);
+  const t = sumMetrics(ms);
+  $("#tRate").textContent = `1$ = ${Number(tgt.usdRate || 0).toLocaleString("ru-RU")} so'm · foyda marjasi ${tgt.margin}%`;
+  $("#tKpis").innerHTML = [
+    ["Reklamaga sarf", sm(t.spend), ""],
+    ["Lidlar", t.leads, ""],
+    ["1 lid narxi (CPL)", sm(t.cpl), ""],
+    ["Sotib olganlar", t.buyers, `konversiya ${Math.round(t.conv)}%`],
+    ["1 mijoz narxi (CAC)", sm(t.cac), ""],
+    ["Tushum", sm(t.revenue), `ROAS ${t.roas.toFixed(1)}x`],
+    ["Sof foyda (reklamadan keyin)", `<span class="${t.profit >= 0 ? "pos" : "neg"}">${sm(t.profit)}</span>`, ""],
+    ["ROMI", `<span class="${t.romi >= 0 ? "pos" : "neg"}">${Math.round(t.romi)}%</span>`, t.spend ? (t.romi >= 0 ? "reklama o'zini oqladi" : "reklama hali zararda") : ""],
+  ].map(([k, v, sub]) => `<div class="kpi"><small>${k}</small><b>${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`).join("");
+
+  $("#tTable").innerHTML = list.length
+    ? `<table class="ttable"><tr><th>Kampaniya</th><th>Sarf</th><th>Lid</th><th>1 lid</th><th>Sotuv</th><th>ROMI</th></tr>${list
+        .map((c, i) => {
+          const m = ms[i];
+          return `<tr data-tcard="${escapeHtml(c.id)}"><td><b>${escapeHtml(c.name)}</b><br><small class="muted">${fmtDate(c.start)}–${c.end ? fmtDate(c.end) : "…"}</small></td><td>${short(m.spend)}</td><td>${m.leads}</td><td>${short(m.cpl)}</td><td>${m.buyers}</td><td class="${m.romi >= 0 ? "pos" : "neg"}">${m.spend ? Math.round(m.romi) + "%" : "—"}</td></tr>`;
+        })
+        .join("")}<tr class="tot"><td><b>Jami</b></td><td>${short(t.spend)}</td><td>${t.leads}</td><td>${short(t.cpl)}</td><td>${t.buyers}</td><td class="${t.romi >= 0 ? "pos" : "neg"}">${t.spend ? Math.round(t.romi) + "%" : "—"}</td></tr></table><p class="muted small">Summalar so'mda (ming = k, million = mln).</p>`
+    : "";
+
+  $("#tList").innerHTML = list.length
+    ? list
+        .map((c, i) => {
+          const m = ms[i];
+          const active = !c.end || c.end >= today();
+          return `<div class="order crm-card tcard" id="tc-${escapeHtml(c.id)}" data-s="${active ? "Yangi" : "Yetkazildi"}">
+        <div class="order-head"><b>📣 ${escapeHtml(c.name)}</b><span class="pill ${active ? "ok" : ""}">${active ? "faol" : "tugagan"}</span></div>
+        <small class="muted">${fmtDate(c.start)} — ${c.end ? fmtDate(c.end) : "davom etmoqda"}${kwList(c).length ? ` · kalit so'zlar: ${escapeHtml(kwList(c).join(", "))}` : " · kalit so'z yo'q: shu davrdagi barcha Instagram lidlari"}</small>
+        <div class="mgrid">
+          <div><small>Sarf</small><b>${c.currency === "$" ? money(c.spend, "$") + "<br><small>" + sm(m.spend) + "</small>" : sm(m.spend)}</b></div>
+          <div><small>Lidlar</small><b>${m.leads}</b><small>${m.open} ochiq · ${m.lost} rad</small></div>
+          <div><small>1 lid narxi</small><b>${sm(m.cpl)}</b></div>
+          <div><small>Sotib oldi</small><b>${m.buyers}</b><small>konversiya ${Math.round(m.conv)}%</small></div>
+          <div><small>1 mijoz narxi</small><b>${sm(m.cac)}</b></div>
+          <div><small>Tushum</small><b>${sm(m.revenue)}</b><small>olingan ${sm(m.cash)}</small></div>
+          <div><small>Sof foyda</small><b class="${m.profit >= 0 ? "pos" : "neg"}">${sm(m.profit)}</b></div>
+          <div><small>ROMI · ROAS</small><b class="${m.romi >= 0 ? "pos" : "neg"}">${m.spend ? Math.round(m.romi) + "%" : "—"}</b><small>${m.roas.toFixed(1)}x</small></div>
+          ${m.reach ? `<div><small>Qamrov</small><b>${m.reach.toLocaleString("ru-RU")}</b></div>` : ""}
+          ${m.clicks ? `<div><small>Xabar / klik</small><b>${m.clicks}</b><small>${m.clicks ? "1 ta: " + sm(m.spend / m.clicks) : ""}</small></div>` : ""}
+          ${m.clicks && m.leads ? `<div><small>Xabardan lidga</small><b>${Math.round((m.leads / m.clicks) * 100)}%</b></div>` : ""}
+        </div>
+        ${c.note ? `<div class="muted">${escapeHtml(c.note)}</div>` : ""}
+        ${(c.spendLog || []).length ? `<small class="muted">Sarflar: ${c.spendLog.slice(-6).map((x) => `${fmtDate(x.date)} — ${money(x.amount, c.currency)}`).join(" · ")}</small>` : ""}
+        <div class="order-foot">
+          <button class="btn btn-sm btn-yellow" type="button" data-tspend="${escapeHtml(c.id)}">💸 Sarf qo'shish</button>
+          <div class="row-actions">
+            <button class="btn btn-sm btn-line" type="button" data-tleads="${escapeHtml(c.id)}">Lidlar →</button>
+            <button class="icon-btn" type="button" data-tedit="${escapeHtml(c.id)}" title="O'zgartirish">✎</button>
+            <button class="icon-btn del" type="button" data-tdel="${escapeHtml(c.id)}" title="O'chirish">🗑</button>
+          </div>
+        </div>
+      </div>`;
+        })
+        .join("")
+    : `<p class="empty">${all ? "Hali kampaniya yo'q." : "Bu oyda kampaniya yo'q."} "+ Kampaniya" tugmasi bilan Instagram reklamangizni kiriting.</p>`;
+}
+const short = (n) => {
+  const v = Math.round(Number(n) || 0);
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1).replace(".0", "") + " mln";
+  if (Math.abs(v) >= 1e3) return Math.round(v / 1e3) + "k";
+  return String(v);
+};
+
+let editCampId = null;
+function openCamp(id) {
+  editCampId = id;
+  const c = tgt.campaigns.find((x) => x.id === id) || {};
+  const f = $("#campForm").elements;
+  $("#campTitle").textContent = id ? "Kampaniyani o'zgartirish" : "Yangi kampaniya";
+  f.name.value = c.name || "";
+  f.keywords.value = c.keywords || "";
+  f.start.value = c.start || today();
+  f.end.value = c.end || "";
+  f.spend.value = c.spend ?? 0;
+  f.currency.value = c.currency || "$";
+  f.reach.value = c.reach || "";
+  f.clicks.value = c.clicks || "";
+  f.note.value = c.note || "";
+  $("#campDlg").showModal();
+}
+$("#newCamp").addEventListener("click", () => openCamp(null));
+$("#campForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const data = {
+    name: f.name.value.trim(),
+    keywords: f.keywords.value.trim(),
+    start: f.start.value || today(),
+    end: f.end.value || "",
+    spend: parsePrice(f.spend.value),
+    currency: f.currency.value,
+    reach: parseCount(f.reach.value),
+    clicks: parseCount(f.clicks.value),
+    note: f.note.value.trim(),
+  };
+  if (!data.name) return toast("Kampaniya nomini yozing", "err");
+  if (data.end && data.end < data.start) return toast("Tugash sanasi boshlanishdan oldin bo'lmasin", "err");
+  const list = [...tgt.campaigns];
+  if (editCampId) {
+    const i = list.findIndex((x) => x.id === editCampId);
+    list[i] = { ...list[i], ...data };
+  } else list.push({ id: "c" + Date.now().toString(36), ...data, spendLog: data.spend ? [{ date: today(), amount: data.spend }] : [], created: today() });
+  try {
+    await saveTarget({ campaigns: list });
+    $("#campDlg").close();
+    toast("Kampaniya saqlandi");
+  } catch (err) {
+    toast("Saqlanmadi: " + err.message, "err");
+  }
+});
+
+$("#tList").addEventListener("click", async (e) => {
+  const sp = e.target.closest("[data-tspend]");
+  const ed = e.target.closest("[data-tedit]");
+  const del = e.target.closest("[data-tdel]");
+  const ld = e.target.closest("[data-tleads]");
+  if (ed) return openCamp(ed.dataset.tedit);
+  if (ld) {
+    campFilter = ld.dataset.tleads;
+    $("#lStage").value = "all";
+    $$(".tab").forEach((x) => x.classList.toggle("on", x.dataset.tab === "leads"));
+    $$(".tabpane").forEach((p) => (p.hidden = p.id !== "tab-leads"));
+    return renderLeads();
+  }
+  if (sp) {
+    const c = tgt.campaigns.find((x) => x.id === sp.dataset.tspend);
+    const v = prompt(`"${c.name}" — bugun qancha sarflandi (${c.currency || "$"})?\nHozirgacha: ${money(c.spend, c.currency)}`, "");
+    if (v === null) return;
+    const n = parsePrice(v);
+    if (!n) return toast("Summani kiriting", "err");
+    const list = tgt.campaigns.map((x) =>
+      x.id === c.id ? { ...x, spend: (Number(x.spend) || 0) + n, spendLog: [...(x.spendLog || []), { date: today(), amount: n }] } : x
+    );
+    try {
+      await saveTarget({ campaigns: list });
+      toast("Sarf qo'shildi");
+    } catch (err) {
+      toast(err.message, "err");
+    }
+  }
+  if (del) {
+    const c = tgt.campaigns.find((x) => x.id === del.dataset.tdel);
+    if (!confirm(`"${c.name}" kampaniyasi o'chirilsinmi?\nLidlar o'chmaydi, faqat kampaniya hisobi o'chadi.`)) return;
+    try {
+      await saveTarget({ campaigns: tgt.campaigns.filter((x) => x.id !== c.id) });
+    } catch (err) {
+      toast(err.message, "err");
+    }
+  }
+});
+$("#tTable").addEventListener("click", (e) => {
+  const r = e.target.closest("[data-tcard]");
+  if (r) document.getElementById("tc-" + r.dataset.tcard)?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#lCampX")) {
+    campFilter = "";
+    renderLeads();
+  }
+});
+$("#tSettings").addEventListener("click", async () => {
+  const r = prompt("1 dollar necha so'm?", tgt.usdRate);
+  if (r === null) return;
+  const m = prompt("O'rtacha foyda marjasi (%): sotuv summasining necha foizi sizga sof foyda bo'lib qoladi?", tgt.margin);
+  if (m === null) return;
+  const usdRate = parsePrice(r), margin = parsePrice(m);
+  if (!usdRate || margin < 0 || margin > 100) return toast("Qiymatlar noto'g'ri", "err");
+  try {
+    await saveTarget({ usdRate, margin });
+    toast("Saqlandi");
+  } catch (err) {
+    toast(err.message, "err");
+  }
 });

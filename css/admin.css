@@ -123,3 +123,27 @@ input.rest { background: #fde8e8; color: var(--red); font-weight: 800; }
 .crm-card.alarm { box-shadow: var(--shadow), inset 0 0 0 2px #f1c6c6; }
 .alert-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
 button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+
+/* ===== Target ===== */
+.pill.camp { background: #e9e6ff; color: #3b2fb0; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+.kpis.tk .kpi small + small { color: var(--muted); font-weight: 600; }
+.mgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 720px) { .mgrid { grid-template-columns: repeat(4, 1fr); } }
+.mgrid > div { background: #f7f6f2; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; min-width: 0; }
+.mgrid small { color: var(--muted); font-size: 11px; font-weight: 600; }
+.mgrid b { font-size: 15px; overflow-wrap: anywhere; }
+.ttable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ttable th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 700; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.ttable td { padding: 7px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ttable tr[data-tcard] { cursor: pointer; }
+.ttable tr.tot td { border-bottom: 0; font-weight: 800; }
+.tgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tgrid > div { display: flex; flex-direction: column; }
+.tgrid small { color: var(--muted); font-size: 11px; font-weight: 600; }
+.tgrid b { font-size: 15px; }
+.tcard .order-head { align-items: center; }
+#lCamp { background: #e9e6ff; color: #3b2fb0; padding: 8px 12px; border-radius: 12px; margin: 0 0 8px; }
+#lCamp .pill { border: 0; margin-left: 6px; cursor: pointer; }
+.toolbar .check { flex: none; flex-direction: row; align-items: center; gap: 6px; font-size: 14px; }

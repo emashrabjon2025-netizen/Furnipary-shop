@@ -43,6 +43,7 @@
       <button class="tab" data-tab="leads">Lidlar <span id="lCount"></span></button>
       <button class="tab" data-tab="clients">Mijozlar <span id="cCount"></span></button>
       <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
+      <button class="tab" data-tab="target">📣 Target</button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
       <button class="tab" data-tab="orders">Buyurtmalar <span id="oNew"></span></button>
       <button class="tab" data-tab="excel">Excel / Zaxira</button>
@@ -65,6 +66,7 @@
         <div class="panel"><h2>📞 Bugun qo'ng'iroq qilish kerak</h2><div id="rCalls"></div></div>
         <div class="panel"><h2>Kunlik sotuv (reja kategoriyasi)</h2><div class="daily" id="rDaily"></div></div>
         <div class="panel"><h2>Lidlar manbasi</h2><div id="rSources"></div></div>
+        <div class="panel"><h2>📣 Instagram target</h2><div id="rTarget"></div></div>
         <div class="panel"><h2>🔁 Qayta taklif vaqti kelgan mijozlar</h2><div id="rRepeat"></div></div>
         <div class="panel"><h2>Lidlar bosqichi</h2><div id="rFunnel"></div></div>
         <div class="panel"><h2>Kategoriyalar bo'yicha (dona)</h2><div id="rCats"></div></div>
@@ -83,6 +85,7 @@
         <select id="lSource"><option value="all">Barcha manbalar</option></select>
         <input id="lSearch" type="search" placeholder="Ism, telefon…" />
       </div>
+      <div id="lCamp" class="summary" hidden></div>
       <div id="lAlert" class="alert-row" hidden></div>
       <div id="leadList" class="rows"></div>
     </div>
@@ -101,6 +104,26 @@
     </div>
 
     <!-- CRM: Sotuvlar -->
+    <div class="tabpane" id="tab-target" hidden>
+      <div class="toolbar">
+        <button class="btn btn-yellow" id="newCamp" type="button">+ Kampaniya</button>
+        <input id="tMonth" type="month" />
+        <label class="check"><input id="tShowAll" type="checkbox" /> Barcha oylar</label>
+      </div>
+      <p class="muted small"><span id="tRate"></span> · <a href="#" id="tSettings" onclick="return false">kurs va marjani o'zgartirish</a></p>
+      <div class="kpis tk" id="tKpis"></div>
+      <div class="panel" id="tTableWrap"><h2>Kampaniyalar taqqoslash</h2><div id="tTable"></div>
+        <details class="muted small"><summary>Hisob-kitob qanday qilinadi?</summary>
+          <p><b>1 lid narxi (CPL)</b> = sarf ÷ lidlar soni. <b>1 mijoz narxi (CAC)</b> = sarf ÷ sotib olganlar. <b>Konversiya</b> = sotib olganlar ÷ lidlar.
+          <b>ROAS</b> = tushum ÷ sarf. <b>Sof foyda</b> = tushum × foyda marjasi − sarf. <b>ROMI</b> = sof foyda ÷ sarf × 100%.
+          ROMI 0% dan yuqori bo'lsa, reklama o'zini oqlagan.</p>
+          <p>Lid kampaniyaga avtomatik bog'lanadi: manbasi Instagram, sanasi kampaniya davrida va "nimaga qiziqdi" matnida kalit so'z bo'lsa. Lid formasida kampaniyani qo'lda ham tanlash mumkin.
+          Dollar summalar kurs bo'yicha so'mga aylantiriladi.</p>
+        </details>
+      </div>
+      <div id="tList" class="rows"></div>
+    </div>
+
     <div class="tabpane" id="tab-sales" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
@@ -207,8 +230,34 @@
         <label>Instagram<input name="instagram" maxlength="60" placeholder="@username" /></label>
       </div>
       <label>Mijoz turi<select name="ctype"></select></label>
+      <label>Reklama kampaniyasi<select name="campaign"></select></label>
       <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <!-- CRM: Kampaniya formasi -->
+  <dialog id="campDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="campForm" class="pform">
+      <h2 id="campTitle">Yangi kampaniya</h2>
+      <label>Kampaniya nomi *<input name="name" maxlength="80" placeholder="Masalan: Klipsa Reels — noyabr" required /></label>
+      <label>Kalit so'zlar (vergul bilan)<input name="keywords" maxlength="200" placeholder="klipsa, derjatel" /></label>
+      <p class="muted small" style="margin:-4px 0 0">Shu so'zlar lidning "nimaga qiziqdi" matnida bo'lsa, lid shu kampaniyaga yoziladi. Bo'sh qoldirsangiz, shu davrdagi barcha Instagram lidlari hisoblanadi.</p>
+      <div class="two">
+        <label>Boshlangan sana<input name="start" type="date" /></label>
+        <label>Tugagan sana<input name="end" type="date" /></label>
+      </div>
+      <div class="two">
+        <label>Sarflangan summa<input name="spend" inputmode="decimal" value="0" /></label>
+        <label>Valyuta<select name="currency"><option>$</option><option>so'm</option></select></label>
+      </div>
+      <div class="two">
+        <label>Qamrov (reach)<input name="reach" inputmode="numeric" placeholder="ixtiyoriy" /></label>
+        <label>Xabarlar / kliklar<input name="clicks" inputmode="numeric" placeholder="ixtiyoriy" /></label>
+      </div>
+      <label>Izoh<textarea name="note" rows="2" maxlength="500" placeholder="Auditoriya, video, byudjet…"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
     </form>
   </dialog>
@@ -312,6 +361,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=8"></script>
+  <script type="module" src="js/crm.js?v=20"></script>
 </body>
 </html>
