@@ -119,6 +119,8 @@ const ymd = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${p
 const today = () => ymd();
 const thisMonth = () => today().slice(0, 7);
 const phoneId = (p) => String(p || "").replace(/\D/g, "");
+// Xabar havolalari uchun: +998 bilan to'liq raqam (9 xonali mahalliy raqamlar ham)
+const msgDigits = (p) => String(normalizePhone(p) || p || "").replace(/\D/g, "");
 const fmtDate = (s) => (s ? s.split("-").reverse().join(".") : "");
 const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
 const monthName = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
@@ -1254,7 +1256,7 @@ function renderBroadcast() {
   $("#bcList").innerHTML = list.length
     ? list
         .map((r) => {
-          const d = r.phone.replace(/\D/g, "");
+          const d = msgDigits(r.phone);
           const done = r.cnt >= BC_MAX;
           const key = `${r.kind}:${r.id}`;
           return `<div class="mini-row bc-row ${done ? "sent" : ""} ${bcSel.has(key) ? "picked" : ""}">
@@ -1262,7 +1264,7 @@ function renderBroadcast() {
         <div class="bc-who"><b>${escapeHtml(r.name || "Nomsiz")}</b>${r.cnt ? ` <span class="bc-cnt ${done ? "full" : ""}">${r.cnt}/${BC_MAX}</span>` : ""} <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
         <div class="row-actions${done ? " bc-off" : ""}">
           ${bcImages.length ? `<button class="icon-btn" type="button" data-bcsent="${r.kind}:${r.id}" data-share="${escapeHtml(r.phone)}" title="Rasm bilan yuborish">📤</button>` : ""}
-          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
+          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:+${d}&body=${enc}" title="SMS">💬</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://wa.me/${d}?text=${enc}" target="_blank" rel="noopener" title="WhatsApp">🟢</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="tg://resolve?phone=${d}&text=${enc}" title="Telegram">✈️</a>
         </div>
@@ -1331,14 +1333,14 @@ async function bcOpenOne(ch, key) {
   const f = bcFind(key);
   if (!f) return;
   const phone = f.x.phone || "";
-  const d = phone.replace(/\D/g, "");
+  const d = msgDigits(phone);
   const text = $("#bcText").value;
   const enc = encodeURIComponent(text);
   if (ch === "share") {
     navigator.clipboard?.writeText(phone).catch(() => {});
     if (!(await bcShareNow())) return false;
   } else if (ch === "sms") {
-    location.href = `sms:${phone}&body=${enc}`;
+    location.href = `sms:+${d}&body=${enc}`;
   } else if (ch === "wa") {
     window.open(`https://wa.me/${d}?text=${enc}`, "_blank", "noopener");
   } else if (ch === "tg") {
