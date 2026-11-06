@@ -6,10 +6,8 @@ jobs:
     steps:
       - run: |
           B=https://furnipart-shop.vercel.app
-          curl -sL $B/admin | grep -o 'crm.js?v=[0-9]*'
-          J=$(curl -sL "$B/js/crm.js?x=$RANDOM")
-          for m in campMetrics planRevenue evening askReason noAnswer; do echo "$m: $(echo "$J" | grep -c $m)"; done
-          curl -s "$B/api/digest?mode=evening&dry=1" -o /dev/null -w "digest %{http_code}\n"
-          curl -s "$B/stickers/stickers.json" -o /dev/null -w "stickers %{http_code}\n"
-          curl -s "$B/tools/callbot/scenario.json" -o /dev/null -w "callbot %{http_code}\n"
-          curl -s "$B/img/video/2026-11-05/audio-v2" -o /dev/null -w "v2 %{http_code}\n"
+          curl -sL $B/admin | grep -o 'crm.js?v=[0-9]*\|sitechat-admin.js?v=[0-9]*' | tr '\n' ' '; echo
+          curl -s "$B/" | grep -o 'app.js?v=[0-9]*\|manifest.webmanifest' | tr '\n' ' '; echo
+          curl -s "$B/sw.js" -o /dev/null -w "sw %{http_code}\n"
+          echo "vapid: $(curl -s "$B/api/push?vapid=1" | head -c 200)"
+          echo "chat404: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/chat?cid=aaaaaaaaaaaaaaaaaaaa")"
