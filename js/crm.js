@@ -1203,6 +1203,7 @@ const TEMPLATES = {
   all: "Assalomu alaykum! FURNIPART premium'dan yozyapmiz. Yangi mahsulotlar va chegirmalar haqida bilishni xohlaysizmi?",
 };
 const BC_GROUPS = [
+  ["everyone", "🌐 Hammasi (barcha mijozlar + lidlar)"],
   ["Mebelchi", "🔧 Mebelchilar (mijoz + lid)"],
   ["Diler / do'kon", "🏪 Dilerlar / do'konlar"],
   ["Oddiy xaridor", "🏠 Oddiy xaridorlar (xarid qilganlar)"],
@@ -1222,7 +1223,10 @@ function bcRecipients(g) {
     x.cnt = msgCountToday(src);
     m.set(x.phone, x);
   };
-  if (g === "all") clients.forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
+  if (g === "everyone") {
+    clients.forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
+    leads.forEach((l) => add({ name: l.name, phone: l.phone, kind: "lead", id: l.id, last: l.lastMsg, extra: l.interest }));
+  } else if (g === "all") clients.forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
   else if (g === "due") clients.filter(followDue).forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
   else if (g === "lost")
     leads
@@ -1452,7 +1456,7 @@ $("#bcShare").addEventListener("click", bcShareNow);
 $("#bcOpen").addEventListener("click", () => {
   bcSel.clear();
   bcQueue = null;
-  $("#bcGroup").value = $("#cType").value === "all" ? "Mebelchi" : $("#cType").value;
+  $("#bcGroup").value = "everyone";
   $("#bcText").value = TEMPLATES[$("#bcGroup").value] || TEMPLATES.all;
   renderBroadcast();
   $("#bcDlg").showModal();
