@@ -269,12 +269,17 @@
       <h2>📣 Guruhga xabar</h2>
       <label>Kimga<select id="bcGroup"></select></label>
       <label>Xabar matni<textarea id="bcText" rows="5" maxlength="1000"></textarea></label>
+      <div class="bc-media">
+        <label class="btn btn-sm btn-line bc-add">🖼 Rasm qo'shish<input id="bcFiles" type="file" accept="image/*" multiple hidden /></label>
+        <div id="bcThumbs" class="bc-thumbs"></div>
+      </div>
+      <button class="btn btn-dark bc-share" type="button" id="bcShare" hidden>📤 Rasm + matnni yuborish</button>
       <div class="btn-row">
         <button class="btn btn-sm btn-line" type="button" id="bcCopy">📋 Matnni nusxalash</button>
         <button class="btn btn-sm btn-line" type="button" id="bcPhones">📞 Raqamlarni nusxalash</button>
       </div>
       <p class="muted" id="bcInfo"></p>
-      <p class="muted small">💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bosilgan mijoz "bugun yuborildi" deb belgilanadi.</p>
+      <p class="muted small" id="bcHint">💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bosilgan mijoz "bugun yuborildi" deb belgilanadi.</p>
       <div id="bcList"></div>
     </div>
   </dialog>
@@ -361,6 +366,6 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=9"></script>
-  <script type="module" src="js/crm.js?v=22"></script>
+  <script type="module" src="js/crm.js?v=23"></script>
 </body>
 </html>

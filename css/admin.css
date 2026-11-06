@@ -149,3 +149,12 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 .toolbar .check { flex: none; flex-direction: row; align-items: center; gap: 6px; font-size: 14px; }
 .big-num { font-size: 38px; }
 .big-num span { white-space: nowrap; font-size: 18px; }
+
+/* Guruhga xabar: rasmlar */
+.bc-media { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; }
+.bc-add { cursor: pointer; margin: 0; }
+.bc-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.bc-thumb { position: relative; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; border: 1px solid #e6e2d8; }
+.bc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bc-thumb button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,.65); color: #fff; font-size: 14px; line-height: 22px; padding: 0; cursor: pointer; }
+.bc-share { width: 100%; margin-bottom: 10px; }

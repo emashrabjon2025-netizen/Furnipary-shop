@@ -1231,6 +1231,7 @@ function bcRecipients(g) {
   return [...m.values()];
 }
 
+let bcImages = [];
 function renderBroadcast() {
   const g = $("#bcGroup").value;
   const list = bcRecipients(g);
@@ -1245,6 +1246,7 @@ function renderBroadcast() {
           return `<div class="mini-row bc-row ${r.last === today() ? "sent" : ""}">
         <div><b>${escapeHtml(r.name || "Nomsiz")}</b> <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
         <div class="row-actions">
+          ${bcImages.length ? `<button class="icon-btn" type="button" data-bcsent="${r.kind}:${r.id}" data-share="${escapeHtml(r.phone)}" title="Rasm bilan yuborish">📤</button>` : ""}
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://wa.me/${d}?text=${enc}" target="_blank" rel="noopener" title="WhatsApp">🟢</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://t.me/+${d}" target="_blank" rel="noopener" title="Telegram (matnni nusxalab qo'ying)">✈️</a>
@@ -1254,6 +1256,79 @@ function renderBroadcast() {
         .join("")
     : `<p class="muted">Bu guruhda telefon raqamli hech kim yo'q</p>`;
 }
+
+// --- Rasmlar (faqat shu oynada, serverga yuklanmaydi) ---
+const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bosilgan mijoz "bugun yuborildi" deb belgilanadi.`;
+const BC_HINT_IMG = `📤 tugmasi rasmlar va matnni birga ochadi: Telegram yoki WhatsApp'ni tanlang, keyin shu mijozni tanlang (raqami nusxalanadi — qidiruvga qo'ying). 💬 🟢 ✈️ faqat matn yuboradi.`;
+
+function shrinkImage(file, max = 1600) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(
+        (b) => resolve(b ? new File([b], (file.name || "rasm").replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }) : file),
+        "image/jpeg",
+        0.85
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
+function renderBcThumbs() {
+  $("#bcThumbs").querySelectorAll("img").forEach((i) => URL.revokeObjectURL(i.src));
+  $("#bcThumbs").innerHTML = bcImages
+    .map((f, i) => `<div class="bc-thumb"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-rm="${i}" aria-label="O'chirish">×</button></div>`)
+    .join("");
+  $("#bcShare").hidden = !bcImages.length;
+  $("#bcHint").textContent = bcImages.length ? BC_HINT_IMG : BC_HINT_TEXT;
+  renderBroadcast();
+}
+
+$("#bcFiles").addEventListener("change", async (e) => {
+  const files = [...e.target.files].filter((f) => f.type.startsWith("image/"));
+  e.target.value = "";
+  if (!files.length) return;
+  const room = 10 - bcImages.length;
+  if (room <= 0) return toast("Ko'pi bilan 10 ta rasm", "err");
+  if (files.length > room) toast(`Faqat ${room} tasi qo'shildi (ko'pi bilan 10 ta)`, "err");
+  bcImages = bcImages.concat(await Promise.all(files.slice(0, room).map((f) => shrinkImage(f))));
+  renderBcThumbs();
+});
+$("#bcThumbs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-rm]");
+  if (!b) return;
+  bcImages.splice(Number(b.dataset.rm), 1);
+  renderBcThumbs();
+});
+
+async function bcShareNow() {
+  const text = $("#bcText").value;
+  const data = { files: bcImages, text };
+  if (!navigator.canShare || !navigator.canShare({ files: bcImages })) {
+    toast("Bu brauzer rasm ulashishni qo'llamaydi — Safari yoki Chrome'da oching", "err");
+    return false;
+  }
+  try {
+    await navigator.share(data);
+    return true;
+  } catch (err) {
+    if (err && err.name !== "AbortError") toast("Ulashib bo'lmadi: " + err.message, "err");
+    return false;
+  }
+}
+$("#bcShare").addEventListener("click", bcShareNow);
 
 $("#bcOpen").addEventListener("click", () => {
   $("#bcGroup").value = $("#cType").value === "all" ? "Mebelchi" : $("#cType").value;
@@ -1290,7 +1365,10 @@ $("#bcPhones").addEventListener("click", async () => {
 $("#bcList").addEventListener("click", async (e) => {
   const a = e.target.closest("[data-bcsent]");
   if (!a) return;
-  if (a.title.startsWith("Telegram")) navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
+  if (a.dataset.share) {
+    navigator.clipboard?.writeText(a.dataset.share).catch(() => {});
+    if (!(await bcShareNow())) return;
+  } else if (a.title.startsWith("Telegram")) navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
   const [kind, id] = a.dataset.bcsent.split(":");
   try {
     await updateDoc(doc(db, kind === "lead" ? "crmLeads" : "crmClients", id), { lastMsg: today() });
