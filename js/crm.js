@@ -1212,9 +1212,16 @@ const BC_GROUPS = [
 ];
 $("#bcGroup").innerHTML = BC_GROUPS.map(([v, l]) => `<option value="${escapeHtml(v)}">${escapeHtml(l)}</option>`).join("");
 
+const BC_MAX = 3; // bitta mijozga kuniga ko'pi bilan 3 marta
+const msgCountToday = (x) => (x.msgDay === today() ? Number(x.msgCount) || 0 : x.lastMsg === today() ? 1 : 0);
 function bcRecipients(g) {
   const m = new Map();
-  const add = (x) => x.phone && !m.has(x.phone) && m.set(x.phone, x);
+  const add = (x) => {
+    if (!x.phone || m.has(x.phone)) return;
+    const src = (x.kind === "lead" ? leads : clients).find((y) => y.id === x.id) || {};
+    x.cnt = msgCountToday(src);
+    m.set(x.phone, x);
+  };
   if (g === "all") clients.forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
   else if (g === "due") clients.filter(followDue).forEach((c) => add({ name: c.name, phone: c.phone, kind: "client", id: c.id, last: c.lastMsg }));
   else if (g === "lost")
@@ -1237,15 +1244,17 @@ function renderBroadcast() {
   const list = bcRecipients(g);
   const text = $("#bcText").value;
   const enc = encodeURIComponent(text);
-  const sent = list.filter((r) => r.last === today()).length;
-  $("#bcInfo").textContent = `${list.length} ta qabul qiluvchi${sent ? ` · bugun ${sent} tasiga yuborildi` : ""}`;
+  const sent = list.filter((r) => r.cnt > 0).length;
+  const full = list.filter((r) => r.cnt >= BC_MAX).length;
+  $("#bcInfo").textContent = `${list.length} ta qabul qiluvchi${sent ? ` · bugun ${sent} tasiga yuborildi` : ""}${full ? ` · ${full} tasiga ${BC_MAX} marta (bugunga yetarli)` : ""}`;
   $("#bcList").innerHTML = list.length
     ? list
         .map((r) => {
           const d = r.phone.replace(/\D/g, "");
-          return `<div class="mini-row bc-row ${r.last === today() ? "sent" : ""}">
-        <div><b>${escapeHtml(r.name || "Nomsiz")}</b> <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
-        <div class="row-actions">
+          const done = r.cnt >= BC_MAX;
+          return `<div class="mini-row bc-row ${done ? "sent" : ""}">
+        <div><b>${escapeHtml(r.name || "Nomsiz")}</b>${r.cnt ? ` <span class="bc-cnt ${done ? "full" : ""}">${r.cnt}/${BC_MAX}</span>` : ""} <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
+        <div class="row-actions${done ? " bc-off" : ""}">
           ${bcImages.length ? `<button class="icon-btn" type="button" data-bcsent="${r.kind}:${r.id}" data-share="${escapeHtml(r.phone)}" title="Rasm bilan yuborish">📤</button>` : ""}
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://wa.me/${d}?text=${enc}" target="_blank" rel="noopener" title="WhatsApp">🟢</a>
@@ -1258,7 +1267,7 @@ function renderBroadcast() {
 }
 
 // --- Rasmlar (faqat shu oynada, serverga yuklanmaydi) ---
-const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bosilgan mijoz "bugun yuborildi" deb belgilanadi.`;
+const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bitta mijozga kuniga 3 martagacha yozish mumkin — har biri 1/3, 2/3, 3/3 deb belgilanadi.`;
 const BC_HINT_IMG = `📤 tugmasi rasmlar va matnni birga ochadi: Telegram yoki WhatsApp'ni tanlang, keyin shu mijozni tanlang (raqami nusxalanadi — qidiruvga qo'ying). 💬 🟢 ✈️ faqat matn yuboradi.`;
 
 function shrinkImage(file, max = 1600) {
@@ -1365,13 +1374,28 @@ $("#bcPhones").addEventListener("click", async () => {
 $("#bcList").addEventListener("click", async (e) => {
   const a = e.target.closest("[data-bcsent]");
   if (!a) return;
+  {
+    const [k0, i0] = a.dataset.bcsent.split(":");
+    const s0 = (k0 === "lead" ? leads : clients).find((y) => y.id === i0) || {};
+    if (msgCountToday(s0) >= BC_MAX) {
+      e.preventDefault();
+      return toast(`Bu mijozga bugun ${BC_MAX} marta yozildi — ertaga yana yozish mumkin`, "err");
+    }
+  }
   if (a.dataset.share) {
     navigator.clipboard?.writeText(a.dataset.share).catch(() => {});
     if (!(await bcShareNow())) return;
   } else if (a.title.startsWith("Telegram")) navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
   const [kind, id] = a.dataset.bcsent.split(":");
+  const src = (kind === "lead" ? leads : clients).find((y) => y.id === id) || {};
+  const n = msgCountToday(src) + 1;
+  if (n > BC_MAX) {
+    e.preventDefault();
+    return toast(`Bu mijozga bugun ${BC_MAX} marta yozildi — ertaga yana yozish mumkin`, "err");
+  }
   try {
-    await updateDoc(doc(db, kind === "lead" ? "crmLeads" : "crmClients", id), { lastMsg: today() });
+    await updateDoc(doc(db, kind === "lead" ? "crmLeads" : "crmClients", id), { lastMsg: today(), msgDay: today(), msgCount: n });
+    toast(n < BC_MAX ? `Bugun ${n}/${BC_MAX} — yana ${BC_MAX - n} marta yozish mumkin` : `Bugun ${BC_MAX}/${BC_MAX} — bugunga yetarli`);
   } catch (err) {
     console.error(err);
   }
