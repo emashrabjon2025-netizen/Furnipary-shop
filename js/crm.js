@@ -1264,7 +1264,7 @@ function renderBroadcast() {
           ${bcImages.length ? `<button class="icon-btn" type="button" data-bcsent="${r.kind}:${r.id}" data-share="${escapeHtml(r.phone)}" title="Rasm bilan yuborish">📤</button>` : ""}
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://wa.me/${d}?text=${enc}" target="_blank" rel="noopener" title="WhatsApp">🟢</a>
-          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="https://t.me/+${d}" target="_blank" rel="noopener" title="Telegram (matnni nusxalab qo'ying)">✈️</a>
+          <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="tg://resolve?phone=${d}&text=${enc}" title="Telegram">✈️</a>
         </div>
       </div>`;
         })
@@ -1343,7 +1343,7 @@ async function bcOpenOne(ch, key) {
     window.open(`https://wa.me/${d}?text=${enc}`, "_blank", "noopener");
   } else if (ch === "tg") {
     navigator.clipboard?.writeText(text).catch(() => {});
-    window.open(`https://t.me/+${d}`, "_blank", "noopener");
+    location.href = `tg://resolve?phone=${d}&text=${enc}`;
   }
   await bcMark(f.kind, f.id);
   return true;
@@ -1369,7 +1369,7 @@ $("#bcBulk").addEventListener("click", async (e) => {
   } else {
     const ok = await bcOpenOne(ch, key);
     if (ok === false) return renderBroadcast();
-    if (ch === "tg") toast("Matn nusxalandi — Telegram'da qo'yib yuboring");
+    if (ch === "tg") toast("Telegram'da chat ochilmasa — bu raqam Telegram'da yo'q yoki raqam bo'yicha topishni yopgan. Matn nusxalandi.");
   }
   bcSel.delete(key);
   bcQueue.i++;
@@ -1381,7 +1381,7 @@ $("#bcBulk").addEventListener("click", async (e) => {
 });
 
 // --- Rasmlar (faqat shu oynada, serverga yuklanmaydi) ---
-const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bitta mijozga kuniga 3 martagacha yozish mumkin — har biri 1/3, 2/3, 3/3 deb belgilanadi.`;
+const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn tayyor bo'ladi). Bitta mijozga kuniga 3 martagacha yozish mumkin — har biri 1/3, 2/3, 3/3 deb belgilanadi.`;
 const BC_HINT_IMG = `📤 tugmasi rasmlar va matnni birga ochadi: Telegram yoki WhatsApp'ni tanlang, keyin shu mijozni tanlang (raqami nusxalanadi — qidiruvga qo'ying). 💬 🟢 ✈️ faqat matn yuboradi.`;
 
 function shrinkImage(file, max = 1600) {
@@ -1510,7 +1510,10 @@ $("#bcList").addEventListener("click", async (e) => {
   if (a.dataset.share) {
     navigator.clipboard?.writeText(a.dataset.share).catch(() => {});
     if (!(await bcShareNow())) return;
-  } else if (a.title.startsWith("Telegram")) navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
+  } else if (a.title.startsWith("Telegram")) {
+    navigator.clipboard?.writeText($("#bcText").value).catch(() => {});
+    toast("Telegram'da chat ochilmasa — bu raqam Telegram'da yo'q yoki raqam bo'yicha topishni yopgan. Matn nusxalandi.");
+  }
   const [kind, id] = a.dataset.bcsent.split(":");
   const src = (kind === "lead" ? leads : clients).find((y) => y.id === id) || {};
   const n = msgCountToday(src) + 1;
