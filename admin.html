@@ -44,6 +44,7 @@
       <button class="tab" data-tab="clients">Mijozlar <span id="cCount"></span></button>
       <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
       <button class="tab" data-tab="target">📣 Target</button>
+      <button class="tab" data-tab="ops">👥 Operatorlar</button>
       <button class="tab" data-tab="sitechat">💬 Sayt chat <span id="chatCount" class="badge-red"></span></button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
       <button class="tab" data-tab="orders">Buyurtmalar <span id="oNew"></span></button>
@@ -84,6 +85,7 @@
         <label class="btn btn-line file-btn">⬆ Excel'dan import<input id="leadImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
         <select id="lStage"><option value="open">Ochiq lidlar</option><option value="all">Barchasi</option><option value="stale">⏰ 24 soatdan beri javobsiz</option><option value="nodate">⚠️ Qo'ng'iroq sanasi yo'q</option></select>
         <select id="lSource"><option value="all">Barcha manbalar</option></select>
+        <select id="lOp" hidden><option value="all">Barcha operatorlar</option></select>
         <input id="lSearch" type="search" placeholder="Ism, telefon…" />
       </div>
       <div id="lCamp" class="summary" hidden></div>
@@ -105,6 +107,37 @@
     </div>
 
     <!-- CRM: Sotuvlar -->
+    <!-- Operatorlar -->
+    <div class="tabpane" id="tab-ops" hidden>
+      <div class="panel">
+        <h2>🏆 Operatorlar reytingi <input type="month" id="opMonth" class="op-month" /></h2>
+        <div id="opRank"></div>
+        <div id="opUnassigned" class="alert-row"></div>
+      </div>
+      <div id="opCards" class="crm-grid"></div>
+      <div class="crm-grid">
+        <div class="panel">
+          <h2>➕ Operator qo'shish</h2>
+          <form id="opAdd" class="pform">
+            <label>Ismi<input name="name" required maxlength="40" placeholder="Masalan: Dilnoza" /></label>
+            <label>Email (login)<input name="email" type="email" required placeholder="dilnoza@furnipart.uz" /></label>
+            <label>Parol (kamida 6 belgi)<input name="password" required minlength="6" maxlength="40" /></label>
+            <button class="btn btn-yellow btn-block" type="submit">Qo'shish</button>
+            <p class="muted small">Operator <b>furnipart-shop.vercel.app/operator</b> sahifasiga shu email va parol bilan kiradi. U faqat o'ziga biriktirilgan lidlarni ko'radi — mahsulot, moliya va boshqa mijozlarni ko'rmaydi. Yangi lidlar operatorlarga navbat bilan avtomatik biriktiriladi.</p>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>📜 Sotuv skriptlari</h2>
+          <p class="muted small">Operator lid kartasida ko'radi. <code>{ism}</code>, <code>{operator}</code>, <code>{mahsulot}</code> o'rniga avtomatik qo'yiladi.</p>
+          <form id="scriptForm" class="pform">
+            <label>Skript turi<select name="k"><option value="matras">🛏 Matras</option><option value="furnitura">🔧 Furnitura / mebelchi</option><option value="divan">🛋 Divan</option><option value="umumiy">Umumiy</option></select></label>
+            <textarea name="txt" rows="14" maxlength="4000"></textarea>
+            <div class="btn-row"><button class="btn btn-dark" type="submit">Saqlash</button><button class="btn btn-line" type="button" id="scriptReset">Asl holiga qaytarish</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Sayt: chat va bildirishnomalar -->
     <div class="tabpane" id="tab-sitechat" hidden>
       <div class="crm-grid sc-grid">
@@ -269,6 +302,7 @@
       <label>Mijoz turi<select name="ctype"></select></label>
       <label>Reklama kampaniyasi<select name="campaign"></select></label>
       <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
+      <label id="opWrap" hidden>Operator<select name="assignedTo"></select></label>
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
     </form>
@@ -408,7 +442,8 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=10"></script>
-  <script type="module" src="js/crm.js?v=28"></script>
+  <script type="module" src="js/crm.js?v=29"></script>
   <script type="module" src="js/sitechat-admin.js?v=1"></script>
+  <script type="module" src="js/operators-admin.js?v=1"></script>
 </body>
 </html>

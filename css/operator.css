@@ -1,0 +1,37 @@
+/* Operator paneli */
+.op-kpi { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 12px 0; }
+.op-kpi div { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px; text-align: center; }
+.op-kpi small { display: block; font-size: 11px; color: var(--muted); }
+.op-kpi b { font-size: 15px; }
+@media (max-width: 420px) { .op-kpi { grid-template-columns: repeat(3, 1fr); } }
+.op-h { font-size: 15px; margin: 16px 0 8px; }
+.op-card { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; font: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+.op-card.new { border-left: 5px solid #f2c400; }
+.op-card.late { border-left-color: #d93b3b; background: #fff6f5; }
+.oc-top, .oc-bot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.oc-mid, .oc-bot small { color: var(--muted); font-size: 13px; }
+.oc-int { font-size: 14px; }
+.op-sheet h2 { margin: 2px 40px 4px 0; }
+.op-sheet p { margin: 4px 0; }
+.op-contact { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.op-contact .btn { text-align: center; }
+.op-att { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 4px; }
+.att-dots { display: flex; gap: 6px; }
+.att-dots i { flex: 1; height: 8px; border-radius: 4px; background: #e6e2d8; }
+.att-dots i.on { background: #111; }
+.op-result { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.op-result .btn { padding: 12px 6px; }
+.op-result [data-res="sold"], .op-result [data-res="lost"] { grid-column: span 2; }
+.op-next, .op-note { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-weight: 600; font-size: 14px; }
+.op-next input, .op-note textarea, .op-search { font: inherit; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; }
+#saveNote { margin-top: 6px; }
+.op-script { margin-top: 14px; background: #fffbe6; border: 1px solid #f2e3a0; border-radius: 12px; padding: 10px 12px; }
+.op-script summary { font-weight: 700; cursor: pointer; }
+.op-script pre { white-space: pre-wrap; font: inherit; font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+.op-log { padding-left: 18px; color: var(--muted); font-size: 13px; }
+.op-search { width: 100%; margin-bottom: 8px; }
+.op-prices { display: flex; flex-direction: column; gap: 4px; }
+.op-price { display: flex; justify-content: space-between; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 14px; }
+.op-price b { white-space: nowrap; }
+.btn-ghost-d { background: #f1efe9; color: var(--ink); }
+.reason-btns .btn:disabled { opacity: .45; }

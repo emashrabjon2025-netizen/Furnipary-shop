@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Operator" />
+  <title>Operator — FURNIPART</title>
+  <link rel="icon" href="img/logo.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/operator.css?v=1" />
+</head>
+<body class="admin op">
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <span class="brand">
+        <img src="img/logo-mark.png" alt="" width="32" height="32" />
+        <span class="brand-text"><span><b>FURNI</b>PART</span><small id="opName">operator</small></span>
+      </span>
+      <button class="btn btn-sm btn-ghost" id="logout" hidden>Chiqish</button>
+    </div>
+  </header>
+
+  <section id="loginView" class="wrap login" hidden>
+    <form id="loginForm" class="panel">
+      <h1>Operator paneli</h1>
+      <label>Email<input name="email" type="email" required autocomplete="username" /></label>
+      <label>Parol<input name="password" type="password" required autocomplete="current-password" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Kirish</button>
+      <p class="hint" id="loginMsg"></p>
+    </form>
+  </section>
+
+  <section id="appView" class="wrap" hidden>
+    <div class="op-kpi" id="opKpi"></div>
+    <nav class="tabs" id="opTabs">
+      <button class="tab active" data-v="today">📞 Bugun <span id="nToday"></span></button>
+      <button class="tab" data-v="open">Ochiq lidlar <span id="nOpen"></span></button>
+      <button class="tab" data-v="closed">Yopilgan</button>
+      <button class="tab" data-v="prices">💲 Narxlar</button>
+    </nav>
+    <div id="opList"></div>
+  </section>
+
+  <!-- Lid kartasi -->
+  <dialog id="leadDlg" class="sheet op-sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div id="leadBody"></div>
+  </dialog>
+
+  <!-- Sotuv -->
+  <dialog id="saleDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="saleForm" class="pform">
+      <h2>💰 Sotuv</h2>
+      <label>Mahsulot *<input name="product" list="prodList" required maxlength="200" placeholder="Mahsulot nomi" /></label>
+      <datalist id="prodList"></datalist>
+      <div class="two">
+        <label>Soni<input name="qty" type="number" min="1" value="1" inputmode="numeric" /></label>
+        <label>Valyuta<select name="currency"><option>so'm</option><option>$</option></select></label>
+      </div>
+      <div class="two">
+        <label>Umumiy summa *<input name="amount" inputmode="numeric" required placeholder="2 900 000" /></label>
+        <label>Olingan (zaklad)<input name="paid" inputmode="numeric" value="0" /></label>
+      </div>
+      <label>Yetkazish manzili<input name="address" maxlength="200" /></label>
+      <label>Izoh<textarea name="note" rows="2" maxlength="500"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Sotuvni saqlash</button>
+    </form>
+  </dialog>
+
+  <!-- Rad etish -->
+  <dialog id="lostDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="lostForm" class="pform">
+      <h2>✖ Nega olmadi?</h2>
+      <div class="reason-btns" id="lostBtns"></div>
+      <label>Izoh<input name="lostNote" maxlength="200" placeholder="Masalan: boshqa do'kondan 10% arzon oldi" /></label>
+      <button class="btn btn-dark btn-block" type="submit">Yopish</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/operator.js?v=1"></script>
+</body>
+</html>

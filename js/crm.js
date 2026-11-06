@@ -98,6 +98,7 @@ const DEFAULT_TARGET = 150;
 const DEFAULT_REVENUE = 150000000; // oylik umumiy online savdo rejasi, so'm
 
 let leads = [];
+let ops = []; // operatorlar (crmOperators)
 let clients = [];
 let sales = [];
 let settings = { monthlyTarget: DEFAULT_TARGET, targetCategory: "matras", planRevenue: DEFAULT_REVENUE };
@@ -207,6 +208,18 @@ function start() {
       renderClients();
       renderReport();
     }, onErr("sales"))
+  );
+  unsub.push(
+    onSnapshot(collection(db, "crmOperators"), (snap) => {
+      ops = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      const cur = $("#lOp").value;
+      $("#lOp").innerHTML =
+        `<option value="all">Barcha operatorlar</option><option value="none">👤 Biriktirilmagan</option>` +
+        ops.map((o) => `<option value="${o.id}">👤 ${escapeHtml(o.name || o.email || "")}${o.active === false ? " (o'chirilgan)" : ""}</option>`).join("");
+      $("#lOp").value = [...$("#lOp").options].some((o) => o.value === cur) ? cur : "all";
+      $("#lOp").hidden = !ops.length;
+      renderLeads();
+    }, () => {})
   );
   unsub.push(
     onSnapshot(doc(db, "crmSettings", "main"), (d) => {
@@ -417,16 +430,18 @@ document.addEventListener("click", async (e) => {
 // ================= LIDLAR =================
 $("#lSource").insertAdjacentHTML("beforeend", opts(SOURCES));
 $("#lStage").insertAdjacentHTML("beforeend", opts(LEAD_STAGES));
-["#lSource", "#lStage", "#lSearch"].forEach((s) => $(s).addEventListener("input", renderLeads));
+["#lSource", "#lStage", "#lSearch", "#lOp"].forEach((s) => $(s).addEventListener("input", renderLeads));
 
 function renderLeads() {
   const src = $("#lSource").value;
   const st = $("#lStage").value;
   const q = $("#lSearch").value.trim().toLowerCase();
+  const opf = $("#lOp").value || "all";
   const t = today();
   const list = leads.filter(
     (l) =>
       (src === "all" || l.source === src) &&
+      (opf === "all" || (opf === "none" ? !l.assignedTo : l.assignedTo === opf)) &&
       (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : st === "stale" ? isStale(l) : st === "nodate" ? noDate(l) : l.stage === st) &&
       (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q)) &&
       (!campFilter || campaignOf(l)?.id === campFilter)
@@ -452,6 +467,7 @@ function renderLeads() {
           <small>${escapeHtml(l.source || "")} · ${fmtDate(l.date)}</small>
         </div>
         ${telLink(l.phone)}
+        ${ops.length ? `<div><span class="pill ${l.assignedTo ? "op" : "late"}">👤 ${escapeHtml(l.assignedTo ? l.assignedName || (ops.find((o) => o.id === l.assignedTo) || {}).name || "operator" : "operator biriktirilmagan")}</span>${l.attempts ? ` <small class="muted">urinish ${l.attempts}</small>` : ""}</div>` : ""}
         ${l.region ? `<div class="muted">📍 ${escapeHtml(l.region)}</div>` : ""}
         ${campaignOf(l) ? `<div><span class="pill camp">📣 ${escapeHtml(campaignOf(l).name)}</span></div>` : ""}
         ${(l.ctype || guessType(l.interest)) !== "Oddiy xaridor" ? `<div><span class="pill type">🔧 ${escapeHtml(l.ctype || guessType(l.interest))}</span></div>` : ""}
@@ -503,6 +519,10 @@ function openLead(id) {
     tgt.campaigns.map((c) => `<option value="${escapeHtml(c.id)}"${l.campaign === c.id ? " selected" : ""}>📣 ${escapeHtml(c.name)}</option>`).join("");
   f.nextCall.value = id ? l.nextCall || "" : today();
   f.note.value = l.note || "";
+  f.assignedTo.innerHTML =
+    `<option value="">— biriktirilmagan —</option>` +
+    ops.filter((o) => o.active !== false || o.id === l.assignedTo).map((o) => `<option value="${o.id}"${o.id === l.assignedTo ? " selected" : ""}>👤 ${escapeHtml(o.name || o.email || "")}</option>`).join("");
+  $("#opWrap").hidden = !ops.length;
   $("#leadDlg").showModal();
 }
 
@@ -526,6 +546,11 @@ $("#leadForm").addEventListener("submit", async (e) => {
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
   };
+  const prevL = leads.find((l) => l.id === editLeadId) || {};
+  if (ops.length && (f.assignedTo.value || "") !== (prevL.assignedTo || "")) {
+    const o = ops.find((x) => x.id === f.assignedTo.value);
+    Object.assign(data, { assignedTo: o ? o.id : "", assignedName: o ? o.name || "" : "", assignedAt: o ? new Date().toISOString() : "" });
+  }
   if (!data.name && !data.phone) return toast("Ism yoki telefon kiriting", "err");
   if (data.stage === "Rad etdi" && !data.lostReason) return toast("Rad etish sababini tanlang", "err");
   if (data.stage === "Rad etdi") data.lostDate = leads.find((l) => l.id === editLeadId)?.lostDate || today();

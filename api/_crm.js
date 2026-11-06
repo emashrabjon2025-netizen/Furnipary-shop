@@ -119,6 +119,31 @@ const REPEAT_DAYS = { "Oddiy xaridor": 150, Mebelchi: 30, "Diler / do'kon": 21 }
 const clip = (s, n) => String(s ?? "").trim().slice(0, n);
 
 // Lid qo'shadi; shu raqam bilan ochiq lid bo'lsa — yangisini ochmay, unga qo'shib qo'yadi
+// ---- Operatorlar: yangi lidni navbat bilan biriktirish ----
+async function pickOperator() {
+  const ops = (await list("crmOperators")).filter((o) => o.active !== false).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (!ops.length) return null;
+  const rr = (await getOne("crmSettings", "rr")) || {};
+  const i = (Number(rr.i) || 0) % ops.length;
+  await put("crmSettings", "rr", { i: i + 1 });
+  return ops[i];
+}
+
+async function notifyOperator(op, lead, repeat) {
+  if (!op || !op.tgChat) return;
+  await tg(
+    [
+      repeat ? `🔁 <b>Qayta murojaat</b>` : `🆕 <b>Yangi lid</b> — 5 daqiqa ichida qo'ng'iroq qiling`,
+      `👤 ${esc(lead.name || "")} · ${esc(lead.phone || "")}`,
+      lead.interest ? `🛏 ${esc(lead.interest)}` : "",
+      lead.region ? `📍 ${esc(lead.region)}` : "",
+      ``,
+      `👉 https://furnipart-shop.vercel.app/operator`,
+    ].filter((x) => x !== "").join("\n"),
+    { chat_id: op.tgChat }
+  ).catch(() => {});
+}
+
 async function addLead({ name, phone, region, interest, source, instagram, note }) {
   phone = normPhone(phone);
   name = clip(name, 60) || (instagram ? "@" + clip(instagram, 40) : "");
@@ -132,10 +157,28 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     upd.note = [open.note, `${today()}: qayta murojaat${interest ? " — " + interest : ""}`].filter(Boolean).join(" · ").slice(0, 1000);
     if (!open.region && region) upd.region = clip(region, 120);
     if (open.stage !== "Yangi") upd.stage = "Yangi";
+    let op = null;
+    try {
+      if (open.assignedTo) op = await getOne("crmOperators", open.assignedTo);
+      if (!op || op.active === false) {
+        op = await pickOperator();
+        if (op) Object.assign(upd, { assignedTo: op.id, assignedName: op.name || "", assignedAt: new Date().toISOString() });
+      }
+    } catch (e) {
+      console.error("operator", e.message);
+    }
     await patch("crmLeads", open.id, upd);
+    await notifyOperator(op, { ...open, ...upd }, true);
     return { ok: true, id: open.id, repeat: true };
   }
+  let op = null;
+  try {
+    op = await pickOperator();
+  } catch (e) {
+    console.error("operator", e.message);
+  }
   const id = await create("crmLeads", {
+    ...(op ? { assignedTo: op.id, assignedName: op.name || "", assignedAt: new Date().toISOString() } : {}),
     name,
     phone,
     region: clip(region, 120),
@@ -148,7 +191,8 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     note: clip(note, 1000) + (existing.length ? (note ? " · " : "") + "Avval ham murojaat qilgan" : ""),
     date: today(),
   });
-  return { ok: true, id, repeat: false };
+  await notifyOperator(op, { name, phone, interest, region }, false);
+  return { ok: true, id, repeat: false, operator: op ? op.name : null };
 }
 
-module.exports = { fs, db, getOne, put, del, guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
+module.exports = { pickOperator, fs, db, getOne, put, del, guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };

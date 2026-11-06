@@ -24,11 +24,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // CRM: lidlar, mijozlar, sotuvlar, sozlamalar — faqat admin
-    match /crmLeads/{id} { allow read, write: if isAdmin(); }
+    // Operator — admin qo'shgan va faol xodim (crmOperators/<uid>)
+    function isOperator() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/crmOperators/$(request.auth.uid))
+        && get(/databases/$(database)/documents/crmOperators/$(request.auth.uid)).data.active == true;
+    }
+
+    // CRM: admin hammasini ko'radi; operator faqat o'ziga biriktirilgan lidlarni
+    match /crmLeads/{id} {
+      allow read, write: if isAdmin();
+      allow read: if isOperator() && resource.data.assignedTo == request.auth.uid;
+      allow update: if isOperator()
+        && resource.data.assignedTo == request.auth.uid
+        && request.resource.data.assignedTo == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'nextCall', 'note', 'attempts', 'lastAttemptAt', 'attemptLog', 'contactedAt', 'lostReason', 'lostNote', 'lostDate', 'soldAmount', 'soldAt', 'updatedAt', 'region']);
+    }
     match /crmClients/{id} { allow read, write: if isAdmin(); }
-    match /crmSales/{id} { allow read, write: if isAdmin(); }
-    match /crmSettings/{id} { allow read, write: if isAdmin(); }
+    match /crmSales/{id} {
+      allow read, write: if isAdmin();
+      allow read: if isOperator() && resource.data.operator == request.auth.uid;
+      allow create: if isOperator() && request.resource.data.operator == request.auth.uid;
+    }
+    match /crmSettings/{id} {
+      allow read, write: if isAdmin();
+      allow read: if id == 'scripts' && isOperator();
+    }
+    match /crmOperators/{uid} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
 
     // Sayt: chat, bildirishnoma obunalari va navbati — faqat admin (mijozlar server orqali yozadi)
     match /siteChats/{id} { allow read, write: if isAdmin(); }

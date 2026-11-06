@@ -15,6 +15,8 @@ import {
   serverTimestamp,
   writeBatch,
   arrayUnion,
+  where,
+  increment,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -46,6 +48,8 @@ export {
   serverTimestamp,
   writeBatch,
   arrayUnion,
+  where,
+  increment,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,

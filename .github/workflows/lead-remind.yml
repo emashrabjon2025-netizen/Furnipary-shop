@@ -1,0 +1,12 @@
+name: lead-remind
+# Yangi lidga 5 daqiqada qo'ng'iroq qilinmasa — Telegram eslatma (api/remind.js)
+on:
+  schedule:
+    - cron: "*/5 3-16 * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: curl -s -m 60 "https://furnipart-shop.vercel.app/api/remind" ; echo

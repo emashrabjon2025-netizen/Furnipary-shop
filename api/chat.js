@@ -51,6 +51,17 @@ async function onTelegram(req, res) {
   const u = body(req);
   const m = u.message;
   const owner = String(process.env.TELEGRAM_CHAT_ID || "");
+  // Operator botga /start op_<uid> yozsa — uning Telegram'i ulanadi
+  const start = m && m.text && m.text.match(/^\/start\s+op_([A-Za-z0-9]{10,40})/);
+  if (start) {
+    const op = await getOne("crmOperators", start[1]);
+    if (op) {
+      await put("crmOperators", start[1], { tgChat: String(m.chat.id), tgName: clip((m.from && (m.from.username || m.from.first_name)) || "", 60) });
+      await tg(`✅ ${esc(op.name || "Operator")}, Telegram ulandi. Yangi lidlar va eslatmalar shu yerga keladi.\n\n👉 https://furnipart-shop.vercel.app/operator`, { chat_id: m.chat.id });
+      await tg(`👤 Operator <b>${esc(op.name || "")}</b> Telegram'ni uladi.`);
+    }
+    return res.status(200).json({ ok: true });
+  }
   if (!m || String(m.chat && m.chat.id) !== owner) return res.status(200).json({ ok: true });
   const text = clip(m.text || m.caption, 1000);
   const ref = m.reply_to_message && (m.reply_to_message.text || m.reply_to_message.caption || "");
