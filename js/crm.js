@@ -1252,8 +1252,10 @@ function renderBroadcast() {
         .map((r) => {
           const d = r.phone.replace(/\D/g, "");
           const done = r.cnt >= BC_MAX;
-          return `<div class="mini-row bc-row ${done ? "sent" : ""}">
-        <div><b>${escapeHtml(r.name || "Nomsiz")}</b>${r.cnt ? ` <span class="bc-cnt ${done ? "full" : ""}">${r.cnt}/${BC_MAX}</span>` : ""} <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
+          const key = `${r.kind}:${r.id}`;
+          return `<div class="mini-row bc-row ${done ? "sent" : ""} ${bcSel.has(key) ? "picked" : ""}">
+        <label class="bc-pick"><input type="checkbox" class="bc-chk" data-key="${key}" ${bcSel.has(key) ? "checked" : ""} ${done ? "disabled" : ""}></label>
+        <div class="bc-who"><b>${escapeHtml(r.name || "Nomsiz")}</b>${r.cnt ? ` <span class="bc-cnt ${done ? "full" : ""}">${r.cnt}/${BC_MAX}</span>` : ""} <small class="muted">${r.kind === "lead" ? "lid" : "mijoz"}${r.extra ? " · " + escapeHtml(String(r.extra).slice(0, 40)) : ""}</small><br><small>${escapeHtml(r.phone)}${r.last ? ` · oxirgi xabar ${fmtDate(r.last)}` : ""}</small></div>
         <div class="row-actions${done ? " bc-off" : ""}">
           ${bcImages.length ? `<button class="icon-btn" type="button" data-bcsent="${r.kind}:${r.id}" data-share="${escapeHtml(r.phone)}" title="Rasm bilan yuborish">📤</button>` : ""}
           <a class="icon-btn" data-bcsent="${r.kind}:${r.id}" href="sms:${escapeHtml(r.phone)}&body=${enc}" title="SMS">💬</a>
@@ -1264,7 +1266,115 @@ function renderBroadcast() {
         })
         .join("")
     : `<p class="muted">Bu guruhda telefon raqamli hech kim yo'q</p>`;
+  renderBcBar(list);
 }
+
+// --- Belgilangan mijozlarga navbat bilan yuborish ---
+const bcSel = new Set();
+let bcQueue = null; // { ch, keys: [], i }
+const BC_CH = { sms: "💬 SMS", wa: "🟢 WhatsApp", tg: "✈️ Telegram", share: "📤 Rasm bilan" };
+const bcFind = (key) => {
+  const [kind, id] = key.split(":");
+  const x = (kind === "lead" ? leads : clients).find((y) => y.id === id);
+  return x ? { kind, id, x } : null;
+};
+
+function renderBcBar(list) {
+  const keys = new Set(list.map((r) => `${r.kind}:${r.id}`));
+  [...bcSel].forEach((k) => !keys.has(k) && bcSel.delete(k));
+  const free = list.filter((r) => r.cnt < BC_MAX);
+  const n = bcSel.size;
+  $("#bcAll").checked = free.length > 0 && free.every((r) => bcSel.has(`${r.kind}:${r.id}`));
+  $("#bcAll").disabled = !free.length;
+  $("#bcSelInfo").textContent = n ? `${n} ta tanlandi` : "Mijozlarni belgilang";
+  const q = bcQueue;
+  const btn = (ch) => {
+    if (q && q.ch === ch) {
+      const cur = bcFind(q.keys[q.i]);
+      return `<button class="btn btn-sm btn-dark" type="button" data-bulk="${ch}">${BC_CH[ch].split(" ")[0]} Keyingisi ${q.i + 1}/${q.keys.length}: ${escapeHtml((cur && cur.x.name) || "Nomsiz")}</button>`;
+    }
+    return `<button class="btn btn-sm btn-line" type="button" data-bulk="${ch}" ${n ? "" : "disabled"}>${BC_CH[ch]}</button>`;
+  };
+  const chans = ["sms", "wa", "tg"].concat(bcImages.length ? ["share"] : []);
+  $("#bcBulk").innerHTML =
+    (q ? btn(q.ch) + `<button class="btn btn-sm btn-line" type="button" data-bulkstop>To'xtatish</button>` : chans.map(btn).join("")) ;
+  $("#bcBar").classList.toggle("on", !!n || !!q);
+}
+
+$("#bcAll").addEventListener("change", (e) => {
+  const list = bcRecipients($("#bcGroup").value).filter((r) => r.cnt < BC_MAX);
+  list.forEach((r) => (e.target.checked ? bcSel.add(`${r.kind}:${r.id}`) : bcSel.delete(`${r.kind}:${r.id}`)));
+  bcQueue = null;
+  renderBroadcast();
+});
+
+// Bitta mijozga yozilganini hisoblash (kuniga BC_MAX marta)
+async function bcMark(kind, id) {
+  const src = (kind === "lead" ? leads : clients).find((y) => y.id === id) || {};
+  const n = msgCountToday(src) + 1;
+  if (n > BC_MAX) return false;
+  src.msgDay = today(); src.msgCount = n; src.lastMsg = today(); // darhol ko'rinsin
+  try {
+    await updateDoc(doc(db, kind === "lead" ? "crmLeads" : "crmClients", id), { lastMsg: today(), msgDay: today(), msgCount: n });
+  } catch (err) {
+    console.error(err);
+  }
+  return n;
+}
+
+// Tanlangan kanal orqali navbatdagi mijozni ochish. Brauzer bir bosishda faqat bitta chat ochishga ruxsat beradi.
+async function bcOpenOne(ch, key) {
+  const f = bcFind(key);
+  if (!f) return;
+  const phone = f.x.phone || "";
+  const d = phone.replace(/\D/g, "");
+  const text = $("#bcText").value;
+  const enc = encodeURIComponent(text);
+  if (ch === "share") {
+    navigator.clipboard?.writeText(phone).catch(() => {});
+    if (!(await bcShareNow())) return false;
+  } else if (ch === "sms") {
+    location.href = `sms:${phone}&body=${enc}`;
+  } else if (ch === "wa") {
+    window.open(`https://wa.me/${d}?text=${enc}`, "_blank", "noopener");
+  } else if (ch === "tg") {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    window.open(`https://t.me/+${d}`, "_blank", "noopener");
+  }
+  await bcMark(f.kind, f.id);
+  return true;
+}
+
+$("#bcBulk").addEventListener("click", async (e) => {
+  if (e.target.closest("[data-bulkstop]")) {
+    bcQueue = null;
+    return renderBroadcast();
+  }
+  const b = e.target.closest("[data-bulk]");
+  if (!b) return;
+  const ch = b.dataset.bulk;
+  if (!bcQueue || bcQueue.ch !== ch) {
+    const order = bcRecipients($("#bcGroup").value).map((r) => `${r.kind}:${r.id}`).filter((k) => bcSel.has(k));
+    if (!order.length) return toast("Avval mijozlarni belgilang", "err");
+    bcQueue = { ch, keys: order, i: 0 };
+  }
+  const key = bcQueue.keys[bcQueue.i];
+  const f = bcFind(key);
+  if (f && msgCountToday(f.x) >= BC_MAX) {
+    toast(`${f.x.name || "Bu mijoz"}ga bugun ${BC_MAX} marta yozilgan — o'tkazib yuborildi`, "err");
+  } else {
+    const ok = await bcOpenOne(ch, key);
+    if (ok === false) return renderBroadcast();
+    if (ch === "tg") toast("Matn nusxalandi — Telegram'da qo'yib yuboring");
+  }
+  bcSel.delete(key);
+  bcQueue.i++;
+  if (bcQueue.i >= bcQueue.keys.length) {
+    toast(`Tayyor: ${bcQueue.keys.length} ta mijozga ${BC_CH[ch]} ochildi`);
+    bcQueue = null;
+  }
+  setTimeout(renderBroadcast, 200);
+});
 
 // --- Rasmlar (faqat shu oynada, serverga yuklanmaydi) ---
 const BC_HINT_TEXT = `💬 SMS · 🟢 WhatsApp (matn tayyor bo'ladi) · ✈️ Telegram (matn nusxalanadi, chatga qo'ying). Bitta mijozga kuniga 3 martagacha yozish mumkin — har biri 1/3, 2/3, 3/3 deb belgilanadi.`;
@@ -1340,12 +1450,16 @@ async function bcShareNow() {
 $("#bcShare").addEventListener("click", bcShareNow);
 
 $("#bcOpen").addEventListener("click", () => {
+  bcSel.clear();
+  bcQueue = null;
   $("#bcGroup").value = $("#cType").value === "all" ? "Mebelchi" : $("#cType").value;
   $("#bcText").value = TEMPLATES[$("#bcGroup").value] || TEMPLATES.all;
   renderBroadcast();
   $("#bcDlg").showModal();
 });
 $("#bcGroup").addEventListener("change", () => {
+  bcSel.clear();
+  bcQueue = null;
   $("#bcText").value = TEMPLATES[$("#bcGroup").value] || TEMPLATES.all;
   renderBroadcast();
 });
@@ -1371,6 +1485,13 @@ $("#bcPhones").addEventListener("click", async () => {
 });
 
 // Xabar tugmasi bosilganda — "bugun yuborildi" deb belgilaymiz
+$("#bcList").addEventListener("change", (e) => {
+  const c = e.target.closest(".bc-chk");
+  if (!c) return;
+  c.checked ? bcSel.add(c.dataset.key) : bcSel.delete(c.dataset.key);
+  bcQueue = null;
+  renderBroadcast();
+});
 $("#bcList").addEventListener("click", async (e) => {
   const a = e.target.closest("[data-bcsent]");
   if (!a) return;

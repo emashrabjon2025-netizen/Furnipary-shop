@@ -161,3 +161,15 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 .bc-cnt { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #fff4c2; color: #6b5600; vertical-align: 2px; }
 .bc-cnt.full { background: #e3f4e6; color: #1d7a35; }
 .bc-off { pointer-events: none; opacity: .45; }
+/* Guruhga xabar: belgilash */
+.bc-bar { position: sticky; top: -1px; z-index: 2; background: #fff; border: 1px solid #e6e2d8; border-radius: 14px; padding: 10px 12px; margin: 6px 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.bc-bar.on { border-color: #f2c400; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+.pform .bc-allbox { flex-direction: row; display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 0; cursor: pointer; }
+.bc-bulk { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.bc-bulk .btn { flex: 1 1 auto; }
+.bc-bulk .btn:disabled { opacity: .45; }
+.bc-row { align-items: center; }
+.pform .bc-pick { flex-direction: row; display: flex; align-items: center; margin: 0 4px 0 0; padding: 6px 4px; cursor: pointer; }
+.bc-chk, #bcAll { width: 22px; height: 22px; accent-color: #111; }
+.bc-who { flex: 1; min-width: 0; }
+.bc-row.picked { background: #fffbe6; border-radius: 10px; }
