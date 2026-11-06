@@ -14,6 +14,7 @@ import {
   onSnapshot,
   serverTimestamp,
   writeBatch,
+  arrayUnion,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -44,6 +45,7 @@ export {
   onSnapshot,
   serverTimestamp,
   writeBatch,
+  arrayUnion,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,

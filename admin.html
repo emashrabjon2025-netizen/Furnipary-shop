@@ -44,6 +44,7 @@
       <button class="tab" data-tab="clients">Mijozlar <span id="cCount"></span></button>
       <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
       <button class="tab" data-tab="target">📣 Target</button>
+      <button class="tab" data-tab="sitechat">💬 Sayt chat <span id="chatCount" class="badge-red"></span></button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
       <button class="tab" data-tab="orders">Buyurtmalar <span id="oNew"></span></button>
       <button class="tab" data-tab="excel">Excel / Zaxira</button>
@@ -104,6 +105,36 @@
     </div>
 
     <!-- CRM: Sotuvlar -->
+    <!-- Sayt: chat va bildirishnomalar -->
+    <div class="tabpane" id="tab-sitechat" hidden>
+      <div class="crm-grid sc-grid">
+        <div class="panel">
+          <h2>💬 Saytdagi chatlar</h2>
+          <p class="muted small">Mijoz saytda yozsa — Telegram'ingizga ham keladi. Javobni shu yerda yoki Telegram'da xabarga <b>Reply</b> qilib yozing.</p>
+          <div id="chatList" class="chat-list"></div>
+        </div>
+        <div class="panel" id="chatThread" hidden>
+          <div id="ctHead" class="ct-head"></div>
+          <div id="ctMsgs" class="ct-msgs"></div>
+          <form id="ctForm" class="ct-form">
+            <textarea name="text" rows="2" maxlength="1000" placeholder="Javob yozing…"></textarea>
+            <button class="btn btn-dark" type="submit">Yuborish</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>🔔 Bildirishnoma yuborish <small class="muted" id="pushSubs"></small></h2>
+          <p class="muted small">Saytda 🔔 ni bosib obuna bo'lganlarning telefoniga xabar boradi (yangi mahsulot, chegirma).</p>
+          <form id="pushForm" class="pform">
+            <label>Sarlavha<input name="title" maxlength="80" placeholder="🔥 Matraslarga 15% chegirma" /></label>
+            <label>Matn<textarea name="body" rows="3" maxlength="300" placeholder="Faqat 3 kun! Ortopedik matraslar yangi narxda."></textarea></label>
+            <label>Bosganda ochiladigan sahifa<input name="url" maxlength="300" placeholder="/?k=matras  (bo'sh = bosh sahifa)" /></label>
+            <button class="btn btn-yellow" type="submit">🔔 Hammaga yuborish</button>
+            <p class="muted small" id="pushResult"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="tabpane" id="tab-target" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newCamp" type="button">+ Kampaniya</button>
@@ -197,6 +228,12 @@
           <label>yoki rasm linki<input name="imgUrl" type="url" placeholder="https://…" /></label>
         </div>
       </div>
+      <div class="extra-pick">
+        <label class="btn btn-line btn-sm file-btn">➕ Qo'shimcha rasmlar (4 tagacha)<input name="extra" type="file" accept="image/*" multiple hidden /></label>
+        <div id="pExtraPrev" class="extra-prev"></div>
+        <label class="check" id="pExtraClearWrap" hidden><input name="extraClear" type="checkbox" /> Qo'shimcha rasmlarni o'chirish</label>
+      </div>
+      <label>Video havolasi<input name="videoUrl" type="url" maxlength="300" placeholder="Instagram Reels, YouTube, Telegram post yoki .mp4" /></label>
       <label>Nomi *<input name="name" required maxlength="120" /></label>
       <label>Kategoriya *<select name="category" required></select></label>
       <div class="two">
@@ -370,7 +407,8 @@
     </form>
   </dialog>
 
-  <script type="module" src="js/admin.js?v=9"></script>
+  <script type="module" src="js/admin.js?v=10"></script>
   <script type="module" src="js/crm.js?v=28"></script>
+  <script type="module" src="js/sitechat-admin.js?v=1"></script>
 </body>
 </html>

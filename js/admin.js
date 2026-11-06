@@ -206,6 +206,7 @@ $("#pList").addEventListener("click", async (e) => {
     try {
       await deleteDoc(doc(db, "products", p.id));
       if (p.hasImage) await deleteDoc(doc(db, "productImages", p.id));
+      for (let i = 1; i <= (Number(p.extraCount) || 0); i++) await deleteDoc(doc(db, "productImages", `${p.id}__${i}`)).catch(() => {});
       toast("O'chirildi");
     } catch (err) {
       console.error(err);
@@ -231,18 +232,30 @@ function openForm(id) {
     f.stock.value = p.stock ?? "";
     f.description.value = p.description || "";
     f.imgUrl.value = p.imgUrl || "";
+    f.videoUrl.value = p.videoUrl || "";
     f.active.checked = p.active !== false;
   } else {
     f.active.checked = true;
     if ($("#pCat").value !== "all") f.category.value = $("#pCat").value;
   }
   $("#pPreview").src = p?.thumb || p?.imgUrl || PLACEHOLDER_IMG;
+  pickedExtras = [];
+  $("#pExtraPrev").innerHTML = p?.extraCount ? `<small class="muted">Hozir ${p.extraCount} ta qo'shimcha rasm bor. Yangilarini tanlasangiz, almashtiriladi.</small>` : "";
+  $("#pExtraClearWrap").hidden = !p?.extraCount;
+  $("#pForm").elements.extraClear.checked = false;
   $("#pDlg").showModal();
 }
 
 $("#pForm").elements.file.addEventListener("change", (e) => {
   pickedFile = e.target.files[0] || null;
   if (pickedFile) $("#pPreview").src = URL.createObjectURL(pickedFile);
+});
+let pickedExtras = [];
+$("#pForm").elements.extra.addEventListener("change", (e) => {
+  pickedExtras = [...e.target.files].filter((f) => f.type.startsWith("image/")).slice(0, 4);
+  if (e.target.files.length > 4) toast("Faqat 4 tasi olindi", "err");
+  $("#pExtraPrev").innerHTML = pickedExtras.map((f) => `<img src="${URL.createObjectURL(f)}" alt="" />`).join("");
+  e.target.value = "";
 });
 $("#pForm").elements.imgUrl.addEventListener("change", (e) => {
   if (!pickedFile && e.target.value) $("#pPreview").src = e.target.value;
@@ -266,6 +279,7 @@ $("#pForm").addEventListener("submit", async (e) => {
     stock: f.stock.value.trim() === "" ? null : parseCount(f.stock.value),
     description: f.description.value.trim(),
     imgUrl: f.imgUrl.value.trim(),
+    videoUrl: f.videoUrl.value.trim(),
     active: f.active.checked,
     updatedAt: serverTimestamp(),
   };
@@ -294,6 +308,18 @@ $("#pForm").addEventListener("submit", async (e) => {
       }
     }
     if (full) await setDoc(doc(db, "productImages", ref.id), { data: full });
+    // Qo'shimcha rasmlar: productImages/<id>__1 … __4
+    const oldExtra = editingId ? Number((products.find((x) => x.id === editingId) || {}).extraCount) || 0 : 0;
+    if (pickedExtras.length || f.extraClear.checked) {
+      let n = 0;
+      for (const file of pickedExtras) {
+        let d = await compressImage(file, 1200, 0.78);
+        if (d.length > 900000) d = await compressImage(file, 1000, 0.6);
+        await setDoc(doc(db, "productImages", `${ref.id}__${++n}`), { data: d });
+      }
+      for (let i = n + 1; i <= oldExtra; i++) await deleteDoc(doc(db, "productImages", `${ref.id}__${i}`)).catch(() => {});
+      data.extraCount = n;
+    }
     if (editingId) await updateDoc(ref, data);
     else await setDoc(ref, { ...data, createdAt: serverTimestamp() });
     toast("Saqlandi");
@@ -516,6 +542,7 @@ function renderImportPreview(fileName) {
 async function deleteAllProducts() {
   const ids = products.map((p) => p.id);
   const imgIds = products.filter((p) => p.hasImage).map((p) => p.id);
+  products.forEach((p) => { for (let i = 1; i <= (Number(p.extraCount) || 0); i++) imgIds.push(`${p.id}__${i}`); });
   const ops = [...ids.map((id) => ["products", id]), ...imgIds.map((id) => ["productImages", id])];
   for (let i = 0; i < ops.length; i += 400) {
     const b = writeBatch(db);

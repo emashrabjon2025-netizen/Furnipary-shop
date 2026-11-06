@@ -22,6 +22,7 @@ import {
   normalizePhone,
   PLACEHOLDER_IMG,
 } from "./util.js";
+import { openZoom, updateZoomSource, videoEmbed } from "./gallery.js";
 
 let products = [];
 // ?k=matras kabi link bilan kirilsa, shu kategoriya ochiladi
@@ -211,7 +212,15 @@ async function openProduct(id) {
   const labels = many ? variantLabels(group) : [];
   const out = p.stock === 0;
   $("#productBody").innerHTML = `
-    <div class="pd-img"><img id="pdImg" src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(p.name)}" /></div>
+    <div class="pd-gal">
+      <div class="pd-track" id="pdTrack">
+        <div class="pd-img"><img id="pdImg" data-i="0" src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(p.name)}" /></div>
+        ${Array.from({ length: Math.min(4, Number(p.extraCount) || 0) }, (_, i) => `<div class="pd-img"><img data-i="${i + 1}" data-extra="${i + 1}" src="${escapeHtml(imgOf(p))}" class="loading" alt="" /></div>`).join("")}
+      </div>
+      ${Number(p.extraCount) > 0 ? `<div class="pd-dots" id="pdDots">${Array.from({ length: 1 + Math.min(4, Number(p.extraCount) || 0) }, (_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</div>` : ""}
+      <span class="pd-zoom" aria-hidden="true">🔍</span>
+    </div>
+    ${p.videoUrl ? `<div class="pd-vid"><p class="variants-h">▶ Video</p>${videoEmbed(p.videoUrl)}</div>` : ""}
     <small class="cat">${escapeHtml(categoryLabel(p.category))}</small>
     <h2>${escapeHtml(many ? group.title : p.name)}</h2>
     ${
@@ -233,7 +242,8 @@ async function openProduct(id) {
     <div class="pd-actions">
       <button class="btn btn-yellow" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga qo'shish"}</button>
       <a class="btn btn-dark" href="${SHOP.phoneHref}">Qo'ng'iroq</a>
-    </div>`;
+    </div>
+    <button class="btn btn-ask" type="button" data-ask="${escapeHtml(many ? group.title : p.name)}">💬 Savol berish</button>`;
   $("#productBody [data-add]")?.addEventListener("click", () => {
     addToCart(p.id);
     $("#productDlg").close();
@@ -244,14 +254,43 @@ async function openProduct(id) {
     })
   );
   if (!$("#productDlg").open) $("#productDlg").showModal();
+  const track = $("#pdTrack");
+  const slides = () => $$("#pdTrack img").map((i) => i.src);
+  track.addEventListener("click", (e) => {
+    const im = e.target.closest("img");
+    if (im) openZoom(slides(), Number(im.dataset.i) || 0);
+  });
+  if ($("#pdDots")) {
+    track.addEventListener("scroll", () => {
+      const i = Math.round(track.scrollLeft / track.clientWidth);
+      $$("#pdDots i").forEach((d, k) => d.classList.toggle("on", k === i));
+    }, { passive: true });
+  }
+  const here = () => location.hash === "#p=" + p.id;
   if (p.hasImage) {
     try {
       const snap = await getDoc(doc(db, "productImages", p.id));
-      if (snap.exists() && $("#pdImg") && location.hash === "#p=" + p.id) $("#pdImg").src = snap.data().data;
+      if (snap.exists() && $("#pdImg") && here()) {
+        $("#pdImg").src = snap.data().data;
+        updateZoomSource(0, snap.data().data);
+      }
     } catch (_) {
       /* kichik rasm qoladi */
     }
   }
+  // Qo'shimcha rasmlar (productImages/<id>__1 … __4)
+  $$("#pdTrack [data-extra]").forEach(async (im) => {
+    try {
+      const snap = await getDoc(doc(db, "productImages", `${p.id}__${im.dataset.extra}`));
+      if (snap.exists() && here()) {
+        im.src = snap.data().data;
+        im.classList.remove("loading");
+        updateZoomSource(Number(im.dataset.i), im.src);
+      } else im.closest(".pd-img")?.remove();
+    } catch (_) {
+      im.closest(".pd-img")?.remove();
+    }
+  });
 }
 $("#productDlg").addEventListener("close", () => {
   if (location.hash.startsWith("#p=")) history.replaceState(null, "", location.pathname);

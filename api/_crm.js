@@ -57,6 +57,22 @@ async function patch(col, id, data) {
   await fs.updateDoc(fs.doc(db, col, id), { ...data, updatedAt: fs.serverTimestamp() });
 }
 
+async function getOne(col, id) {
+  await idToken();
+  const d = await fs.getDoc(fs.doc(db, col, id));
+  return d.exists() ? docOf(d) : null;
+}
+
+async function put(col, id, data, merge = true) {
+  await idToken();
+  await fs.setDoc(fs.doc(db, col, id), data, { merge });
+}
+
+async function del(col, id) {
+  await idToken();
+  await fs.deleteDoc(fs.doc(db, col, id));
+}
+
 // ---- umumiy ----
 // Toshkent vaqti bo'yicha bugungi sana: "2026-11-04"
 const today = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
@@ -72,17 +88,17 @@ function normPhone(raw) {
 
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 
-async function tg(text) {
+async function tg(text, extra = {}) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chat = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chat) return { ok: false, reason: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID sozlanmagan" };
   const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chat, text, parse_mode: "HTML", disable_web_page_preview: true }),
+    body: JSON.stringify({ chat_id: extra.chat_id || chat, text, parse_mode: "HTML", disable_web_page_preview: true, ...extra }),
   });
   const j = await r.json().catch(() => ({}));
-  return { ok: r.ok, reason: j.description };
+  return { ok: r.ok, reason: j.description, result: j.result };
 }
 
 function body(req) {
@@ -135,4 +151,4 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
   return { ok: true, id, repeat: false };
 }
 
-module.exports = { guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
+module.exports = { fs, db, getOne, put, del, guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };

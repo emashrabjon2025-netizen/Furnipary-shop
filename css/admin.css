@@ -173,3 +173,28 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 .bc-chk, #bcAll { width: 22px; height: 22px; accent-color: #111; }
 .bc-who { flex: 1; min-width: 0; }
 .bc-row.picked { background: #fffbe6; border-radius: 10px; }
+
+/* Mahsulot: qo'shimcha rasmlar */
+.extra-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.extra-prev { display: flex; gap: 6px; flex-wrap: wrap; }
+.extra-prev img { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid #e6e2d8; }
+
+/* Sayt chat */
+.badge-red:not(:empty) { background: #d93b3b; color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 12px; }
+.chat-list { display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.chat-row { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 3px; }
+.chat-row.on { border-color: #f2c400; background: #fffbe6; }
+.cr-top, .cr-bot { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.cr-bot small { color: var(--muted, #77736a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-bot em { font-style: normal; background: #d93b3b; color: #fff; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 700; }
+.ct-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.ct-head .ct-links { display: flex; gap: 6px; margin-left: auto; }
+.ct-head small { width: 100%; }
+.ct-msgs { height: 46vh; overflow-y: auto; padding: 10px 2px; display: flex; flex-direction: column; gap: 6px; }
+.ct-msgs .msg { max-width: 85%; display: flex; flex-direction: column; }
+.ct-msgs .msg p { margin: 0; padding: 8px 11px; border-radius: 14px; line-height: 1.4; }
+.ct-msgs .msg time { font-size: 11px; color: #77736a; margin: 2px 6px; }
+.ct-msgs .them { align-self: flex-start; } .ct-msgs .them p { background: #f1efe9; border-bottom-left-radius: 4px; }
+.ct-msgs .me { align-self: flex-end; align-items: flex-end; } .ct-msgs .me p { background: #111; color: #fff; border-bottom-right-radius: 4px; }
+.ct-form { display: flex; gap: 8px; align-items: flex-end; border-top: 1px solid var(--line); padding-top: 8px; }
+.ct-form textarea { flex: 1; font: inherit; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; resize: vertical; }

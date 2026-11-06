@@ -30,6 +30,11 @@ service cloud.firestore {
     match /crmSales/{id} { allow read, write: if isAdmin(); }
     match /crmSettings/{id} { allow read, write: if isAdmin(); }
 
+    // Sayt: chat, bildirishnoma obunalari va navbati — faqat admin (mijozlar server orqali yozadi)
+    match /siteChats/{id} { allow read, write: if isAdmin(); }
+    match /pushSubs/{id} { allow read, write: if isAdmin(); }
+    match /pushQueue/{id} { allow read, write: if isAdmin(); }
+
     // Buyurtmalar: mijoz faqat yangi buyurtma yarata oladi, ko'rish/o'zgartirish — faqat admin
     match /orders/{id} {
       allow read, update, delete: if isAdmin();
