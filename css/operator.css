@@ -35,3 +35,20 @@
 .op-price b { white-space: nowrap; }
 .btn-ghost-d { background: #f1efe9; color: var(--ink); }
 .reason-btns .btn:disabled { opacity: .45; }
+
+/* Dastavka */
+.dv-areas { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
+.chip { flex: 0 0 auto; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.dv-route { margin-bottom: 8px; }
+.dv-rest { color: #b4231b; }
+.pill.ok { background: #e3f4e6; color: #1d7a35; }
+.dv-addr { display: block; background: #f7f6f2; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; color: inherit; text-decoration: none; line-height: 1.4; }
+.dv-addr span { color: #2463eb; font-weight: 600; white-space: nowrap; }
+.dv-tpl { display: flex; gap: 6px; flex-wrap: wrap; }
+.dv-msg { background: #fffbe6; border: 1px solid #f2e3a0; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.45; }
+.op-contact .btn:only-child { grid-column: span 2; }
+#dvKpi { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 420px) { #dvKpi { grid-template-columns: 1fr 1fr; } }
+.dv-tpl + .dv-msg + .op-contact { grid-template-columns: repeat(3, 1fr); }
+.dv-tpl + .dv-msg + .op-contact .btn { padding-left: 4px; padding-right: 4px; }

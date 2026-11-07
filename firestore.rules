@@ -31,6 +31,13 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/crmOperators/$(request.auth.uid)).data.active == true;
     }
 
+    // Kuryer (dastavka) — admin qo'shgan va faol xodim (crmCouriers/<uid>)
+    function isCourier() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/crmCouriers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/crmCouriers/$(request.auth.uid)).data.active == true;
+    }
+
     // CRM: admin hammasini ko'radi; operator faqat o'ziga biriktirilgan lidlarni
     match /crmLeads/{id} {
       allow read, write: if isAdmin();
@@ -45,10 +52,21 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       allow read: if isOperator() && resource.data.operator == request.auth.uid;
       allow create: if isOperator() && request.resource.data.operator == request.auth.uid;
+      allow read: if isCourier() && resource.data.courier == request.auth.uid;
+      allow update: if isCourier()
+        && resource.data.courier == request.auth.uid
+        && request.resource.data.courier == request.auth.uid
+        && request.resource.data.status in ['Tayyorlanmoqda', "Yo'lda", 'Yetkazildi']
+        && request.resource.data.get('paid', 0) >= resource.data.get('paid', 0)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paid', 'collected', 'deliveredAt', 'deliveryDate', 'courierNote', 'deliveryLog', 'updatedAt']);
     }
     match /crmSettings/{id} {
       allow read, write: if isAdmin();
       allow read: if id == 'scripts' && isOperator();
+    }
+    match /crmCouriers/{uid} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null && request.auth.uid == uid;
     }
     match /crmOperators/{uid} {
       allow read, write: if isAdmin();

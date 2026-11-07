@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Dastavka" />
+  <title>Dastavka — FURNIPART</title>
+  <link rel="icon" href="img/logo.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/operator.css?v=1" />
+</head>
+<body class="admin op">
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <span class="brand">
+        <img src="img/logo-mark.png" alt="" width="32" height="32" />
+        <span class="brand-text"><span><b>FURNI</b>PART</span><small id="opName">dastavka</small></span>
+      </span>
+      <button class="btn btn-sm btn-ghost" id="logout" hidden>Chiqish</button>
+    </div>
+  </header>
+
+  <section id="loginView" class="wrap login" hidden>
+    <form id="loginForm" class="panel">
+      <h1>🚚 Dastavka paneli</h1>
+      <label>Email<input name="email" type="email" required autocomplete="username" /></label>
+      <label>Parol<input name="password" type="password" required autocomplete="current-password" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Kirish</button>
+      <p class="hint" id="loginMsg"></p>
+    </form>
+  </section>
+
+  <section id="appView" class="wrap" hidden>
+    <div class="op-kpi" id="dvKpi"></div>
+    <nav class="tabs" id="dvTabs">
+      <button class="tab active" data-v="today">🚚 Bugun <span id="nToday"></span></button>
+      <button class="tab" data-v="later">Keyingi kunlar <span id="nLater"></span></button>
+      <button class="tab" data-v="done">✅ Yetkazilgan</button>
+    </nav>
+    <div class="dv-areas" id="dvAreas"></div>
+    <div class="dv-route" id="dvRoute"></div>
+    <div id="dvList"></div>
+  </section>
+
+  <!-- Yetkazish kartasi -->
+  <dialog id="dvDlg" class="sheet op-sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div id="dvBody"></div>
+  </dialog>
+
+  <!-- Yetkazildi -->
+  <dialog id="doneDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="doneForm" class="pform">
+      <h2>✅ Yetkazildi</h2>
+      <p class="muted" id="doneInfo"></p>
+      <label>Mijozdan olingan pul<input name="collected" inputmode="decimal" placeholder="0" /></label>
+      <label>Izoh<input name="note" maxlength="200" placeholder="Masalan: naqd, Click, qo'shnisiga topshirildi" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Tasdiqlash</button>
+    </form>
+  </dialog>
+
+  <!-- Boshqa kunga -->
+  <dialog id="moveDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="moveForm" class="pform">
+      <h2>📅 Boshqa kunga o'tkazish</h2>
+      <label>Yangi sana<input name="date" type="date" required /></label>
+      <div class="reason-btns" id="moveBtns">
+        <button type="button" class="btn btn-line" data-r="Mijoz uyda yo'q">Uyda yo'q</button>
+        <button type="button" class="btn btn-line" data-r="Telefon ko'tarmadi">Telefon ko'tarmadi</button>
+        <button type="button" class="btn btn-line" data-r="Mijoz o'zi so'radi">Mijoz so'radi</button>
+        <button type="button" class="btn btn-line" data-r="Ulgurmadim">Ulgurmadim</button>
+      </div>
+      <label>Izoh<input name="note" maxlength="200" /></label>
+      <button class="btn btn-dark btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/courier.js?v=1"></script>
+</body>
+</html>

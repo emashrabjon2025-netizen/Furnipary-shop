@@ -3,9 +3,11 @@ import { ADMIN_UIDS, firebaseConfig } from "./config.js";
 import { db, auth, collection, doc, setDoc, updateDoc, onSnapshot, onAuthStateChanged, writeBatch } from "./firebase.js";
 import { $, escapeHtml as esc, toast, formatPrice } from "./util.js";
 import { DEFAULT_SCRIPTS } from "./scripts.js";
+import { areaOf } from "./areas.js";
 
 const CLOSED = ["Sotildi", "Rad etdi"];
 let ops = [];
+let couriers = [];
 let leads = [];
 let sales = [];
 let scripts = {};
@@ -91,6 +93,46 @@ function render() {
       </div>`;
     })
     .join("");
+  renderCouriers();
+}
+
+const fmtM = (n, cur) => (cur === "$" ? formatPrice(n) : mln(n));
+function renderCouriers() {
+  const t = today();
+  const open = sales.filter((x) => !["Yetkazildi", "Bekor qilindi"].includes(x.status));
+  const un = open.filter((x) => !x.courier);
+  const act = couriers.filter((c) => c.active !== false);
+  $("#crUnassigned").innerHTML =
+    un.length && act.length
+      ? `<span class="pill late">🚚 Kuryer biriktirilmagan yetkazishlar: ${un.length}</span>
+         <select id="crPick">${act.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
+         <button class="btn btn-sm btn-dark" type="button" id="crAssign">Hammasini biriktirish</button>`
+      : "";
+  $("#crCards").innerHTML = couriers
+    .map((c) => {
+      const mine = sales.filter((x) => x.courier === c.id && x.status !== "Bekor qilindi");
+      const todo = mine.filter((x) => x.status !== "Yetkazildi");
+      const todayN = todo.filter((x) => (x.deliveryDate || x.date || t) <= t);
+      const late = todo.filter((x) => (x.deliveryDate || x.date || t) < t);
+      const done = mine.filter((x) => x.status === "Yetkazildi" && x.deliveredAt && new Date(x.deliveredAt).toISOString().slice(0, 7) === t.slice(0, 7));
+      const doneToday = done.filter((x) => new Date(x.deliveredAt + 5 * 3600e3).toISOString().slice(0, 10) === t);
+      const got = (cur) => doneToday.filter((x) => (x.currency === "$") === (cur === "$")).reduce((a, x) => a + (Number(x.collected) || 0), 0);
+      const areas = {};
+      todayN.forEach((x) => (areas[areaOf(x)] = (areas[areaOf(x)] || 0) + 1));
+      return `<div class="panel op-admin ${c.active === false ? "off" : ""}">
+        <div class="opa-head"><h2>🚚 ${esc(c.name)}</h2><label class="switch"><input type="checkbox" data-cactive="${c.id}" ${c.active !== false ? "checked" : ""}> faol</label></div>
+        <p class="muted small">${esc(c.email || "")}</p>
+        <div class="mgrid">
+          <div><small>Bugun yetkazish</small><b>${todayN.length}</b></div>
+          <div><small>Kechikkan</small><b class="${late.length ? "neg" : ""}">${late.length}</b></div>
+          <div><small>Bugun yetkazdi</small><b>${doneToday.length}</b></div>
+          <div><small>Bu oy yetkazdi</small><b>${done.length}</b></div>
+        </div>
+        ${Object.keys(areas).length ? `<p class="small">📍 Bugun: ${Object.entries(areas).map(([a, n]) => `${esc(a)} (${n})`).join(", ")}</p>` : ""}
+        ${got("som") || got("$") ? `<p class="small">💵 Bugun olgan pul: <b>${[got("som") ? fmtM(got("som")) : "", got("$") ? formatPrice(got("$")) : ""].filter(Boolean).join(" + ")}</b></p>` : ""}
+      </div>`;
+    })
+    .join("");
 }
 
 async function spread(list, exceptId) {
@@ -118,12 +160,26 @@ document.addEventListener("click", async (e) => {
     const list = leads.filter((l) => l.assignedTo === o.id && !CLOSED.includes(l.stage));
     if (confirm(`${o.name}ning ${list.length} ta ochiq lidi boshqa operatorlarga o'tkazilsinmi?`)) await spread(list, o.id).catch((err) => toast(err.message, "err"));
   }
+  if (e.target.id === "crAssign") {
+    const c = couriers.find((x) => x.id === $("#crPick").value);
+    const un = sales.filter((x) => !["Yetkazildi", "Bekor qilindi"].includes(x.status) && !x.courier);
+    if (c && confirm(`${un.length} ta yetkazish ${c.name}ga biriktirilsinmi?`)) {
+      const batch = writeBatch(db);
+      un.forEach((x) => batch.update(doc(db, "crmSales", x.id), { courier: c.id, courierName: c.name || "" }));
+      await batch.commit().then(() => toast(`${un.length} ta yetkazish biriktirildi`)).catch((err) => toast(err.message, "err"));
+    }
+  }
   const cp = e.target.closest("[data-copy]");
   if (cp) {
     navigator.clipboard?.writeText(cp.dataset.copy).then(() => toast("Havola nusxalandi — operatorga yuboring"));
   }
 });
 document.addEventListener("change", async (e) => {
+  const ca = e.target.closest("[data-cactive]");
+  if (ca) {
+    await updateDoc(doc(db, "crmCouriers", ca.dataset.cactive), { active: ca.checked }).catch((err) => toast(err.message, "err"));
+    return toast(ca.checked ? "Kuryer faollashtirildi" : "Kuryer o'chirildi — endi kira olmaydi");
+  }
   const a = e.target.closest("[data-active]");
   if (!a) return;
   try {
@@ -134,7 +190,37 @@ document.addEventListener("change", async (e) => {
   }
 });
 
-// ---- Operator qo'shish (Firebase Auth REST — admin sessiyasi o'zgarmaydi) ----
+// ---- Xodim qo'shish (Firebase Auth REST — admin sessiyasi o'zgarmaydi) ----
+async function signUp(email, password) {
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, returnSecureToken: false }),
+  });
+  const j = await r.json();
+  if (!r.ok) {
+    const code = (j.error && j.error.message) || "xato";
+    throw new Error(code === "EMAIL_EXISTS" ? "Bu email allaqachon ro'yxatdan o'tgan" : /WEAK_PASSWORD/.test(code) ? "Parol kamida 6 belgi" : code);
+  }
+  return j.localId;
+}
+$("#crAdd").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const btn = e.target.querySelector("[type=submit]");
+  btn.disabled = true;
+  try {
+    const uid = await signUp(f.email.value.trim(), f.password.value);
+    await setDoc(doc(db, "crmCouriers", uid), { name: f.name.value.trim(), email: f.email.value.trim(), active: true, createdAt: Date.now() });
+    alert(`Kuryer qo'shildi.\n\nKirish: furnipart-shop.vercel.app/dastavka\nEmail: ${f.email.value.trim()}\nParol: ${f.password.value}\n\nShu ma'lumotni kuryerga yuboring.`);
+    e.target.reset();
+  } catch (err) {
+    toast("Qo'shib bo'lmadi: " + err.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 $("#opAdd").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target.elements;
@@ -190,6 +276,10 @@ function start() {
     }, () => {}),
     onSnapshot(collection(db, "crmSales"), (s) => {
       sales = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    }, () => {}),
+    onSnapshot(collection(db, "crmCouriers"), (s) => {
+      couriers = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
     }, () => {}),
     onSnapshot(doc(db, "crmSettings", "scripts"), (d) => {

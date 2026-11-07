@@ -99,6 +99,7 @@ const DEFAULT_REVENUE = 150000000; // oylik umumiy online savdo rejasi, so'm
 
 let leads = [];
 let ops = []; // operatorlar (crmOperators)
+let couriers = []; // kuryerlar (crmCouriers)
 let clients = [];
 let sales = [];
 let settings = { monthlyTarget: DEFAULT_TARGET, targetCategory: "matras", planRevenue: DEFAULT_REVENUE };
@@ -219,6 +220,12 @@ function start() {
       $("#lOp").value = [...$("#lOp").options].some((o) => o.value === cur) ? cur : "all";
       $("#lOp").hidden = !ops.length;
       renderLeads();
+    }, () => {})
+  );
+  unsub.push(
+    onSnapshot(collection(db, "crmCouriers"), (snap) => {
+      couriers = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      renderSales();
     }, () => {})
   );
   unsub.push(
@@ -905,6 +912,7 @@ function renderSales() {
         ${telLink(s.phone)}
         <div>🛏 <b>${escapeHtml(s.product || categoryLabel(s.category))}</b> × ${s.qty || 1} <small class="muted">· ${escapeHtml(s.category === "boshqa" ? "Boshqa" : categoryLabel(s.category))}</small></div>
         ${s.address ? `<div class="muted">📍 ${escapeHtml(s.address)}</div>` : ""}
+        ${couriers.length && s.status !== "Bekor qilindi" ? `<div><span class="pill ${s.courier ? "op" : s.status === "Yetkazildi" ? "" : "late"}">🚚 ${escapeHtml(s.courier ? s.courierName || "kuryer" : "kuryer biriktirilmagan")}${s.deliveryDate && s.status !== "Yetkazildi" ? " · " + fmtDate(s.deliveryDate) : ""}</span>${s.collected ? ` <small class="muted">kuryer oldi: ${money(s.collected, s.currency)}</small>` : ""}${s.courierNote ? ` <small class="muted">· ${escapeHtml(s.courierNote)}</small>` : ""}</div>` : ""}
         ${s.note ? `<div class="muted">${escapeHtml(s.note)}</div>` : ""}
         <div class="pay-box">
           <div><small>Jami</small><b>${money(s.amount, s.currency)}</b></div>
@@ -953,6 +961,12 @@ function openSale(id, prefill) {
   f.date.value = s.date || today();
   f.status.innerHTML = opts(SALE_STATUSES, s.status || "Yangi");
   f.note.value = s.note || "";
+  f.courier.innerHTML =
+    `<option value="">— biriktirilmagan —</option>` +
+    couriers.filter((c) => c.active !== false || c.id === s.courier).map((c) => `<option value="${c.id}"${c.id === s.courier ? " selected" : ""}>🚚 ${escapeHtml(c.name || c.email || "")}</option>`).join("");
+  if (!s.courier && !id && couriers.filter((c) => c.active !== false).length === 1) f.courier.value = couriers.find((c) => c.active !== false).id;
+  f.deliveryDate.value = s.deliveryDate || "";
+  $("#courierWrap").hidden = !couriers.length;
   $("#saleDlg").showModal();
 }
 
@@ -1001,6 +1015,10 @@ $("#saleForm").addEventListener("submit", async (e) => {
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
   };
+  if (couriers.length) {
+    const c = couriers.find((x) => x.id === f.courier.value);
+    Object.assign(data, { courier: c ? c.id : "", courierName: c ? c.name || "" : "", deliveryDate: f.deliveryDate.value || "" });
+  }
   if (!data.name && !data.phone) return toast("Mijoz ismi yoki telefonini kiriting", "err");
   if (data.paid > data.amount && data.amount > 0) return toast("Zaklad sotuv summasidan katta bo'lishi mumkin emas", "err");
   if (!editSaleId) data.deposit = data.paid;
