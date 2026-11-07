@@ -118,6 +118,11 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function start() {
+  // "5 daqiqa" eslatmalari: GitHub jadvali kechikishi mumkin, shuning uchun panel ochiq turganda ham tekshiriladi
+  clearInterval(window.__remindT);
+  const ping = () => fetch("/api/remind").catch(() => {});
+  ping();
+  window.__remindT = setInterval(ping, 3 * 60e3);
   unsub = [
     onSnapshot(query(collection(db, "crmLeads"), where("assignedTo", "==", me.uid)), (snap) => {
       leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
