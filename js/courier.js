@@ -43,7 +43,14 @@ const fmt = (n, cur) => {
   const t = String(v).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   return cur === "$" ? `$${t}` : `${t} so'm`;
 };
-const rest = (s) => Math.max(0, (Number(s.amount) || 0) - (Number(s.paid) || 0));
+const total = (s) => Number(s.amount) || 0;
+// so'm va $ alohida qo'shiladi: "2 400 000 so'm + $95"
+const sumStr = (arr, short) => {
+  const som = arr.filter((s) => s.currency !== "$").reduce((a, s) => a + total(s), 0);
+  const usd = arr.filter((s) => s.currency === "$").reduce((a, s) => a + total(s), 0);
+  const ss = short && som >= 1e6 ? (som / 1e6).toFixed(1).replace(".", ",") + " mln" : som ? fmt(som) : "";
+  return [ss, usd ? fmt(usd, "$") : ""].filter(Boolean).join(" + ") || "0";
+};
 const dday = (s) => s.deliveryDate || s.date || today();
 const fmtDate = (s) => (s ? s.split("-").reverse().slice(0, 2).join(".") : "");
 const mapUrl = (s) => `https://yandex.uz/maps/?text=${encodeURIComponent(`${s.address || ""}, Farg'ona viloyati`)}`;
@@ -146,24 +153,19 @@ function render() {
   $("#nTomorrow").textContent = tmr.length || "";
   $("#nLater").textContent = later.length || "";
   const doneToday = list.filter((s) => s.status === "Yetkazildi" && s.deliveredAt && ymd(new Date(s.deliveredAt)) === t);
-  const collectSom = todayList.filter((s) => s.currency !== "$").reduce((a, s) => a + rest(s), 0);
-  const collectUsd = todayList.filter((s) => s.currency === "$").reduce((a, s) => a + rest(s), 0);
-  const gotSom = doneToday.filter((s) => s.currency !== "$").reduce((a, s) => a + (Number(s.collected) || 0), 0);
-  const gotUsd = doneToday.filter((s) => s.currency === "$").reduce((a, s) => a + (Number(s.collected) || 0), 0);
-  const both = (som, usd) => [som ? fmt(som) : "", usd ? fmt(usd, "$") : ""].filter(Boolean).join(" + ") || "0";
   $("#dvKpi").innerHTML = `
     <div><small>Bugun yetkazish</small><b>${todayList.length}</b></div>
-    <div><small>Yetkazildi</small><b>${doneToday.length}</b></div>
-    <div><small>Olinadigan pul</small><b>${both(collectSom, collectUsd)}</b></div>
-    <div><small>Olingan pul</small><b>${both(gotSom, gotUsd)}</b></div>`;
+    <div><small>Bugun yetkazildi</small><b>${doneToday.length}</b></div>
+    <div><small>Bugungi mahsulotlar summasi</small><b>${sumStr(todayList)}</b></div>
+    <div><small>Yetkazilgan summa</small><b>${sumStr(doneToday)}</b></div>`;
 
   const items = bucket();
   const counts = {};
-  const money = {};
+  const byArea = {};
   items.forEach((s) => {
     const a = areaOf(s);
     counts[a] = (counts[a] || 0) + 1;
-    if (s.status !== "Yetkazildi") money[a] = (money[a] || 0) + (s.currency === "$" ? 0 : rest(s));
+    (byArea[a] = byArea[a] || []).push(s);
   });
   const names = allAreaNames().concat(counts["Boshqa"] ? ["Boshqa"] : []);
   const ordered = names.slice().sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
@@ -173,7 +175,7 @@ function render() {
     `<div class="city-h"><b>🏙 Farg'ona shaharlari</b>${area !== "all" ? ` <button class="chip" data-area="all">Hammasini ko'rsatish</button>` : ""}</div>
      <div class="city-grid">
        ${tile("all", "Hammasi", items.length, "")}
-       ${ordered.filter((a) => counts[a] || showAllCities || a === area).map((a) => tile(a, a, counts[a], money[a] ? fmt(money[a]).replace(" so'm", "") : "")).join("")}
+       ${ordered.filter((a) => counts[a] || showAllCities || a === area).map((a) => tile(a, a, counts[a], byArea[a] ? sumStr(byArea[a], true) : "")).join("")}
        <button type="button" class="city add" id="cityMore"><b>${showAllCities ? "▴" : "▾"}</b><small>${showAllCities ? "Bo'shlarini yashirish" : `Barcha shaharlar (${ordered.length})`}</small></button>
        <button type="button" class="city add" id="cityAdd"><b>➕</b><small>Shahar qo'shish</small></button>
      </div>`;
@@ -190,13 +192,12 @@ function render() {
   $("#dvList").innerHTML = shown.length
     ? shown
         .map((s) => {
-          const r = rest(s);
           const late = s.status !== "Yetkazildi" && dday(s) < t;
           return `<button type="button" class="op-card dv-card ${s.status === "Yo'lda" ? "new" : ""} ${late ? "late" : ""}" data-open="${s.id}">
             <span class="oc-top"><b>${esc(s.name || "Mijoz")}</b><span class="pill ${s.status === "Yetkazildi" ? "ok" : s.status === "Yo'lda" ? "today" : late ? "late" : ""}">${s.status === "Yetkazildi" ? "✅ yetkazildi" : s.status === "Yo'lda" ? "🚚 yo'lda" : late ? "⏰ " + fmtDate(dday(s)) : "📅 " + (dday(s) === t ? "bugun" : dday(s) === tomorrow() ? "ertaga" : fmtDate(dday(s)))}</span></span>
             <span class="oc-int">📍 <b>${esc(areaOf(s))}</b> · ${esc(s.address || "manzil yozilmagan")}</span>
             <span class="oc-mid">📦 ${esc(s.product || "")}${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</span>
-            <span class="oc-bot"><small>${esc(s.phone || "")}</small>${s.status === "Yetkazildi" ? (s.collected ? `<small>💵 olindi ${fmt(s.collected, s.currency)}</small>` : "") : r ? `<b class="dv-rest">💵 ${fmt(r, s.currency)}</b>` : `<small>✔ to'langan</small>`}</span>
+            <span class="oc-bot"><small>${esc(s.phone || "")}</small><b class="dv-rest">💵 ${fmt(total(s), s.currency)}</b></span>
           </button>`;
         })
         .join("")
@@ -256,7 +257,6 @@ function renderCard() {
   const d = digits(s.phone);
   const text = fill(TEMPLATES[tpl][1], s);
   const enc = encodeURIComponent(text);
-  const r = rest(s);
   const done = s.status === "Yetkazildi";
   $("#dvBody").innerHTML = `
     <h2>${esc(s.name || "Mijoz")}</h2>
@@ -265,7 +265,7 @@ function renderCard() {
     <label class="dv-city">🏙 Shahar <select id="dvCity">${allAreaNames().concat(["Boshqa"]).map((n) => `<option ${n === areaOf(s) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
     ${me.admin ? `<p class="muted">🚚 Kuryer: ${esc(s.courierName || (s.courier ? "biriktirilgan" : "biriktirilmagan"))}</p>` : ""}
     <p>📦 <b>${esc(s.product || "")}</b>${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</p>
-    <p>${r && !done ? `💵 Olinadigan pul: <b class="dv-rest">${fmt(r, s.currency)}</b> <small class="muted">(jami ${fmt(s.amount, s.currency)}, oldindan ${fmt(s.paid, s.currency)})</small>` : done ? `✅ Yetkazildi${s.collected ? ` · olindi ${fmt(s.collected, s.currency)}` : ""}` : "✔ To'liq to'langan"}</p>
+    <p>💵 Summa: <b class="dv-rest">${fmt(total(s), s.currency)}</b>${done ? " · ✅ yetkazildi" : ""}</p>
     ${s.note ? `<p class="muted">📝 ${esc(s.note)}</p>` : ""}
     ${s.courierNote ? `<p class="muted">🚚 ${esc(s.courierNote)}</p>` : ""}
     <div class="op-contact">
@@ -336,10 +336,8 @@ $("#dvBody").addEventListener("click", async (e) => {
     $$("#moveBtns .btn").forEach((x) => x.classList.remove("on"));
     $("#moveDlg").showModal();
   } else if (a.dataset.act === "done") {
-    const r = rest(s);
     $("#doneForm").reset();
-    $("#doneForm").elements.collected.value = r ? String(r) : "0";
-    $("#doneInfo").textContent = r ? `Olinishi kerak: ${fmt(r, s.currency)}` : "Buyurtma oldindan to'liq to'langan";
+    $("#doneInfo").textContent = `${s.name || "Mijoz"} · ${s.product || ""} · ${fmt(total(s), s.currency)}`;
     $("#doneDlg").showModal();
   }
 });
@@ -373,18 +371,13 @@ $("#doneForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const s = list.find((x) => x.id === openId);
   const f = e.target.elements;
-  const got = num(f.collected.value);
-  const r = rest(s);
-  if (got > r + 0.001 && !confirm(`Olingan pul (${fmt(got, s.currency)}) qoldiqdan (${fmt(r, s.currency)}) ko'p. Shundaymi?`)) return;
   const ok = await upd(
     s.id,
     {
       status: "Yetkazildi",
       deliveredAt: Date.now(),
-      collected: got,
-      paid: (Number(s.paid) || 0) + got,
       courierNote: f.note.value.trim() || s.courierNote || "",
-      ...log(`✅ yetkazildi${got ? `, olindi ${fmt(got, s.currency)}` : ""}`),
+      ...log("✅ yetkazildi"),
     },
     "✅ Yetkazildi — rahmat!"
   );

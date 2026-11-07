@@ -116,7 +116,7 @@ function renderCouriers() {
       const late = todo.filter((x) => (x.deliveryDate || x.date || t) < t);
       const done = mine.filter((x) => x.status === "Yetkazildi" && x.deliveredAt && new Date(x.deliveredAt).toISOString().slice(0, 7) === t.slice(0, 7));
       const doneToday = done.filter((x) => new Date(x.deliveredAt + 5 * 3600e3).toISOString().slice(0, 10) === t);
-      const got = (cur) => doneToday.filter((x) => (x.currency === "$") === (cur === "$")).reduce((a, x) => a + (Number(x.collected) || 0), 0);
+      const got = (cur) => doneToday.filter((x) => (x.currency === "$") === (cur === "$")).reduce((a, x) => a + (Number(x.amount) || 0), 0);
       const areas = {};
       todayN.forEach((x) => (areas[areaOf(x)] = (areas[areaOf(x)] || 0) + 1));
       return `<div class="panel op-admin ${c.active === false ? "off" : ""}">
@@ -129,7 +129,7 @@ function renderCouriers() {
           <div><small>Bu oy yetkazdi</small><b>${done.length}</b></div>
         </div>
         ${Object.keys(areas).length ? `<p class="small">📍 Bugun: ${Object.entries(areas).map(([a, n]) => `${esc(a)} (${n})`).join(", ")}</p>` : ""}
-        ${got("som") || got("$") ? `<p class="small">💵 Bugun olgan pul: <b>${[got("som") ? fmtM(got("som")) : "", got("$") ? formatPrice(got("$")) : ""].filter(Boolean).join(" + ")}</b></p>` : ""}
+        ${got("som") || got("$") ? `<p class="small">💵 Bugun yetkazgan mahsulotlar summasi: <b>${[got("som") ? fmtM(got("som")) : "", got("$") ? formatPrice(got("$")) : ""].filter(Boolean).join(" + ")}</b></p>` : ""}
       </div>`;
     })
     .join("");
