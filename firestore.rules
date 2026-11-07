@@ -53,6 +53,7 @@ service cloud.firestore {
       allow read: if isOperator() && resource.data.operator == request.auth.uid;
       allow create: if isOperator() && request.resource.data.operator == request.auth.uid;
       allow read: if isCourier() && resource.data.courier == request.auth.uid;
+      allow create: if isCourier() && request.resource.data.courier == request.auth.uid && request.resource.data.paid == 0;
       allow update: if isCourier()
         && resource.data.courier == request.auth.uid
         && request.resource.data.courier == request.auth.uid

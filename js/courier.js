@@ -15,6 +15,8 @@ import {
   signOut,
   onAuthStateChanged,
   setDoc,
+  addDoc,
+  writeBatch,
 } from "./firebase.js";
 import { ADMIN_UIDS } from "./config.js";
 import { $, $$, escapeHtml as esc, toast, normalizePhone } from "./util.js";
@@ -22,6 +24,7 @@ import { areaOf, setCustomAreas, allAreaNames, customAreas, AREAS } from "./area
 
 let me = null;
 let list = [];
+let couriersAll = []; // admin uchun kuryerlar ro'yxati
 let view = "today";
 let area = "all";
 let openId = null;
@@ -112,6 +115,12 @@ onAuthStateChanged(auth, async (user) => {
   $("#loginView").hidden = true;
   $("#appView").hidden = false;
   $("#logout").hidden = false;
+  if (me.admin)
+    unsub.push(
+      onSnapshot(collection(db, "crmCouriers"), (snap) => {
+        couriersAll = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((c) => c.active !== false);
+      }, () => {})
+    );
   unsub.push(
     onSnapshot(doc(db, "crmSettings", "cities"), (d) => {
       setCustomAreas(d.exists() ? d.data().list : []);
@@ -396,4 +405,170 @@ $("#doneForm").addEventListener("submit", async (e) => {
 document.addEventListener("click", (e) => {
   const x = e.target.closest("[data-close]");
   if (x) x.closest("dialog")?.close();
+});
+
+// ---------- Klient qo'shish ----------
+let addWhen = "today";
+function courierFor(sel) {
+  if (!me.admin) return { id: me.uid, name: me.name };
+  const c = couriersAll.find((x) => x.id === sel) || couriersAll[0];
+  return c ? { id: c.id, name: c.name || "" } : null;
+}
+$("#dvAdd").addEventListener("click", () => {
+  const f = $("#addForm").elements;
+  $("#addForm").reset();
+  f.area.innerHTML = `<option value="">— manzildan aniqlansin —</option>` + allAreaNames().map((n) => `<option ${n === area ? "selected" : ""}>${esc(n)}</option>`).join("");
+  addWhen = view === "tomorrow" ? "tomorrow" : "today";
+  $$("#addWhen .btn").forEach((b) => b.classList.toggle("on", b.dataset.when === addWhen));
+  $("#addCourierWrap").hidden = !me.admin;
+  if (me.admin) f.courier.innerHTML = couriersAll.map((c) => `<option value="${c.id}">${esc(c.name || c.email || "")}</option>`).join("") || `<option value="">Kuryer yo'q — avval admin paneldan qo'shing</option>`;
+  $("#addDlg").showModal();
+});
+$("#addWhen").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-when]");
+  if (!b) return;
+  addWhen = b.dataset.when;
+  $$("#addWhen .btn").forEach((x) => x.classList.toggle("on", x === b));
+});
+function saleDoc(d, c) {
+  return {
+    name: d.name,
+    phone: d.phone,
+    address: d.address,
+    ...(d.area ? { area: d.area } : {}),
+    product: d.product,
+    qty: d.qty || 1,
+    amount: d.amount,
+    paid: 0,
+    currency: d.currency === "$" ? "$" : "so'm",
+    note: d.note || "",
+    date: today(),
+    deliveryDate: d.deliveryDate || today(),
+    status: "Tayyorlanmoqda",
+    source: "Dastavka",
+    courier: c.id,
+    courierName: c.name,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+}
+$("#addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const phone = normalizePhone(f.phone.value);
+  if (!phone) return toast("Telefon raqam noto'g'ri", "err");
+  const amount = num(f.amount.value);
+  if (!amount) return toast("Summani yozing", "err");
+  const c = courierFor(f.courier && f.courier.value);
+  if (!c) return toast("Avval admin paneldan kuryer qo'shing", "err");
+  const btn = e.target.querySelector("[type=submit]");
+  btn.disabled = true;
+  try {
+    await addDoc(
+      collection(db, "crmSales"),
+      saleDoc(
+        { name: f.name.value.trim(), phone, address: f.address.value.trim(), area: f.area.value, product: f.product.value.trim(), qty: Number(f.qty.value) || 1, amount, currency: f.currency.value, note: f.note.value.trim(), deliveryDate: addWhen === "tomorrow" ? tomorrow() : today() },
+        c
+      )
+    );
+    $("#addDlg").close();
+    toast(`✅ ${f.name.value.trim()} — ${addWhen === "tomorrow" ? "ertangi" : "bugungi"} ro'yxatga qo'shildi`);
+  } catch (err) {
+    toast("Qo'shib bo'lmadi: " + err.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------- Excel ----------
+const XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
+const pickCol = (row, ...keys) => {
+  const k = Object.keys(row).find((h) => keys.some((x) => h.toLowerCase().replace(/[ʻʼ'`‘’]/g, "").includes(x)));
+  return k ? row[k] : "";
+};
+function toYmd(v) {
+  if (v instanceof Date && !isNaN(v)) return ymd(v);
+  if (typeof v === "number") return ymd(new Date(Math.round((v - 25569) * 864e5)));
+  const t = String(v || "").trim().toLowerCase();
+  if (!t) return "";
+  if (t.startsWith("bugun")) return today();
+  if (t.startsWith("ertaga")) return tomorrow();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = t.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+  if (m) return `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+  return "";
+}
+$("#dvTemplate").addEventListener("click", async () => {
+  try {
+    const XLSX = await import(XLSX_URL);
+    const ws = XLSX.utils.json_to_sheet([
+      { Ism: "Akmal", Telefon: "90 123 45 67", Shahar: "Marg'ilon", Manzil: "Burhoniddin ko'chasi 12, maktab yonida", Mahsulot: "Ortopedik matras 160×200", Soni: 1, Summa: 2900000, Valyuta: "so'm", Sana: "bugun", Izoh: "3-qavat" },
+      { Ism: "Nodira", Telefon: "+998 91 111 22 33", Shahar: "Quvasoy", Manzil: "Mustaqillik 5", Mahsulot: "Divan bosh tomoni", Soni: 1, Summa: 580000, Valyuta: "so'm", Sana: "ertaga", Izoh: "" },
+    ]);
+    ws["!cols"] = [12, 16, 14, 34, 28, 6, 12, 8, 12, 18].map((w) => ({ wch: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Dastavka");
+    XLSX.writeFile(wb, "FURNIPART-dastavka-namuna.xlsx");
+  } catch (err) {
+    toast("Namuna yuklanmadi: " + err.message, "err");
+  }
+});
+$("#dvImport").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  let pickId = couriersAll[0] && couriersAll[0].id;
+  if (me.admin && couriersAll.length > 1) {
+    const n = Number(prompt("Qaysi kuryerga?\n" + couriersAll.map((x, i) => `${i + 1}. ${x.name}`).join("\n"), "1"));
+    if (!n || !couriersAll[n - 1]) return;
+    pickId = couriersAll[n - 1].id;
+  }
+  const c = courierFor(pickId);
+  if (!c) return toast("Avval admin paneldan kuryer qo'shing", "err");
+  try {
+    const XLSX = await import(XLSX_URL);
+    const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+    const names = allAreaNames();
+    const items = [];
+    let bad = 0;
+    for (const r of rows) {
+      const name = String(pickCol(r, "ism", "mijoz", "klient", "name", "fio") || "").trim();
+      const phone = normalizePhone(pickCol(r, "telefon", "tel", "phone", "raqam"));
+      const address = String(pickCol(r, "manzil", "adres", "address") || "").trim();
+      if (!name && !phone) continue;
+      if (!phone || !address) {
+        bad++;
+        continue;
+      }
+      const rawArea = String(pickCol(r, "shahar", "tuman", "hudud") || "").trim();
+      const area = names.find((n) => n.toLowerCase().replace(/[ʻʼ'`‘’]/g, "") === rawArea.toLowerCase().replace(/[ʻʼ'`‘’]/g, "")) || "";
+      const cur = String(pickCol(r, "valyuta", "currency") || "").includes("$") ? "$" : "so'm";
+      items.push({
+        name: name || "Mijoz",
+        phone,
+        address: area || !rawArea ? address : `${rawArea}, ${address}`,
+        area,
+        product: String(pickCol(r, "mahsulot", "tovar", "product") || "").trim(),
+        qty: Number(pickCol(r, "soni", "dona", "qty")) || 1,
+        amount: num(pickCol(r, "summa", "narx", "jami", "amount")),
+        currency: cur,
+        note: String(pickCol(r, "izoh", "note") || "").trim(),
+        deliveryDate: toYmd(pickCol(r, "sana", "date", "kun")) || today(),
+      });
+    }
+    if (!items.length) return toast(bad ? `${bad} ta qatorda telefon yoki manzil yo'q` : "Faylda klient topilmadi", "err");
+    const ask = `${items.length} ta klient dastavkaga qo'shilsinmi?` + (me.admin ? `\nKuryer: ${c.name}` : "") + (bad ? `\n(${bad} ta qatorda telefon yoki manzil yo'q — o'tkazib yuborildi)` : "");
+    if (!confirm(ask)) return;
+    for (let i = 0; i < items.length; i += 400) {
+      const b = writeBatch(db);
+      items.slice(i, i + 400).forEach((d) => b.set(doc(collection(db, "crmSales")), saleDoc(d, c)));
+      await b.commit();
+    }
+    toast(`✅ ${items.length} ta klient qo'shildi`);
+  } catch (err) {
+    console.error(err);
+    toast("Import bo'lmadi: " + err.message, "err");
+  }
 });

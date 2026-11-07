@@ -74,3 +74,7 @@
 #dvTabs .tab { width: 100%; white-space: normal; line-height: 1.25; padding: 12px 10px; font-size: 15px; text-align: center; }
 #dvTabs .tab span:not(:empty) { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 999px; background: #f2c400; color: #111; font-weight: 800; margin-left: 4px; }
 #dvTabs .tab.on span:not(:empty) { background: #f2c400; color: #111; }
+.dv-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.dv-tools .btn { flex: 1 1 auto; }
+.dv-tools .btn-sm { flex: 0 0 100%; }
+#addWhen .btn.on { background: var(--ink); color: #fff; }

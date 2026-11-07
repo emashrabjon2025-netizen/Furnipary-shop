@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
-  <link rel="stylesheet" href="css/operator.css?v=5" />
+  <link rel="stylesheet" href="css/operator.css?v=6" />
 </head>
 <body class="admin op">
   <header class="topbar">
@@ -37,6 +37,11 @@
 
   <section id="appView" class="wrap" hidden>
     <div class="op-kpi" id="dvKpi"></div>
+    <div class="dv-tools">
+      <button class="btn btn-yellow" type="button" id="dvAdd">➕ Klient qo'shish</button>
+      <label class="btn btn-dark file-btn">📥 Excel'dan qo'shish<input id="dvImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
+      <button class="btn btn-line btn-sm" type="button" id="dvTemplate">⬇ Excel namunasi</button>
+    </div>
     <nav class="tabs" id="dvTabs">
       <button class="tab on" data-v="today">🚚 Bugun yetkaziladigan <span id="nToday"></span></button>
       <button class="tab" data-v="tomorrow">📅 Ertaga yetkaziladigan <span id="nTomorrow"></span></button>
@@ -52,6 +57,34 @@
   <dialog id="dvDlg" class="sheet op-sheet">
     <button class="x" data-close type="button" aria-label="Yopish">×</button>
     <div id="dvBody"></div>
+  </dialog>
+
+  <!-- Klient qo'shish -->
+  <dialog id="addDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="addForm" class="pform">
+      <h2>➕ Yangi yetkazish</h2>
+      <div class="two">
+        <label>Ism *<input name="name" required maxlength="60" /></label>
+        <label>Telefon *<input name="phone" type="tel" inputmode="tel" required placeholder="90 123 45 67" /></label>
+      </div>
+      <label>Shahar / tuman<select name="area"></select></label>
+      <label>Manzil *<input name="address" required maxlength="160" placeholder="Ko'cha, uy, mo'ljal" /></label>
+      <label>Mahsulot *<input name="product" required maxlength="160" placeholder="Masalan: Ortopedik matras 160×200" /></label>
+      <div class="two">
+        <label>Soni<input name="qty" type="number" min="1" value="1" inputmode="numeric" /></label>
+        <label>Valyuta<select name="currency"><option>so'm</option><option>$</option></select></label>
+      </div>
+      <label>Umumiy summa *<input name="amount" inputmode="decimal" required placeholder="2 900 000" /></label>
+      <label>Qachon yetkaziladi</label>
+      <div class="reason-btns" id="addWhen">
+        <button type="button" class="btn btn-line on" data-when="today">🚚 Bugun</button>
+        <button type="button" class="btn btn-line" data-when="tomorrow">📅 Ertaga</button>
+      </div>
+      <label id="addCourierWrap" hidden>🚚 Kuryer<select name="courier"></select></label>
+      <label>Izoh<input name="note" maxlength="300" placeholder="Qavat, lift, qo'ng'iroq qilib borish…" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Qo'shish</button>
+    </form>
   </dialog>
 
   <!-- Yetkazildi -->
@@ -82,6 +115,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="js/courier.js?v=7"></script>
+  <script type="module" src="js/courier.js?v=8"></script>
 </body>
 </html>
