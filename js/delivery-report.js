@@ -24,8 +24,8 @@ function render() {
   if (!box) return;
   const ym = $("#rMonth").value || ymd(new Date()).slice(0, 7);
   const live = sales.filter((s) => s.status !== "Bekor qilindi");
-  const done = live.filter((s) => s.status === "Yetkazildi" && deliveredDay(s).startsWith(ym));
-  const waiting = live.filter((s) => s.status !== "Yetkazildi");
+  const done = live.filter((s) => s.status === "Yetkazildi" && s.courier && deliveredDay(s).startsWith(ym));
+  const waiting = live.filter((s) => s.status !== "Yetkazildi" && s.courier);
 
   const byArea = {};
   done.forEach((s) => ((byArea[areaOf(s)] = byArea[areaOf(s)] || { done: [], wait: [] }).done.push(s)));
@@ -38,7 +38,7 @@ function render() {
     const k = s.courier || "";
     (byCourier[k] = byCourier[k] || []).push(s);
   });
-  const cName = (id) => (id ? (couriers.find((c) => c.id === id) || {}).name || "Kuryer" : "Kuryersiz (o'zi olib ketgan / belgilanmagan)");
+  const cName = (id) => (couriers.find((c) => c.id === id) || {}).name || "Kuryer";
 
   if (!done.length && !waiting.length) {
     box.innerHTML = `<p class="muted">Bu oyda yetkazish yo'q. Sotuvga manzil yozib, kuryer biriktirsangiz — shu yerda shaharlar bo'yicha hisobot chiqadi.</p>`;

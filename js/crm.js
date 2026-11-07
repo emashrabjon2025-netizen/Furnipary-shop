@@ -964,7 +964,6 @@ function openSale(id, prefill) {
   f.courier.innerHTML =
     `<option value="">— biriktirilmagan —</option>` +
     couriers.filter((c) => c.active !== false || c.id === s.courier).map((c) => `<option value="${c.id}"${c.id === s.courier ? " selected" : ""}>🚚 ${escapeHtml(c.name || c.email || "")}</option>`).join("");
-  if (!s.courier && !id && couriers.filter((c) => c.active !== false).length === 1) f.courier.value = couriers.find((c) => c.active !== false).id;
   f.deliveryDate.value = s.deliveryDate || "";
   $("#courierWrap").hidden = !couriers.length;
   $("#saleDlg").showModal();

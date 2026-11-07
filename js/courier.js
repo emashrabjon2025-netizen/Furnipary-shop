@@ -122,7 +122,8 @@ onAuthStateChanged(auth, async (user) => {
     onSnapshot(
       me.admin ? collection(db, "crmSales") : query(collection(db, "crmSales"), where("courier", "==", me.uid)),
       (snap) => {
-        list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => s.status !== "Bekor qilindi");
+        // Faqat dastavkaga yuborilgan (kuryer biriktirilgan) sotuvlar — lidlar va oddiy sotuvlar bu yerga tushmaydi
+        list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => s.status !== "Bekor qilindi" && s.courier);
         render();
         if (openId && $("#dvDlg").open) renderCard();
       },
@@ -263,7 +264,7 @@ function renderCard() {
     <p class="muted">${esc(s.status || "Yangi")} · ${dday(s) === today() ? "bugun" : fmtDate(dday(s))}</p>
     <a class="dv-addr" href="${mapUrl(s)}" target="_blank" rel="noopener">📍 <b>${esc(areaOf(s))}</b> — ${esc(s.address || "manzil yozilmagan")} <span>xaritada ›</span></a>
     <label class="dv-city">🏙 Shahar <select id="dvCity">${allAreaNames().concat(["Boshqa"]).map((n) => `<option ${n === areaOf(s) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
-    ${me.admin ? `<p class="muted">🚚 Kuryer: ${esc(s.courierName || (s.courier ? "biriktirilgan" : "biriktirilmagan"))}</p>` : ""}
+    ${me.admin ? `<p class="muted">🚚 Kuryer: ${esc(s.courierName || "biriktirilgan")} <button type="button" class="chip" data-act="unassign">✖ Dastavkadan olib tashlash</button></p>` : ""}
     <p>📦 <b>${esc(s.product || "")}</b>${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</p>
     <p>💵 Summa: <b class="dv-rest">${fmt(total(s), s.currency)}</b>${done ? " · ✅ yetkazildi" : ""}</p>
     ${s.note ? `<p class="muted">📝 ${esc(s.note)}</p>` : ""}
@@ -320,6 +321,11 @@ $("#dvBody").addEventListener("click", async (e) => {
   if (tgA) navigator.clipboard?.writeText(tgA.dataset.copytext).catch(() => {});
   const a = e.target.closest("[data-act]");
   if (!a) return;
+  if (a.dataset.act === "unassign" && me.admin) {
+    if (!confirm("Bu sotuv dastavka panelidan olib tashlansinmi? (Sotuvning o'zi CRMda qoladi)")) return;
+    if (await upd(s.id, { courier: "", courierName: "", updatedAt: serverTimestamp() }, "Dastavkadan olib tashlandi")) $("#dvDlg").close();
+    return;
+  }
   if (a.dataset.act === "today" || a.dataset.act === "tomorrow") {
     const d = a.dataset.act === "today" ? today() : tomorrow();
     const st = s.status === "Yangi" ? "Tayyorlanmoqda" : s.status === "Yo'lda" && a.dataset.act === "tomorrow" ? "Tayyorlanmoqda" : s.status;

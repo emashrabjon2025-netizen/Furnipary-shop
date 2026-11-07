@@ -102,12 +102,9 @@ function renderCouriers() {
   const open = sales.filter((x) => !["Yetkazildi", "Bekor qilindi"].includes(x.status));
   const un = open.filter((x) => !x.courier);
   const act = couriers.filter((c) => c.active !== false);
-  $("#crUnassigned").innerHTML =
-    un.length && act.length
-      ? `<span class="pill late">🚚 Kuryer biriktirilmagan yetkazishlar: ${un.length}</span>
-         <select id="crPick">${act.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
-         <button class="btn btn-sm btn-dark" type="button" id="crAssign">Hammasini biriktirish</button>`
-      : "";
+  $("#crUnassigned").innerHTML = act.length
+    ? `<span class="muted small">Dastavkaga faqat siz kuryer biriktirgan sotuvlar tushadi: <b>Sotuvlar</b> → sotuvni oching → <b>🚚 Kuryer</b>. Kuryersiz ochiq sotuvlar: ${un.length} ta.</span>`
+    : "";
   $("#crCards").innerHTML = couriers
     .map((c) => {
       const mine = sales.filter((x) => x.courier === c.id && x.status !== "Bekor qilindi");
