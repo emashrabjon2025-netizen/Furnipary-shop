@@ -131,7 +131,8 @@ onAuthStateChanged(auth, async (user) => {
 function bucket() {
   const t = today();
   if (view === "today") return list.filter((s) => s.status !== "Yetkazildi" && dday(s) <= t);
-  if (view === "later") return list.filter((s) => s.status !== "Yetkazildi" && dday(s) > t);
+  if (view === "tomorrow") return list.filter((s) => s.status !== "Yetkazildi" && dday(s) === tomorrow());
+  if (view === "later") return list.filter((s) => s.status !== "Yetkazildi" && dday(s) > tomorrow());
   return list.filter((s) => s.status === "Yetkazildi" && String(s.deliveredAt ? new Date(s.deliveredAt).toISOString() : s.date || "").slice(0, 7) === t.slice(0, 7));
 }
 
@@ -139,8 +140,10 @@ function render() {
   if (!me) return;
   const t = today();
   const todayList = list.filter((s) => s.status !== "Yetkazildi" && dday(s) <= t);
-  const later = list.filter((s) => s.status !== "Yetkazildi" && dday(s) > t);
+  const tmr = list.filter((s) => s.status !== "Yetkazildi" && dday(s) === tomorrow());
+  const later = list.filter((s) => s.status !== "Yetkazildi" && dday(s) > tomorrow());
   $("#nToday").textContent = todayList.length || "";
+  $("#nTomorrow").textContent = tmr.length || "";
   $("#nLater").textContent = later.length || "";
   const doneToday = list.filter((s) => s.status === "Yetkazildi" && s.deliveredAt && ymd(new Date(s.deliveredAt)) === t);
   const collectSom = todayList.filter((s) => s.currency !== "$").reduce((a, s) => a + rest(s), 0);
@@ -197,7 +200,7 @@ function render() {
           </button>`;
         })
         .join("")
-    : `<p class="empty">${view === "today" ? "Bugunga yetkazish yo'q 👍" : view === "later" ? "Keyingi kunlarga yetkazish yo'q" : "Bu oy hali yetkazilgan buyurtma yo'q"}</p>`;
+    : `<p class="empty">${view === "today" ? "Bugunga yetkazish yo'q 👍" : view === "tomorrow" ? "Ertaga yetkaziladigan buyurtma yo'q" : view === "later" ? "Keyingi kunlarga yetkazish yo'q" : "Bu oy hali yetkazilgan buyurtma yo'q"}</p>`;
 }
 
 $("#dvTabs").addEventListener("click", (e) => {
@@ -205,7 +208,7 @@ $("#dvTabs").addEventListener("click", (e) => {
   if (!b) return;
   view = b.dataset.v;
   area = "all";
-  $$("#dvTabs .tab").forEach((x) => x.classList.toggle("active", x === b));
+  $$("#dvTabs .tab").forEach((x) => x.classList.toggle("on", x === b));
   render();
 });
 $("#dvAreas").addEventListener("click", async (e) => {
@@ -282,8 +285,10 @@ function renderCard() {
         ? ""
         : `<h3 class="op-h">Holat</h3>
     <div class="op-result">
-      ${s.status !== "Yo'lda" ? `<button class="btn btn-line" type="button" data-act="go">🚚 Yo'lga chiqdim</button>` : `<button class="btn btn-line" type="button" disabled>🚚 Yo'ldasiz</button>`}
-      <button class="btn btn-line" type="button" data-act="move">📅 Boshqa kunga</button>
+      <button class="btn ${dday(s) <= today() ? "btn-dark" : "btn-line"}" type="button" data-act="today">🚚 Bugun yetkaziladi</button>
+      <button class="btn ${dday(s) === tomorrow() ? "btn-dark" : "btn-line"}" type="button" data-act="tomorrow">📅 Ertaga yetkaziladi</button>
+      ${s.status !== "Yo'lda" ? `<button class="btn btn-line" type="button" data-act="go">🛣 Yo'lga chiqdim</button>` : `<button class="btn btn-line" type="button" disabled>🛣 Yo'ldasiz</button>`}
+      <button class="btn btn-line" type="button" data-act="move">🗓 Boshqa kunga</button>
       <button class="btn btn-yellow" type="button" data-act="done" style="grid-column: span 2">✅ Yetkazildi</button>
     </div>`
     }
@@ -315,6 +320,12 @@ $("#dvBody").addEventListener("click", async (e) => {
   if (tgA) navigator.clipboard?.writeText(tgA.dataset.copytext).catch(() => {});
   const a = e.target.closest("[data-act]");
   if (!a) return;
+  if (a.dataset.act === "today" || a.dataset.act === "tomorrow") {
+    const d = a.dataset.act === "today" ? today() : tomorrow();
+    const st = s.status === "Yangi" ? "Tayyorlanmoqda" : s.status === "Yo'lda" && a.dataset.act === "tomorrow" ? "Tayyorlanmoqda" : s.status;
+    await upd(s.id, { deliveryDate: d, status: st, ...log(a.dataset.act === "today" ? "🚚 bugun yetkaziladi" : "📅 ertaga yetkaziladi") }, a.dataset.act === "today" ? "🚚 Bugungi ro'yxatga qo'shildi" : "📅 Ertangi ro'yxatga o'tkazildi");
+    return;
+  }
   if (a.dataset.act === "go") {
     await upd(s.id, { status: "Yo'lda", ...log("🚚 yo'lga chiqdi") }, "Yo'lda — mijozga xabar yuborishni unutmang");
     tpl = 0;

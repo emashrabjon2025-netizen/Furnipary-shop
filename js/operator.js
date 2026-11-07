@@ -229,7 +229,7 @@ $("#opTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-v]");
   if (!b) return;
   view = b.dataset.v;
-  $$("#opTabs .tab").forEach((t) => t.classList.toggle("active", t === b));
+  $$("#opTabs .tab").forEach((t) => t.classList.toggle("on", t === b));
   render();
 });
 $("#opList").addEventListener("click", (e) => {

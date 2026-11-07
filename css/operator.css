@@ -70,3 +70,7 @@
 .dv-city { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin: 4px 0 8px; }
 .dv-city select { font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
 .city.add small { color: var(--muted); font-weight: 600; text-align: center; }
+#dvTabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: visible; }
+#dvTabs .tab { width: 100%; white-space: normal; line-height: 1.25; padding: 12px 10px; font-size: 15px; text-align: center; }
+#dvTabs .tab span:not(:empty) { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 999px; background: #f2c400; color: #111; font-weight: 800; margin-left: 4px; }
+#dvTabs .tab.on span:not(:empty) { background: #f2c400; color: #111; }
