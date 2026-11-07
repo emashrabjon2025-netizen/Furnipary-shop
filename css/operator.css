@@ -52,3 +52,21 @@
 @media (max-width: 420px) { #dvKpi { grid-template-columns: 1fr 1fr; } }
 .dv-tpl + .dv-msg + .op-contact { grid-template-columns: repeat(3, 1fr); }
 .dv-tpl + .dv-msg + .op-contact .btn { padding-left: 4px; padding-right: 4px; }
+
+/* Shahar panellari */
+.dv-areas { display: block; overflow: visible; }
+.city-h { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px; }
+.city-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.city { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px; cursor: pointer; min-height: 72px; }
+.city b { font-size: 13px; line-height: 1.2; }
+.city span { font-size: 22px; font-weight: 800; line-height: 1.1; }
+.city small { font-size: 11px; color: #b4231b; font-weight: 600; }
+.city.zero { opacity: .5; }
+.city.zero span { color: var(--muted); }
+.city.on { background: var(--ink); color: #fff; border-color: var(--ink); opacity: 1; }
+.city.on small { color: #ffd84d; }
+.city.add { border-style: dashed; align-items: center; justify-content: center; color: var(--muted); }
+.city.add b { font-size: 20px; }
+.dv-city { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin: 4px 0 8px; }
+.dv-city select { font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.city.add small { color: var(--muted); font-weight: 600; text-align: center; }

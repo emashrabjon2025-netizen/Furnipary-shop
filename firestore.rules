@@ -56,13 +56,14 @@ service cloud.firestore {
       allow update: if isCourier()
         && resource.data.courier == request.auth.uid
         && request.resource.data.courier == request.auth.uid
-        && request.resource.data.status in ['Tayyorlanmoqda', "Yo'lda", 'Yetkazildi']
+        && request.resource.data.status in ['Yangi', 'Tayyorlanmoqda', "Yo'lda", 'Yetkazildi']
         && request.resource.data.get('paid', 0) >= resource.data.get('paid', 0)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paid', 'collected', 'deliveredAt', 'deliveryDate', 'courierNote', 'deliveryLog', 'updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paid', 'collected', 'deliveredAt', 'deliveryDate', 'courierNote', 'deliveryLog', 'updatedAt', 'area']);
     }
     match /crmSettings/{id} {
       allow read, write: if isAdmin();
       allow read: if id == 'scripts' && isOperator();
+      allow read, write: if id == 'cities' && isCourier();
     }
     match /crmCouriers/{uid} {
       allow read, write: if isAdmin();

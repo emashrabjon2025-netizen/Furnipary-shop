@@ -14,15 +14,18 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  setDoc,
 } from "./firebase.js";
+import { ADMIN_UIDS } from "./config.js";
 import { $, $$, escapeHtml as esc, toast, normalizePhone } from "./util.js";
-import { areaOf } from "./areas.js";
+import { areaOf, setCustomAreas, allAreaNames, customAreas, AREAS } from "./areas.js";
 
 let me = null;
 let list = [];
 let view = "today";
 let area = "all";
 let openId = null;
+let showAllCities = false;
 let unsub = [];
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -85,23 +88,32 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   let c = null;
-  try {
-    const s = await getDoc(doc(db, "crmCouriers", user.uid));
-    c = s.exists() ? s.data() : null;
-  } catch (_) {}
+  const isAdm = ADMIN_UIDS.includes(user.uid);
+  if (isAdm) c = { name: "Admin", active: true };
+  else
+    try {
+      const s = await getDoc(doc(db, "crmCouriers", user.uid));
+      c = s.exists() ? s.data() : null;
+    } catch (_) {}
   if (!c || c.active === false) {
     $("#loginMsg").textContent = "Bu akkaunt kuryer sifatida qo'shilmagan yoki o'chirilgan. Rahbaringizga murojaat qiling.";
     await signOut(auth);
     return;
   }
-  me = { uid: user.uid, name: c.name || user.email };
+  me = { uid: user.uid, name: c.name || user.email, admin: isAdm };
   $("#opName").textContent = "🚚 " + me.name;
   $("#loginView").hidden = true;
   $("#appView").hidden = false;
   $("#logout").hidden = false;
   unsub.push(
+    onSnapshot(doc(db, "crmSettings", "cities"), (d) => {
+      setCustomAreas(d.exists() ? d.data().list : []);
+      render();
+    }, () => {})
+  );
+  unsub.push(
     onSnapshot(
-      query(collection(db, "crmSales"), where("courier", "==", me.uid)),
+      me.admin ? collection(db, "crmSales") : query(collection(db, "crmSales"), where("courier", "==", me.uid)),
       (snap) => {
         list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => s.status !== "Bekor qilindi");
         render();
@@ -144,13 +156,24 @@ function render() {
 
   const items = bucket();
   const counts = {};
-  items.forEach((s) => (counts[areaOf(s)] = (counts[areaOf(s)] || 0) + 1));
-  if (area !== "all" && !counts[area]) area = "all";
-  $("#dvAreas").innerHTML = Object.keys(counts).length > 1
-    ? [`<button class="chip ${area === "all" ? "on" : ""}" data-area="all">Hammasi ${items.length}</button>`]
-        .concat(Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([a, n]) => `<button class="chip ${area === a ? "on" : ""}" data-area="${esc(a)}">📍 ${esc(a)} ${n}</button>`))
-        .join("")
-    : "";
+  const money = {};
+  items.forEach((s) => {
+    const a = areaOf(s);
+    counts[a] = (counts[a] || 0) + 1;
+    if (s.status !== "Yetkazildi") money[a] = (money[a] || 0) + (s.currency === "$" ? 0 : rest(s));
+  });
+  const names = allAreaNames().concat(counts["Boshqa"] ? ["Boshqa"] : []);
+  const ordered = names.slice().sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+  const tile = (key, label, n, sub) =>
+    `<button type="button" class="city ${area === key ? "on" : ""} ${n ? "" : "zero"}" data-area="${esc(key)}"><b>${esc(label)}</b><span>${n || 0}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
+  $("#dvAreas").innerHTML =
+    `<div class="city-h"><b>🏙 Farg'ona shaharlari</b>${area !== "all" ? ` <button class="chip" data-area="all">Hammasini ko'rsatish</button>` : ""}</div>
+     <div class="city-grid">
+       ${tile("all", "Hammasi", items.length, "")}
+       ${ordered.filter((a) => counts[a] || showAllCities || a === area).map((a) => tile(a, a, counts[a], money[a] ? fmt(money[a]).replace(" so'm", "") : "")).join("")}
+       <button type="button" class="city add" id="cityMore"><b>${showAllCities ? "▴" : "▾"}</b><small>${showAllCities ? "Bo'shlarini yashirish" : `Barcha shaharlar (${ordered.length})`}</small></button>
+       <button type="button" class="city add" id="cityAdd"><b>➕</b><small>Shahar qo'shish</small></button>
+     </div>`;
   const shown = items
     .filter((s) => area === "all" || areaOf(s) === area)
     .sort((a, b) => (a.status === "Yo'lda" ? -1 : 0) - (b.status === "Yo'lda" ? -1 : 0) || areaOf(a).localeCompare(areaOf(b)) || dday(a).localeCompare(dday(b)));
@@ -185,12 +208,35 @@ $("#dvTabs").addEventListener("click", (e) => {
   $$("#dvTabs .tab").forEach((x) => x.classList.toggle("active", x === b));
   render();
 });
-$("#dvAreas").addEventListener("click", (e) => {
+$("#dvAreas").addEventListener("click", async (e) => {
+  if (e.target.closest("#cityAdd")) return addCity();
+  if (e.target.closest("#cityMore")) {
+    showAllCities = !showAllCities;
+    return render();
+  }
   const b = e.target.closest("[data-area]");
   if (!b) return;
   area = b.dataset.area;
   render();
+  if (area !== "all") $("#dvList").scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+async function addCity() {
+  const name = (prompt("Yangi shahar / tuman / mahalla nomi:\n(masalan: Yaypan, Vodil, Chimyon)") || "").trim().slice(0, 40);
+  if (!name) return;
+  if (allAreaNames().some((n) => n.toLowerCase() === name.toLowerCase())) return toast("Bu shahar ro'yxatda bor", "err");
+  const extra = (prompt(`"${name}" manzilda boshqacha yozilishi mumkinmi? Vergul bilan yozing (bo'sh qoldirsa ham bo'ladi).\nMasalan: ${name.toLowerCase()}, ${name}a`) || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter((x) => x.length > 1)
+    .slice(0, 8);
+  try {
+    await setDoc(doc(db, "crmSettings", "cities"), { list: [...customAreas(), { name, keys: [name, ...extra] }] }, { merge: true });
+    toast(`🏙 ${name} qo'shildi`);
+  } catch (err) {
+    toast("Qo'shib bo'lmadi: " + err.message, "err");
+  }
+}
 $("#dvList").addEventListener("click", (e) => {
   const b = e.target.closest("[data-open]");
   if (!b) return;
@@ -213,6 +259,8 @@ function renderCard() {
     <h2>${esc(s.name || "Mijoz")}</h2>
     <p class="muted">${esc(s.status || "Yangi")} · ${dday(s) === today() ? "bugun" : fmtDate(dday(s))}</p>
     <a class="dv-addr" href="${mapUrl(s)}" target="_blank" rel="noopener">📍 <b>${esc(areaOf(s))}</b> — ${esc(s.address || "manzil yozilmagan")} <span>xaritada ›</span></a>
+    <label class="dv-city">🏙 Shahar <select id="dvCity">${allAreaNames().concat(["Boshqa"]).map((n) => `<option ${n === areaOf(s) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
+    ${me.admin ? `<p class="muted">🚚 Kuryer: ${esc(s.courierName || (s.courier ? "biriktirilgan" : "biriktirilmagan"))}</p>` : ""}
     <p>📦 <b>${esc(s.product || "")}</b>${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</p>
     <p>${r && !done ? `💵 Olinadigan pul: <b class="dv-rest">${fmt(r, s.currency)}</b> <small class="muted">(jami ${fmt(s.amount, s.currency)}, oldindan ${fmt(s.paid, s.currency)})</small>` : done ? `✅ Yetkazildi${s.collected ? ` · olindi ${fmt(s.collected, s.currency)}` : ""}` : "✔ To'liq to'langan"}</p>
     ${s.note ? `<p class="muted">📝 ${esc(s.note)}</p>` : ""}
@@ -283,6 +331,12 @@ $("#dvBody").addEventListener("click", async (e) => {
     $("#doneInfo").textContent = r ? `Olinishi kerak: ${fmt(r, s.currency)}` : "Buyurtma oldindan to'liq to'langan";
     $("#doneDlg").showModal();
   }
+});
+
+$("#dvBody").addEventListener("change", async (e) => {
+  if (e.target.id !== "dvCity") return;
+  const s = list.find((x) => x.id === openId);
+  if (s) await upd(s.id, { area: e.target.value, updatedAt: serverTimestamp() }, `🏙 ${e.target.value} ga o'tkazildi`);
 });
 
 let moveReason = "";
