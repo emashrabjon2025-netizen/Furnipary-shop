@@ -6,8 +6,11 @@ jobs:
     steps:
       - run: |
           B=https://furnipart-shop.vercel.app
-          curl -sL $B/admin | grep -o 'crm.js?v=[0-9]*\|sitechat-admin.js?v=[0-9]*' | tr '\n' ' '; echo
-          curl -s "$B/" | grep -o 'app.js?v=[0-9]*\|manifest.webmanifest' | tr '\n' ' '; echo
-          curl -s "$B/sw.js" -o /dev/null -w "sw %{http_code}\n"
-          echo "vapid: $(curl -s "$B/api/push?vapid=1" | head -c 200)"
-          echo "chat404: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/chat?cid=aaaaaaaaaaaaaaaaaaaa")"
+          for p in / /admin /operator /dastavka /sw.js /manifest.webmanifest; do echo "$p $(curl -s -o /dev/null -w '%{http_code}' $B$p)"; done
+          echo "dastavka: $(curl -s $B/dastavka | grep -o 'courier.js?v=[0-9]*\|id="dvAdd"\|id="dvImport"\|data-v="tomorrow"' | tr '\n' ' ')"
+          echo "admin: $(curl -s $B/admin | grep -o 'crm.js?v=[0-9]*\|operators-admin.js?v=[0-9]*\|delivery-report.js?v=[0-9]*\|id="rDelivery"' | tr '\n' ' ')"
+          echo "courier.js: $(curl -s "$B/js/courier.js?x=$RANDOM" | grep -c 'dvImport\|addForm\|unassign')"
+          echo "push: $(curl -s "$B/api/push?count=1")"
+          echo "chat: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/chat?cid=aaaaaaaaaaaaaaaaaaaa")"
+          echo "remind: $(curl -s "$B/api/remind?me=1")"
+          echo "lead-health: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/lead")"
