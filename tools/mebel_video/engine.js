@@ -348,7 +348,7 @@ P.checklist = (p) => {
     const h = new THREE.Group(); h.add(m); h.position.y = .3 + (n - 1 - i) * gap; g.add(h); cards.push(h);
   });
   return {
-    group: g, labels: [], cam: { pos: [0.6, 1.0 + n * gap / 2, 4.6 + Math.max(0, n - 2) * 0.9], target: [0, .15 + (n - 1) * gap / 2, 0] },
+    group: g, labels: [], cam: { pos: [0.6, 1.0 + n * gap / 2, 4.9 + Math.max(0, n - 2) * 1.1], target: [0, .15 + (n - 1) * gap / 2, 0] },
     update(t, dur) {
       const step = Math.min(.9, (dur - 1) / Math.max(n, 1));
       cards.forEach((c, i) => { const k = eBack(seg(t, .2 + i * step, .75 + i * step)); c.rotation.x = (1 - k) * -1.6; c.position.x = (1 - k) * 1.5; setOpacity(c, seg(t, .2 + i * step, .45 + i * step)); });
@@ -371,6 +371,149 @@ P.logo = (p) => {
     update(t) { const k = eBack(seg(t, 0, .9)); piv.rotation.y = (1 - k) * 3.2 + Math.sin(t * .8) * .25; piv.rotation.x = Math.sin(t * .6) * .08; piv.scale.setScalar(.9 * (.4 + .6 * k)); piv.position.y = 1.0 + Math.sin(t * 1.2) * .04; }
   };
 };
+
+// ================= QIMMAT vs ARZON =================
+const RUST = new THREE.Color('#8a5634');
+function metalMat(q) { return q ? mat('chrome') : new THREE.MeshStandardMaterial({ color: '#b3b5b8', roughness: .42, metalness: .85 }); }
+// stylized cup hinge facing camera (+z). q = quality (thicker, damper)
+function hingeModel(q) {
+  const g = new THREE.Group(), m = metalMat(q), parts = {};
+  const cup = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .14, 48), m)); cup.rotation.x = Math.PI / 2; g.add(cup);
+  const rim = shadowy(new THREE.Mesh(new THREE.TorusGeometry(.3, .025, 12, 48), m)); rim.position.z = .07; g.add(rim);
+  const fl = shadowy(new THREE.Mesh(new RoundedBoxGeometry(.95, .46, .035, 3, .015), m)); fl.position.z = .085; g.add(fl);
+  [-.36, .36].forEach(x => { const s = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .03, 20), mat('#4a4c50'))); s.rotation.x = Math.PI / 2; s.position.set(x, 0, .11); g.add(s); });
+  const arm = new THREE.Group(); arm.position.set(.22, 0, .1); g.add(arm);
+  const ab = shadowy(new THREE.Mesh(new RoundedBoxGeometry(1.15, q ? .34 : .26, q ? .13 : .06, 3, q ? .04 : .02), m)); ab.position.x = .58; arm.add(ab);
+  const plate = shadowy(new THREE.Mesh(new RoundedBoxGeometry(.32, .62, .1, 3, .03), m)); plate.position.set(1.12, 0, -.03); arm.add(plate);
+  if (q) {
+    const d = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, .55, 28), mat('#2a2b2e'))); d.rotation.z = Math.PI / 2; d.position.set(.55, 0, .11); arm.add(d);
+    const ring = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .08, 28), mat('yellow'))); ring.rotation.z = Math.PI / 2; ring.position.set(.28, 0, .11); arm.add(ring);
+    parts.damper = d;
+  }
+  Object.assign(parts, { cup, arm, ab, plate, m });
+  g.position.x = -.42; g.rotation.y = -.35; const w = new THREE.Group(); w.add(g); w.userData.parts = parts; return w;
+}
+// solid mattress block with deformable top (sag)
+function mattressBlock(q) {
+  const Wm = 1.25, Hm = q ? .36 : .28, Dm = 1.7, geo = new THREE.BoxGeometry(Wm, Hm, Dm, 28, 3, 36);
+  const side = new THREE.MeshStandardMaterial({ map: ctex(512, 128, (c, w, h) => { c.fillStyle = q ? '#efece6' : '#e9e3d6'; c.fillRect(0, 0, w, h); c.fillStyle = q ? '#FFE135' : '#b9b1a1'; c.fillRect(0, h * .42, w, h * .16); }), roughness: .9 });
+  const top = new THREE.MeshStandardMaterial({ map: texRep(TX.quilt, 2.5, 3.5), roughness: .9, color: q ? '#ffffff' : '#f3efe5' });
+  const m = shadowy(new THREE.Mesh(geo, [side, side, top, side, side, side])); m.position.y = Hm / 2 + .02;
+  const base = geo.attributes.position.array.slice();
+  const w = new THREE.Group(); w.add(m);
+  w.userData.sag = (s) => {
+    const p = geo.attributes.position.array;
+    for (let i = 0; i < p.length; i += 3) {
+      const x = base[i], y = base[i + 1], z = base[i + 2];
+      const f = Math.exp(-((x * x) / .18 + (z * z) / .5)) * ((y + Hm / 2) / Hm);
+      p[i + 1] = y - s * .16 * f;
+    }
+    geo.attributes.position.needsUpdate = true; geo.computeVertexNormals();
+  };
+  w.userData.parts = { m, Hm };
+  return w;
+}
+// exploded interior: quality = pocket springs + layers; cheap = sparse bonnell + thin foam
+function mattressInside(q) {
+  const g = new THREE.Group(), Wm = 1.25, Dm = 1.7, layers = [];
+  const slab = (h, tex, color) => shadowy(new THREE.Mesh(new RoundedBoxGeometry(Wm, h, Dm, 3, .02), new THREE.MeshStandardMaterial({ map: texRep(tex, 3, 4), roughness: .9, color: color || '#ffffff' })));
+  const springs = (nx, nz, r, h, pocket) => {
+    const o = new THREE.Group(), pts = [];
+    for (let a = 0; a <= 1; a += 1 / 60) { const ang = a * Math.PI * 2 * (pocket ? 5 : 3.5); pts.push(new THREE.Vector3(Math.cos(ang) * r, a * h - h / 2, Math.sin(ang) * r)); }
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, pocket ? .006 : .009, 6);
+    const im = new THREE.InstancedMesh(geo, mat('metal'), nx * nz), M4 = new THREE.Matrix4(); let k = 0;
+    const pk = pocket ? new THREE.InstancedMesh(new THREE.CylinderGeometry(r * 1.15, r * 1.15, h, 14, 1, true), new THREE.MeshStandardMaterial({ color: '#efe6cf', roughness: 1, transparent: true, opacity: .55, side: THREE.DoubleSide }), nx * nz) : null;
+    for (let x = 0; x < nx; x++) for (let z = 0; z < nz; z++) { M4.makeTranslation(-Wm / 2 + r * 1.3 + x * (Wm - r * 2.6) / (nx - 1), 0, -Dm / 2 + r * 1.3 + z * (Dm - r * 2.6) / (nz - 1)); im.setMatrixAt(k, M4); if (pk) pk.setMatrixAt(k, M4); k++; }
+    im.castShadow = true; o.add(im); if (pk) o.add(pk);
+    if (!pocket) { for (let x = 0; x < nx; x++) { const wire = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, Dm - r * 2.6, 6), mat('metal')); wire.rotation.x = Math.PI / 2; wire.position.set(-Wm / 2 + r * 1.3 + x * (Wm - r * 2.6) / (nx - 1), h / 2, 0); o.add(wire); } }
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(Wm, .015, Dm), mat('#8a8d92')); fr.position.y = -h / 2; o.add(fr);
+    o.userData.h = h; return o;
+  };
+  const defs = q ? [[slab(.05, TX.quilt)], [slab(.07, TX.foam)], [slab(.06, TX.foam, '#fff8e8')], [springs(9, 12, .045, .2, true)], [slab(.06, TX.coir)]]
+    : [[slab(.04, TX.quilt, '#f3efe5')], [slab(.03, TX.foam)], [springs(5, 7, .085, .2, false)]];
+  defs.forEach(([o]) => { if (!o.userData.h) o.userData.h = o.geometry.parameters.height; g.add(o); layers.push(o); });
+  g.userData.layers = layers; return g;
+}
+// small cabinet with a door on hinges (for "years later")
+function doorCabinet(q) {
+  const g = new THREE.Group(), Wd = .95, Hh = 1.25, D = .55, th = .04;
+  const k = q ? 'white' : 'white';
+  [[th, Hh, D, -Wd / 2 + th / 2, Hh / 2], [th, Hh, D, Wd / 2 - th / 2, Hh / 2], [Wd, th, D, 0, th / 2], [Wd, th, D, 0, Hh - th / 2]].forEach(([a, b, c, x, y]) => { const p = panel(a, b, c, k, '#e5e2db'); p.position.set(x, y + .02, 0); g.add(p); });
+  const back = panel(Wd, Hh, .01, '#d6d2ca', '#d6d2ca'); back.position.set(0, Hh / 2 + .02, -D / 2); g.add(back);
+  const hinge = new THREE.Group(); hinge.position.set(-Wd / 2, Hh / 2 + .02, D / 2 + .015); g.add(hinge);
+  const sag = new THREE.Group(); hinge.add(sag);
+  const door = panel(Wd - .01, Hh - .01, .03, q ? 'paint:#2f3a36' : 'paint:#3a3f44', q ? 'paint:#2f3a36' : 'paint:#3a3f44'); door.position.set((Wd - .01) / 2, 0, 0); sag.add(door);
+  const hd = shadowy(new THREE.Mesh(new THREE.BoxGeometry(.025, .3, .03), mat('chrome'))); hd.position.set(Wd - .09, .05, .035); sag.add(hd);
+  g.userData.parts = { hinge, sag }; return g;
+}
+
+// versus: {kind:'hinge'|'mattress'|'inside'|'door', tags:['QIMMAT','ARZON'], labelsA:[], labelsB:[], degradeAt, swing}
+P.versus = (p) => {
+  const g = new THREE.Group(), labels = [], kind = p.kind || 'hinge', X = kind === 'hinge' ? .86 : kind === 'door' ? .8 : .74;
+  const mk = kind === 'hinge' ? hingeModel : kind === 'mattress' ? mattressBlock : kind === 'inside' ? mattressInside : doorCabinet;
+  const A = mk(true), B = mk(false);
+  const yb = kind === 'hinge' ? 1.05 : 0;
+  A.position.set(-X, yb, 0); B.position.set(X, yb, 0); g.add(A, B);
+  const SC = kind === 'hinge' ? .6 : kind === 'door' ? 1 : kind === 'inside' ? .72 : .82; A.scale.setScalar(SC); B.scale.setScalar(SC);
+  const tags = p.tags || ['QIMMAT', 'ARZON'], ty = kind === 'hinge' ? -.55 : kind === 'inside' ? -.05 : -.08;
+  const tagStyle = p.tagStyle || ['tag yel', 'tag red'];
+  if (tags[0]) labels.push({ obj: anchor(A, 0, ty, .3), text: tags[0], style: tagStyle[0], at: .35, side: 'below' });
+  if (tags[1]) labels.push({ obj: anchor(B, 0, ty, .3), text: tags[1], style: tagStyle[1], at: .55, side: 'below' });
+  const lp = (obj, arr, side) => (arr || []).forEach((L, i) => labels.push({ obj: anchor(obj, ...(L.pos || [0, .3 + i * .25, .2])), text: L.text, style: L.style || (side === 'left' ? 'grn' : 'red'), at: L.at ?? (1.0 + i * .5), side: L.side || side }));
+  lp(A, p.labelsA, 'left'); lp(B, p.labelsB, 'right');
+  const camT = kind === 'hinge' ? [0, .85, 0] : kind === 'door' ? [0, .5, 0] : kind === 'inside' ? [0, .62, 0] : [0, .15, 0];
+  const camP = kind === 'hinge' ? [0, 1.6, 8.6] : kind === 'door' ? [1.2, 2.3, 8.4] : kind === 'inside' ? [1.6, 3.9, 8.6] : [1.5, 3.2, 8.6];
+  return {
+    group: g, labels, cam: { pos: camP, target: camT },
+    update(t, dur) {
+      [A, B].forEach((S, si) => {
+        const k = eBack(seg(t, si * .15, .7 + si * .15)); S.position.y = yb + (1 - k) * 1.8; setOpacity(S, seg(t, si * .15, .45 + si * .15));
+        S.rotation.y = (kind === 'hinge' ? 0 : (si ? -.35 : .35) * .4) + Math.sin(t * .5 + si) * .05;
+      });
+      const dg = p.degradeAt != null ? eInOut(seg(t, p.degradeAt, p.degradeAt + 1.6)) : 0;
+      if (kind === 'hinge') {
+        const sw = p.swing ? (0.5 - 0.5 * Math.cos(Math.max(0, t - 1.2) * 2.2)) : 0;
+        A.userData.parts.arm.rotation.y = -sw * 1.1;
+        const bp = B.userData.parts; bp.arm.rotation.y = -sw * 1.1 * (1 - dg * .3); bp.arm.rotation.z = -dg * .22;
+        bp.m.color.copy(new THREE.Color('#b3b5b8').lerp(RUST, dg * .75)); bp.m.metalness = .85 - dg * .55; bp.m.roughness = .42 + dg * .4;
+        A.rotation.x = B.rotation.x = -.25 + sw * .15;
+      } else if (kind === 'mattress') {
+        B.userData.sag(dg); A.userData.sag(dg * .04);
+      } else if (kind === 'inside') {
+        [A, B].forEach(S => { const L = S.userData.layers, ex = eInOut(seg(t, .8, 1.8)); let y = .02; for (let i = L.length - 1; i >= 0; i--) { const h = L[i].userData.h; y += h / 2; L[i].position.y = y + (L.length - 1 - i) * ex * .14; y += h / 2; } });
+      } else if (kind === 'door') {
+        const per = 2.6, tt = Math.max(0, t - .9) % per, o = Math.sin(Math.PI * clamp(tt / (per * .8))) ;
+        const pa = A.userData.parts, pb = B.userData.parts;
+        pa.hinge.rotation.y = -o * 1.3;
+        const ob = Math.min(1, o * 1.0); pb.hinge.rotation.y = -ob * 1.3 * (1 - dg * .2);
+        pb.sag.rotation.z = -dg * .07; pb.sag.position.y = -dg * .03;
+      }
+    }
+  };
+};
+
+// score: two big cards {a:{big,small,style}, b:{...}, mid:'vs'}
+P.score = (p) => {
+  const g = new THREE.Group(), cards = [];
+  const card = (o, x) => {
+    const col = o.style === 'red' ? '#FF5A5A' : o.style === 'grn' ? '#2fbf6a' : Y, ink = o.style === 'yel' || !o.style ? '#0e0e0e' : '#ffffff';
+    const tex = ctex(600, 820, (c, w, h) => {
+      c.fillStyle = '#141416'; c.fillRect(0, 0, w, h); c.fillStyle = col; c.fillRect(0, 0, w, 150);
+      c.fillStyle = ink; c.font = '900 64px Inter'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.title || '', w / 2, 78);
+      c.fillStyle = col; let fs = 220; c.font = `900 ${fs}px Inter`; while (c.measureText(o.big).width > 540 && fs > 90) { fs -= 6; c.font = `900 ${fs}px Inter`; } c.fillText(o.big, w / 2, 400);
+      c.fillStyle = '#ffffff'; c.font = '700 50px Inter'; (o.small || '').split('|').forEach((s, i) => c.fillText(s, w / 2, 620 + i * 64));
+    });
+    const side = new THREE.MeshStandardMaterial({ color: '#202024' });
+    const m = shadowy(new THREE.Mesh(new RoundedBoxGeometry(1.5, 2.05, .08, 4, .04), [side, side, side, side, new THREE.MeshStandardMaterial({ map: tex, roughness: .55 }), side]));
+    m.scale.setScalar(.85); const h = new THREE.Group(); h.add(m); h.position.set(x, 1.15, 0); g.add(h); cards.push(h);
+  };
+  card(p.a, -.78); card(p.b, .78);
+  return {
+    group: g, labels: [], cam: { pos: [0, 1.3, 9.6], target: [0, 1.0, 0] },
+    update(t) { cards.forEach((c, i) => { const k = eBack(seg(t, .15 + i * .45, .8 + i * .45)); c.rotation.y = (1 - k) * (i ? -1.6 : 1.6) + (i ? -.12 : .12); c.position.y = 1.15 + (1 - k) * -1.5; setOpacity(c, seg(t, .15 + i * .45, .4 + i * .45)); c.scale.setScalar(1 + (p.win === i ? .06 * eOut(seg(t, 1.8, 2.3)) : 0)); }); }
+  };
+};
+
 window.PRESETS = P; window.TH = { THREE, board, panel, mat, anchor, shadowy, setOpacity, seg, eOut, eInOut, eBack, lerp, clamp, ctex, TX };
 
 // ---------- timeline / overlay ----------
@@ -380,7 +523,8 @@ let S = null, total = 0;
 const hl = s => (s || '').replace(/\*(.+?)\*/g, '<span class="y">$1</span>').replace(/!(.+?)!/g, '<span class="r">$1</span>').replace(/~(.+?)~/g, '<span class="g">$1</span>');
 function chunks(text) {
   const words = text.split(/\s+/).filter(Boolean), out = []; let cur = [];
-  words.forEach((w, i) => { cur.push(w); const plain = w.replace(/[*!~]/g, ''); if (plain === '—') return; if (cur.length >= 5 || (/[.,!?:;]$/.test(plain) && cur.length >= 3) || i === words.length - 1) { out.push(cur.join(' ')); cur = []; } });
+  const open = a => /[*~]|!\p{L}/u.test(a.join(' ').replace(/\*[^*]+\*/g, '').replace(/~[^~]+~/g, '').replace(/!\p{L}[^!]*!/gu, ''));
+  words.forEach((w, i) => { cur.push(w); const plain = w.replace(/[*!~]/g, ''); if (plain === '—') return; if (open(cur) && i < words.length - 1 && cur.length < 9) return; if (cur.length >= 5 || (/[.,!?:;]$/.test(plain) && cur.length >= 3) || i === words.length - 1) { out.push(cur.join(' ')); cur = []; } });
   // balance star-highlights broken across chunks
   return out.map(c => { const n = (c.match(/\*/g) || []).length; return n % 2 ? c.replace(/\*/g, '') : c; });
 }
@@ -431,8 +575,10 @@ window.renderAt = (time) => {
     const a = seg(lt, l.at, l.at + .35); l.el.style.opacity = a; if (a <= 0) return;
     l.obj.getWorldPosition(v); v.project(camera); const x = (v.x * .5 + .5) * W, y = (-v.y * .5 + .5) * H;
     const bw = l.el.offsetWidth, bh = l.el.offsetHeight, right = l.side !== 'left';
-    let bx = right ? Math.min(W - 50 - bw, x + 120) : Math.max(50, x - 120 - bw), by = y - 110 - bh / 2;
+    const below = l.side === 'below';
+    let bx = below ? x - bw / 2 : right ? Math.min(W - 50 - bw, x + 120) : Math.max(50, x - 120 - bw), by = below ? y + 20 : y - 110 - bh / 2;
     bx = clamp(bx, 40, W - 40 - bw); by = clamp(by, 420, 1330 - bh);
+    if (below) { l.el.style.left = bx + 'px'; l.el.style.top = by + 'px'; l.el.style.transform = `scale(${.6 + .4 * eBack(a)})`; return; }
     l.el.style.left = bx + 'px'; l.el.style.top = by + 'px'; l.el.style.transform = `translateY(${(1 - eOut(a)) * 20}px)`;
     const ex = right ? bx : bx + bw, ey = by + bh / 2, col = l.style === 'red' ? '#FF5A5A' : l.style === 'grn' ? '#2fbf6a' : l.style === 'wht' ? '#fff' : Y;
     const dl = eOut(seg(lt, l.at, l.at + .5));
