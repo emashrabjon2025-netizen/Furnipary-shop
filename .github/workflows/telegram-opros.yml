@@ -1,0 +1,34 @@
+name: Telegram opros (09:00 va 15:00)
+
+# Toshkent vaqti bilan 09:00 — qiziqarli/viktorina, 15:00 — og'riq + sotuvga chorlash (UTC = Toshkent - 5).
+on:
+  schedule:
+    - cron: "0 4 * * *"
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "ertalab yoki kunduz"
+        default: "ertalab"
+
+concurrency: telegram-opros
+
+jobs:
+  opros:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bugungi oprosni kanalga yuborish
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL: "@Furnipart_uz"
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 4 * * *")  SLOT=ertalab ;;
+            "0 10 * * *") SLOT=kunduz ;;
+            *)            SLOT="${{ github.event.inputs.slot || 'auto' }}" ;;
+          esac
+          python tools/opros/opros.py "$SLOT"
