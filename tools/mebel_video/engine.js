@@ -416,7 +416,7 @@ function mattressBlock(q) {
 // exploded interior: quality = pocket springs + layers; cheap = sparse bonnell + thin foam
 function mattressInside(q) {
   const g = new THREE.Group(), Wm = 1.25, Dm = 1.7, layers = [];
-  const slab = (h, tex, color) => shadowy(new THREE.Mesh(new RoundedBoxGeometry(Wm, h, Dm, 3, .02), new THREE.MeshStandardMaterial({ map: texRep(tex, 3, 4), roughness: .9, color: color || '#ffffff' })));
+  const slab = (h, tex, color) => { const o = shadowy(new THREE.Mesh(new RoundedBoxGeometry(Wm, h, Dm, 3, .02), new THREE.MeshStandardMaterial({ map: texRep(tex, 3, 4), roughness: .9, color: color || '#ffffff' }))); o.userData.h = h; return o; };
   const springs = (nx, nz, r, h, pocket) => {
     const o = new THREE.Group(), pts = [];
     for (let a = 0; a <= 1; a += 1 / 60) { const ang = a * Math.PI * 2 * (pocket ? 5 : 3.5); pts.push(new THREE.Vector3(Math.cos(ang) * r, a * h - h / 2, Math.sin(ang) * r)); }
@@ -431,7 +431,7 @@ function mattressInside(q) {
   };
   const defs = q ? [[slab(.05, TX.quilt)], [slab(.07, TX.foam)], [slab(.06, TX.foam, '#fff8e8')], [springs(9, 12, .045, .2, true)], [slab(.06, TX.coir)]]
     : [[slab(.04, TX.quilt, '#f3efe5')], [slab(.03, TX.foam)], [springs(5, 7, .085, .2, false)]];
-  defs.forEach(([o]) => { if (!o.userData.h) o.userData.h = o.geometry.parameters.height; g.add(o); layers.push(o); });
+  defs.forEach(([o]) => { g.add(o); layers.push(o); });
   g.userData.layers = layers; return g;
 }
 // small cabinet with a door on hinges (for "years later")
@@ -453,7 +453,7 @@ P.versus = (p) => {
   const mk = kind === 'hinge' ? hingeModel : kind === 'mattress' ? mattressBlock : kind === 'inside' ? mattressInside : doorCabinet;
   const A = mk(true), B = mk(false);
   const yb = kind === 'hinge' ? 1.05 : 0;
-  A.position.set(-X, yb, 0); B.position.set(X, yb, 0); g.add(A, B);
+  const XO = kind === 'hinge' ? .14 : 0; A.position.set(-X + XO, yb, 0); B.position.set(X + XO, yb, 0); g.add(A, B);
   const SC = kind === 'hinge' ? .6 : kind === 'door' ? 1 : kind === 'inside' ? .72 : .82; A.scale.setScalar(SC); B.scale.setScalar(SC);
   const tags = p.tags || ['QIMMAT', 'ARZON'], ty = kind === 'hinge' ? -.55 : kind === 'inside' ? -.05 : -.08;
   const tagStyle = p.tagStyle || ['tag yel', 'tag red'];
@@ -461,7 +461,7 @@ P.versus = (p) => {
   if (tags[1]) labels.push({ obj: anchor(B, 0, ty, .3), text: tags[1], style: tagStyle[1], at: .55, side: 'below' });
   const lp = (obj, arr, side) => (arr || []).forEach((L, i) => labels.push({ obj: anchor(obj, ...(L.pos || [0, .3 + i * .25, .2])), text: L.text, style: L.style || (side === 'left' ? 'grn' : 'red'), at: L.at ?? (1.0 + i * .5), side: L.side || side }));
   lp(A, p.labelsA, 'left'); lp(B, p.labelsB, 'right');
-  const camT = kind === 'hinge' ? [0, .85, 0] : kind === 'door' ? [0, .5, 0] : kind === 'inside' ? [0, .62, 0] : [0, .15, 0];
+  const camT = kind === 'hinge' ? [0, .85, 0] : kind === 'door' ? [0, .5, 0] : kind === 'inside' ? [0, .35, 0] : [0, .15, 0];
   const camP = kind === 'hinge' ? [0, 1.6, 8.6] : kind === 'door' ? [1.2, 2.3, 8.4] : kind === 'inside' ? [1.6, 3.9, 8.6] : [1.5, 3.2, 8.6];
   return {
     group: g, labels, cam: { pos: camP, target: camT },
@@ -480,7 +480,7 @@ P.versus = (p) => {
       } else if (kind === 'mattress') {
         B.userData.sag(dg); A.userData.sag(dg * .04);
       } else if (kind === 'inside') {
-        [A, B].forEach(S => { const L = S.userData.layers, ex = eInOut(seg(t, .8, 1.8)); let y = .02; for (let i = L.length - 1; i >= 0; i--) { const h = L[i].userData.h; y += h / 2; L[i].position.y = y + (L.length - 1 - i) * ex * .14; y += h / 2; } });
+        [A, B].forEach(S => { const L = S.userData.layers, ex = eInOut(seg(t, .8, 1.8)); let y = .02; for (let i = L.length - 1; i >= 0; i--) { const h = L[i].userData.h; y += h / 2; L[i].position.y = y + (L.length - 1 - i) * ex * .3; y += h / 2; } });
       } else if (kind === 'door') {
         const per = 2.6, tt = Math.max(0, t - .9) % per, o = Math.sin(Math.PI * clamp(tt / (per * .8))) ;
         const pa = A.userData.parts, pb = B.userData.parts;

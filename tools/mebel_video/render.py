@@ -32,13 +32,14 @@ def probe_dur(p):
     return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(p)]).strip())
 
 
-def load_voice(p, tmp):
-    """clean voice -> float32 mono 48k"""
+def load_voice(p, tmp, tempo=1.0):
+    """clean voice -> float32 mono 48k (tempo>1 = tezroq, ohang o'zgarmaydi)"""
     out = pathlib.Path(tmp) / (pathlib.Path(p).stem + "_clean.f32")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(p), "-af",
                     "highpass=f=75,lowpass=f=15000,deesser=i=0.35,acompressor=threshold=-21dB:ratio=2.6:attack=6:release=120:makeup=2,"
                     "equalizer=f=180:t=q:w=1:g=1.5,equalizer=f=3200:t=q:w=1.2:g=1.2,"
-                    "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse",
+                    "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse"
+                    + (f",atempo={tempo}" if tempo != 1.0 else ""),
                     "-ac", "1", "-ar", str(SR), "-f", "f32le", str(out)], check=True)
     return np.fromfile(out, dtype=np.float32)
 
@@ -129,7 +130,7 @@ def main():
     for s in sc["scenes"]:
         p = adir / s["audio"] if s.get("audio") else None
         if p and p.exists():
-            v = load_voice(p, tmp); s["voiceDur"] = len(v) / SR; s["voiceAt"] = 0.25
+            v = load_voice(p, tmp, sc.get("tempo", 1.0)); s["voiceDur"] = len(v) / SR; s["voiceAt"] = 0.25
             s["dur"] = round(s["voiceAt"] + s["voiceDur"] + s.get("tail", 0.45), 3)
         else:
             v = None; words = len((s.get("say") or s.get("show") or "").split())
