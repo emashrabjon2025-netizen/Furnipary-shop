@@ -19,5 +19,12 @@
   "date": "2026-11-10",
   "sent_at": "2026-11-10T09:39+05:00",
   "question": "🤔 Sizningcha, matrasni qanchada bir marta aylantirib (ag'darib) qo'yish kerak?"
+ },
+ {
+  "message_id": 15055,
+  "slot": "kunduz",
+  "date": "2026-11-10",
+  "sent_at": "2026-11-10T15:50+05:00",
+  "question": "💸 Matras olishda sizni nima to'xtatib turibdi?"
  }
 ]
