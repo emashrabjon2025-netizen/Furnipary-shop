@@ -492,17 +492,18 @@ $("#mtImport").addEventListener("change", async (e) => {
         phone,
         phone2: phones[1] ? normalizePhone(phones[1]) || phones[1] : "",
         address: String(pickCol(r, "manzil", "adres", "shahar") || "").trim(),
-        kind: guessKind(name),
+        kind: ["Mebel do'kon", "Mebelchi (usta)", "Shaxsiy mijoz", "Boshqa"].find((k) => norm(k) === norm(pickCol(r, "turi", "tur"))) || guessKind(name),
         status: STATUSES.includes(st) ? st : bought ? "Oldi" : inProcess ? "Jarayonda" : talked ? "Gaplashildi" : "Yangi",
         inProcess,
         bought,
         note: String(pickCol(r, "izoh", "note") || "").trim(),
         nextCall: "",
       });
-      const last = items[items.length - 1];
-      if (last.status === "Yangi") last.nextCall = today();
+
     }
     if (!items.length) return toast(dup ? `Hammasi bazada bor (${dup} ta)` : "Faylda mijoz topilmadi", "err");
+    // Kichik ro'yxat bo'lsa yangi mijozlar bugungi qo'ng'iroqlarga tushadi; katta baza (1C) "Mijozlar" bo'limida turadi
+    if (items.length <= 80) items.forEach((c) => c.status === "Yangi" && (c.nextCall = today()));
     if (!confirm(`${items.length} ta mijoz bazaga qo'shilsinmi?${dup ? `\n(${dup} ta raqam bazada bor — o'tkazib yuborildi)` : ""}`)) return;
     for (let i = 0; i < items.length; i += 400) {
       const b = writeBatch(db);
