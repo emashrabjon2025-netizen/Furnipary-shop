@@ -8,6 +8,7 @@ import { areaOf } from "./areas.js";
 const CLOSED = ["Sotildi", "Rad etdi"];
 let ops = [];
 let couriers = [];
+let matrasSellers = [];
 let leads = [];
 let sales = [];
 let scripts = {};
@@ -94,6 +95,7 @@ function render() {
     })
     .join("");
   renderCouriers();
+  renderMatras();
 }
 
 const fmtM = (n, cur) => (cur === "$" ? formatPrice(n) : mln(n));
@@ -127,6 +129,30 @@ function renderCouriers() {
         </div>
         ${Object.keys(areas).length ? `<p class="small">📍 Bugun: ${Object.entries(areas).map(([a, n]) => `${esc(a)} (${n})`).join(", ")}</p>` : ""}
         ${got("som") || got("$") ? `<p class="small">💵 Bugun yetkazgan mahsulotlar summasi: <b>${[got("som") ? fmtM(got("som")) : "", got("$") ? formatPrice(got("$")) : ""].filter(Boolean).join(" + ")}</b></p>` : ""}
+      </div>`;
+    })
+    .join("");
+}
+
+function renderMatras() {
+  const box = $("#mtCards");
+  if (!box) return;
+  const ym = today().slice(0, 7);
+  box.innerHTML = matrasSellers
+    .map((m) => {
+      const my = sales.filter((x) => x.seller === m.id && x.status !== "Bekor qilindi");
+      const month = my.filter((x) => (x.date || "").slice(0, 7) === ym);
+      const qty = month.reduce((a, x) => a + (Number(x.qty) || 1), 0);
+      const td = month.filter((x) => x.date === today());
+      return `<div class="panel op-admin ${m.active === false ? "off" : ""}">
+        <div class="opa-head"><h2>🛏 ${esc(m.name)}</h2><label class="switch"><input type="checkbox" data-mactive="${m.id}" ${m.active !== false ? "checked" : ""}> faol</label></div>
+        <p class="muted small">${esc(m.email || "")}</p>
+        <div class="mgrid">
+          <div><small>Bu oy matras</small><b>${qty} ta</b></div>
+          <div><small>Bu oy summa</small><b>${[fmtM(month.filter((x) => x.currency !== "$").reduce((a, x) => a + (Number(x.amount) || 0), 0)), formatPrice(month.filter((x) => x.currency === "$").reduce((a, x) => a + (Number(x.amount) || 0), 0))].filter((t) => !/^0|\$0$/.test(t)).join(" + ") || "0"}</b></div>
+          <div><small>Bugun</small><b>${td.length} ta sotuv</b></div>
+          <div><small>Jami sotuv</small><b>${my.length}</b></div>
+        </div>
       </div>`;
     })
     .join("");
@@ -172,6 +198,11 @@ document.addEventListener("click", async (e) => {
   }
 });
 document.addEventListener("change", async (e) => {
+  const ma = e.target.closest("[data-mactive]");
+  if (ma) {
+    await updateDoc(doc(db, "crmMatras", ma.dataset.mactive), { active: ma.checked }).catch((err) => toast(err.message, "err"));
+    return toast(ma.checked ? "Sotuvchi faollashtirildi" : "Sotuvchi o'chirildi — endi kira olmaydi");
+  }
   const ca = e.target.closest("[data-cactive]");
   if (ca) {
     await updateDoc(doc(db, "crmCouriers", ca.dataset.cactive), { active: ca.checked }).catch((err) => toast(err.message, "err"));
@@ -201,6 +232,23 @@ async function signUp(email, password) {
   }
   return j.localId;
 }
+$("#mtSellerAdd").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const btn = e.target.querySelector("[type=submit]");
+  btn.disabled = true;
+  try {
+    const uid = await signUp(f.email.value.trim(), f.password.value);
+    await setDoc(doc(db, "crmMatras", uid), { name: f.name.value.trim(), email: f.email.value.trim(), active: true, createdAt: Date.now() });
+    alert(`Matras sotuvchisi qo'shildi.\n\nKirish: furnipart-shop.vercel.app/matras\nEmail: ${f.email.value.trim()}\nParol: ${f.password.value}\n\nShu ma'lumotni sotuvchiga yuboring.`);
+    e.target.reset();
+  } catch (err) {
+    toast("Qo'shib bo'lmadi: " + err.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 $("#crAdd").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target.elements;
@@ -273,6 +321,10 @@ function start() {
     }, () => {}),
     onSnapshot(collection(db, "crmSales"), (s) => {
       sales = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    }, () => {}),
+    onSnapshot(collection(db, "crmMatras"), (s) => {
+      matrasSellers = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
     }, () => {}),
     onSnapshot(collection(db, "crmCouriers"), (s) => {

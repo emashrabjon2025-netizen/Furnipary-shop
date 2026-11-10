@@ -38,6 +38,23 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/crmCouriers/$(request.auth.uid)).data.active == true;
     }
 
+    // Matras sotuvchisi — admin qo'shgan va faol xodim (crmMatras/<uid>)
+    function isMatras() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/crmMatras/$(request.auth.uid))
+        && get(/databases/$(database)/documents/crmMatras/$(request.auth.uid)).data.active == true;
+    }
+
+    // Matras mijozlari bazasi — admin va matras sotuvchilari (o'chirish faqat admin)
+    match /matrasClients/{id} {
+      allow read, write: if isAdmin();
+      allow read, create, update: if isMatras();
+    }
+    match /crmMatras/{uid} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
     // CRM: admin hammasini ko'radi; operator faqat o'ziga biriktirilgan lidlarni
     match /crmLeads/{id} {
       allow read, write: if isAdmin();
@@ -54,6 +71,8 @@ service cloud.firestore {
       allow create: if isOperator() && request.resource.data.operator == request.auth.uid;
       allow read: if isCourier() && resource.data.courier == request.auth.uid;
       allow create: if isCourier() && request.resource.data.courier == request.auth.uid && request.resource.data.paid == 0;
+      allow read: if isMatras() && resource.data.seller == request.auth.uid;
+      allow create: if isMatras() && request.resource.data.seller == request.auth.uid && request.resource.data.category == 'matras';
       allow update: if isCourier()
         && resource.data.courier == request.auth.uid
         && request.resource.data.courier == request.auth.uid
@@ -65,6 +84,7 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       allow read: if id == 'scripts' && isOperator();
       allow read, write: if id == 'cities' && isCourier();
+      allow read: if id == 'matras' && isMatras();
     }
     match /crmCouriers/{uid} {
       allow read, write: if isAdmin();

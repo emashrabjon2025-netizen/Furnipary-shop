@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Matras" />
+  <title>Matras — FURNIPART</title>
+  <link rel="icon" href="img/logo.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/operator.css?v=7" />
+</head>
+<body class="admin op">
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <span class="brand">
+        <img src="img/logo-mark.png" alt="" width="32" height="32" />
+        <span class="brand-text"><span><b>FURNI</b>PART</span><small id="opName">matras</small></span>
+      </span>
+      <button class="btn btn-sm btn-ghost" id="logout" hidden>Chiqish</button>
+    </div>
+  </header>
+
+  <section id="loginView" class="wrap login" hidden>
+    <form id="loginForm" class="panel">
+      <h1>🛏 Matras sotuvi paneli</h1>
+      <label>Email<input name="email" type="email" required autocomplete="username" /></label>
+      <label>Parol<input name="password" type="password" required autocomplete="current-password" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Kirish</button>
+      <p class="hint" id="loginMsg"></p>
+    </form>
+  </section>
+
+  <section id="appView" class="wrap" hidden>
+    <div class="panel mt-plan" id="mtPlan"></div>
+    <div class="op-kpi" id="mtKpi"></div>
+    <div class="dv-tools">
+      <button class="btn btn-yellow" type="button" id="mtAdd">➕ Mijoz qo'shish</button>
+      <label class="btn btn-dark file-btn">📥 Excel'dan qo'shish<input id="mtImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
+      <button class="btn btn-line btn-sm" type="button" id="mtExport">⬇ Excel'ga yuklab olish</button>
+    </div>
+    <nav class="tabs mt-tabs" id="mtTabs">
+      <button class="tab on" data-v="today">📞 Bugun <span id="nToday"></span></button>
+      <button class="tab" data-v="all">👥 Mijozlar <span id="nAll"></span></button>
+      <button class="tab" data-v="sales">🛏 Sotuvlar</button>
+      <button class="tab" data-v="warranty">🛡 Kafolat</button>
+    </nav>
+    <input class="op-search" id="mtQ" placeholder="🔎 Ism, telefon yoki manzil…" />
+    <div class="dv-areas" id="mtChips"></div>
+    <div id="mtList"></div>
+  </section>
+
+  <!-- Mijoz kartasi -->
+  <dialog id="mtDlg" class="sheet op-sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div id="mtBody"></div>
+  </dialog>
+
+  <!-- Mijoz qo'shish / tahrirlash -->
+  <dialog id="clDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="clForm" class="pform">
+      <h2 id="clTitle">➕ Yangi mijoz</h2>
+      <label>Ism / do'kon nomi *<input name="name" required maxlength="80" placeholder="Masalan: Otabek aka (Firdavs Mebel)" /></label>
+      <div class="two">
+        <label>Telefon *<input name="phone" type="tel" inputmode="tel" required placeholder="90 123 45 67" /></label>
+        <label>2-telefon<input name="phone2" type="tel" inputmode="tel" /></label>
+      </div>
+      <label>Manzil<input name="address" maxlength="160" placeholder="Farg'ona, Beshbola" /></label>
+      <div class="two">
+        <label>Turi<select name="kind"><option>Mebel do'kon</option><option>Mebelchi (usta)</option><option>Shaxsiy mijoz</option><option>Boshqa</option></select></label>
+        <label>Holati<select name="status"></select></label>
+      </div>
+      <label>Izoh<textarea name="note" rows="2" maxlength="1000"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <!-- Sotuv -->
+  <dialog id="slDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="slForm" class="pform">
+      <h2>💰 Matras sotuvi</h2>
+      <p class="muted" id="slWho"></p>
+      <label>Model *<input name="model" list="mtModels" required maxlength="120" placeholder="Masalan: Dr.Sleep Ortoped XB" /></label>
+      <datalist id="mtModels"></datalist>
+      <div class="two">
+        <label>O'lcham<input name="size" list="mtSizes" maxlength="20" placeholder="160x200" /></label>
+        <label>Soni<input name="qty" type="number" min="1" value="1" inputmode="numeric" /></label>
+      </div>
+      <datalist id="mtSizes"><option>80x190</option><option>90x200</option><option>120x200</option><option>140x200</option><option>160x200</option><option>180x200</option><option>200x200</option></datalist>
+      <div class="two">
+        <label>Umumiy summa *<input name="amount" inputmode="decimal" required /></label>
+        <label>Valyuta<select name="currency"><option>$</option><option>so'm</option></select></label>
+      </div>
+      <label>Olingan pul (zaklad)<input name="paid" inputmode="decimal" value="0" /></label>
+      <label>Izoh<input name="note" maxlength="300" /></label>
+      <p class="muted small">🛡 Kafolat: 5 yil — sotuv sanasidan avtomatik hisoblanadi.</p>
+      <button class="btn btn-yellow btn-block" type="submit">Sotuvni saqlash</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/matras.js?v=2"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // Farg'ona viloyati: shahar va tumanlar (manzil matnidan aniqlanadi)
 export const AREAS = [
   ["Marg'ilon", /marg.?i?lon|маргилан|марғилон/i],
-  ["Farg'ona sh.", /farg.?ona\s*(sh|shah)|фергана|фарғона\s*ш|^farg.?ona$/i],
+  ["Farg'ona sh.", /farg.?ona\s*(sh|shah)|фергана|фарғона\s*ш|^\s*farg.?ona\s*(,|$)/i],
   ["Qo'qon", /qo.?qon|kokand|коканд|қўқон/i],
   ["Quvasoy", /quvasoy|кувасай|қувасой/i],
   ["Toshloq", /toshloq|ташлак|тошлоқ/i],

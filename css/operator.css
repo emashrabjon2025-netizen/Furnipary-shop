@@ -78,3 +78,27 @@
 .dv-tools .btn { flex: 1 1 auto; }
 .dv-tools .btn-sm { flex: 0 0 100%; }
 #addWhen .btn.on { background: var(--ink); color: #fff; }
+
+/* Matras paneli */
+.mt-plan { margin: 12px 0 0; }
+.mt-plan-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mt-bar { height: 10px; background: #f1efe9; border-radius: 6px; margin: 8px 0 4px; overflow: hidden; }
+.mt-bar i { display: block; height: 100%; background: linear-gradient(90deg, #f2c400, #e6a800); border-radius: 6px; }
+#mtKpi { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 420px) { #mtKpi { grid-template-columns: 1fr 1fr; } }
+.mt-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.mt-tabs .tab { width: 100%; }
+.mt-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.mt-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mt-step { display: flex; align-items: center; gap: 10px; }
+.mt-step b { min-width: 24px; text-align: center; font-size: 18px; }
+.mt-dates { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mt-dates input { flex: 1 1 140px; }
+.mt-sell { margin-top: 12px; padding: 14px; font-size: 16px; }
+.mt-buy { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.pill.st-0 { background: #fff4c2; color: #6b5600; }
+.pill.st-1 { background: #eef4ff; color: #2350a8; }
+.pill.st-2 { background: #fff0e0; color: #9a5300; }
+.pill.st-3 { background: #e3f4e6; color: #1d7a35; }
+.pill.st-4 { background: #1d7a35; color: #fff; }
+.pill.st-5 { background: #f1efe9; color: #77736a; }
