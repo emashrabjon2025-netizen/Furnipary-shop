@@ -1,0 +1,25 @@
+{
+  "name": "FURNIPART Dastavka",
+  "short_name": "Dastavka",
+  "lang": "uz",
+  "start_url": "/dastavka",
+  "scope": "/dastavka",
+  "id": "/dastavka",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/img/app-dastavka-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/app-dastavka-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
