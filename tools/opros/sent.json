@@ -12,5 +12,12 @@
   "date": "2026-11-09",
   "sent_at": "2026-11-09T15:52+05:00",
   "question": "🛏 Hozirgi matrasingiz necha yillik?"
+ },
+ {
+  "message_id": 15048,
+  "slot": "ertalab",
+  "date": "2026-11-10",
+  "sent_at": "2026-11-10T09:39+05:00",
+  "question": "🤔 Sizningcha, matrasni qanchada bir marta aylantirib (ag'darib) qo'yish kerak?"
  }
 ]
