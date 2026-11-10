@@ -264,10 +264,13 @@ function bars(rows, colorFn) {
     : `<p class="muted">Ma'lumot yo'q</p>`;
 }
 
+// Matras savdosi alohida hisobotda ("🛏 Matras hisobot") — asosiy reja va hisobotga qo'shilmaydi
+const isMatrasSale = (s) => s.category === "matras" || s.source === "Matras panel";
+
 function renderReport() {
   const ym = $("#rMonth").value || thisMonth();
   $("#rTitle").textContent = monthName(ym);
-  const mSales = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi");
+  const mSales = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi" && !isMatrasSale(s));
   const mLeads = leads.filter((l) => (l.date || "").startsWith(ym));
   const mClients = clients.filter((c) => (c.date || "").startsWith(ym));
 
@@ -297,7 +300,7 @@ function renderReport() {
           : ` · qolgan ${daysLeft} kunda kuniga ~${mln(perDay)} so'm kerak · bugungacha ${mln(expected)} bo'lishi kerak edi ${done >= expected ? "✅" : "⚠️"}`
         : ""
     }</p>
-    <p class="muted small">Barcha sotuvlar summasi (bekor qilinganlarsiz). Dollardagi sotuvlar 1$ = ${Number(tgt.usdRate || 0).toLocaleString("ru-RU")} so'm kurs bilan hisoblanadi.</p>`;
+    <p class="muted small">Barcha sotuvlar summasi — <b>matraslarsiz</b> (ular "🛏 Matras hisobot" bo'limida), bekor qilinganlarsiz. Dollardagi sotuvlar 1$ = ${Number(tgt.usdRate || 0).toLocaleString("ru-RU")} so'm kurs bilan hisoblanadi.</p>`;
 
   const conv = mLeads.length ? Math.round((mLeads.filter((l) => l.stage === "Sotildi").length / mLeads.length) * 100) : 0;
   const paid = sumByCur(mSales, "paid");
@@ -878,19 +881,21 @@ async function upsertClient({ name, phone, address, source, ctype }) {
 // ================= SOTUVLAR =================
 $("#sStatus").insertAdjacentHTML("beforeend", opts(SALE_STATUSES));
 $("#sMonth").value = thisMonth();
-["#sStatus", "#sMonth", "#sSearch"].forEach((s) => $(s).addEventListener("input", renderSales));
+["#sSection", "#sStatus", "#sMonth", "#sSearch"].forEach((s) => $(s).addEventListener("input", renderSales));
 
 function renderSales() {
   const st = $("#sStatus").value;
   const ym = $("#sMonth").value;
   const q = $("#sSearch").value.trim().toLowerCase();
+  const sec = $("#sSection").value;
   const list = sales.filter(
     (s) =>
+      (sec === "all" || (sec === "matras" ? isMatrasSale(s) : !isMatrasSale(s))) &&
       (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !["Yetkazildi", "Bekor qilindi"].includes(s.status) : s.status === st) &&
       (!ym || (s.date || "").startsWith(ym)) &&
       (!q || `${s.name} ${s.phone} ${s.product} ${s.address}`.toLowerCase().includes(q))
   );
-  const open = sales.filter((s) => !["Yetkazildi", "Bekor qilindi"].includes(s.status)).length;
+  const open = sales.filter((s) => !["Yetkazildi", "Bekor qilindi"].includes(s.status) && !isMatrasSale(s)).length;
   $("#sCount").textContent = open || "";
   const valid = list.filter((s) => s.status !== "Bekor qilindi");
   $("#sSummary").innerHTML = list.length

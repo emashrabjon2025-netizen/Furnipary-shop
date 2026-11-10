@@ -67,9 +67,12 @@ module.exports = async (req, res) => {
     const som = (s) => (Number(s.amount) || 0) * ((s.currency || "$") === "$" ? rate : 1);
     const mlnS = (v) => (Math.round((v / 1e6) * 10) / 10).toString().replace(".", ",") + " mln";
     const ym = t.slice(0, 7);
-    const done = sales
-      .filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi")
-      .reduce((a, s) => a + som(s), 0);
+    // Matras savdosi asosiy rejaga qo'shilmaydi — alohida qator
+    const isMatras = (s) => s.category === "matras" || s.source === "Matras panel";
+    const monthLive = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi");
+    const done = monthLive.filter((s) => !isMatras(s)).reduce((a, s) => a + som(s), 0);
+    const mtQty = monthLive.filter(isMatras).reduce((a, s) => a + (Number(s.qty) || 1), 0);
+    const mtPlan = Number((settings.find((s) => s.id === "matras") || {}).plan) || 150;
     const [y, m, d] = t.split("-").map(Number);
     const days = new Date(y, m, 0).getDate();
     const left = days - d + 1;
@@ -99,6 +102,7 @@ module.exports = async (req, res) => {
       `☀️ <b>CRM · ${d}-${MONTHS[m - 1]}</b>`,
       ``,
       `📊 Oylik savdo rejasi: <b>${mlnS(done)} / ${mlnS(target)} so'm</b> (${Math.round((done / target) * 100)}%)${done < target ? ` — kuniga ~${mlnS((target - done) / left)} so'm kerak` : " 🎉"}`,
+      `🛏 Matras rejasi: <b>${mtQty} / ${mtPlan} ta</b> (${Math.round((mtQty / mtPlan) * 100)}%)`,
       `Kecha: ${newYest} ta yangi lid, ${soldYest} ta sotuv`,
       ``,
       calls.length ? `📞 <b>Bugun qo'ng'iroq qilish kerak: ${calls.length} ta</b>` : `📞 Bugun rejadagi qo'ng'iroq yo'q`,

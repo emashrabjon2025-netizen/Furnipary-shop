@@ -49,6 +49,7 @@
       <button class="tab" data-tab="clients">Mijozlar <span id="cCount"></span></button>
       <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
       <button class="tab" data-tab="target">📣 Target</button>
+      <button class="tab" data-tab="mtrep">🛏 Matras hisobot</button>
       <button class="tab" data-tab="ops">👥 Operatorlar</button>
       <button class="tab" data-tab="sitechat">💬 Sayt chat <span id="chatCount" class="badge-red"></span></button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
@@ -113,6 +114,25 @@
     </div>
 
     <!-- CRM: Sotuvlar -->
+    <!-- Matras hisoboti (asosiy savdodan alohida) -->
+    <div class="tabpane" id="tab-mtrep" hidden>
+      <div class="toolbar">
+        <input id="mrMonth" type="month" />
+        <a class="btn btn-line" href="/matras" target="_blank" rel="noopener">🛏 Matras paneli ›</a>
+      </div>
+      <h2 id="mrTitle" class="sec-h"></h2>
+      <div class="panel" id="mrPlan"></div>
+      <div class="mgrid mr-kpi" id="mrKpi"></div>
+      <div class="crm-grid">
+        <div class="panel"><h2>📈 Kunlik sotuv (dona)</h2><div id="mrDaily"></div></div>
+        <div class="panel"><h2>🛏 Model va o'lcham bo'yicha</h2><div id="mrModels"></div></div>
+        <div class="panel"><h2>👤 Sotuvchilar bo'yicha</h2><div id="mrSellers"></div></div>
+        <div class="panel"><h2>📥 Qayerdan sotildi</h2><div id="mrSources"></div></div>
+        <div class="panel"><h2>👥 Mijozlar bazasi</h2><div id="mrBase"></div></div>
+        <div class="panel"><h2>💰 Qoldig'i borlar</h2><div id="mrDebts"></div></div>
+      </div>
+    </div>
+
     <!-- Operatorlar -->
     <div class="tabpane" id="tab-ops" hidden>
       <div class="panel">
@@ -228,6 +248,7 @@
     <div class="tabpane" id="tab-sales" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
+        <select id="sSection"><option value="main">Asosiy savdo</option><option value="matras">🛏 Matraslar</option><option value="all">Hammasi</option></select>
         <select id="sStatus"><option value="all">Barcha holatlar</option><option value="debt">Qoldig'i borlar</option><option value="open">Yetkazilmaganlar</option></select>
         <input id="sMonth" type="month" />
         <input id="sSearch" type="search" placeholder="Qidirish…" />
@@ -483,10 +504,11 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=10"></script>
-  <script type="module" src="js/crm.js?v=31"></script>
+  <script type="module" src="js/crm.js?v=32"></script>
   <script type="module" src="js/sitechat-admin.js?v=2"></script>
   <script type="module" src="js/operators-admin.js?v=5"></script>
   <script type="module" src="js/delivery-report.js?v=2"></script>
+  <script type="module" src="js/matras-report.js?v=1"></script>
   <script type="module" src="js/pwa-panel.js?v=1"></script>
 </body>
 </html>
