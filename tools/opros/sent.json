@@ -26,5 +26,12 @@
   "date": "2026-11-10",
   "sent_at": "2026-11-10T15:50+05:00",
   "question": "💸 Matras olishda sizni nima to'xtatib turibdi?"
+ },
+ {
+  "message_id": 15066,
+  "slot": "ertalab",
+  "date": "2026-11-11",
+  "sent_at": "2026-11-11T09:44+05:00",
+  "question": "🚪 Sizningcha, oshxona shkafi eshigi qancha marta ochib-yopiladi (yiliga)?"
  }
 ]
