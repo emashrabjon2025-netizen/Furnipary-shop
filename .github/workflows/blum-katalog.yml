@@ -29,7 +29,9 @@ jobs:
           MODE=$(head -1 blum-katalog/request.txt)
           OUT=blum-katalog/out
           mkdir -p $OUT
-          if [ "$MODE" = "web" ]; then
+          if [ "$MODE" = "check" ]; then
+            while read u; do [ -z "$u" ] && continue; c=$(curl -s -o /dev/null -w '%{http_code}' -A "Mozilla/5.0" -L "$u"); echo "$c $u"; done < blum-katalog/check-urls.txt | tee $OUT/check.txt
+          elif [ "$MODE" = "web" ]; then
             python3 blum-katalog/web.py
           elif [ "$MODE" = "index" ]; then
             pdfinfo /tmp/k.pdf > $OUT/info.txt
