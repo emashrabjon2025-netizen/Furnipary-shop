@@ -1,0 +1,21 @@
+Title:           Каталог и техническое руководство 2024-2025 ru
+Keywords:        Каталог 2024/2025
+Author:          Julius Blum GmbH
+Creator:         Adobe InDesign 20.5 (Windows)
+Producer:        PDFKit.NET 5.0.150.0
+CreationDate:    Wed May 13 10:43:53 2026 UTC
+ModDate:         Wed May 13 10:47:39 2026 UTC
+Custom Metadata: no
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           758
+Encrypted:       no
+Page size:       595.276 x 841.89 pts (A4)
+Page rot:        0
+File size:       527391645 bytes
+Optimized:       no
+PDF version:     1.6
