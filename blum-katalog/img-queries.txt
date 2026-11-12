@@ -1,18 +1,10 @@
-Blum Z10A3000
-Blum SERVO-DRIVE drive unit
-Blum Z10NE030F
-Blum SERVO-DRIVE transformer
-Blum 20S4200A
-Blum 20K4101
-Blum 78Z550AT
-Blum ZIF.80M7
-Blum ORGA-LINE cross divider
-Blum Z40L1077A
-Blum ORGA-LINE cross divider holder
-Blum Z48.30BI4
-Blum ORGA-LINE bottle
-Blum 71B3750
-Blum 70.1503.BP
-Blum Z10M200E
-Blum 21P5020
-Blum SERVO-DRIVE switch
+Blum 20S4200
+Blum AVENTOS HK top front fixing
+Blum AVENTOS aluminium frame
+Blum 78Z5530T
+Blum AVENTOS HF middle hinge
+Blum ZIF.80M5
+Blum TANDEMBOX inner drawer handle
+Blum Z40L477A
+Blum TANDEMBOX cross divider
+Blum Z40C0002Z
