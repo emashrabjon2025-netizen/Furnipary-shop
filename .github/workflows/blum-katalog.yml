@@ -29,7 +29,9 @@ jobs:
           MODE=$(head -1 blum-katalog/request.txt)
           OUT=blum-katalog/out
           mkdir -p $OUT
-          if [ "$MODE" = "search" ]; then
+          if [ "$MODE" = "shop" ]; then
+            python3 blum-katalog/shop_search.py
+          elif [ "$MODE" = "search" ]; then
             python3 blum-katalog/img_search.py
           elif [ "$MODE" = "check" ]; then
             while read u; do [ -z "$u" ] && continue; c=$(curl -s -o /dev/null -w '%{http_code}' -A "Mozilla/5.0" -L "$u"); echo "$c $u"; done < blum-katalog/check-urls.txt | tee $OUT/check.txt
