@@ -18,7 +18,7 @@ CATALOGS = ["higold-oshxona", "higold-garderob", "shablonlar"]
 CHANNEL_URL = "t.me/Furnipart_uz"
 PHONE = "+998 91 125 9000"
 TZ = dt.timezone(dt.timedelta(hours=5))  # Toshkent
-SLOTS_PER_DAY = 10                        # 08:00 dan 21:30 gacha har 1.5 soat
+SLOTS_PER_DAY = 4                         # 08:00, 11:00, 14:00, 17:00 (har 3 soat)
 STORIES_PER_DAY = 4
 FONT = ROOT / "tools/autopost/fonts"
 
@@ -126,7 +126,7 @@ def short_desc(p, limit=420):
 
 
 # ---------------- Telegram ----------------
-CRON_SLOTS = ["0 3", "30 4", "0 6", "30 7", "0 9", "30 10", "0 12", "30 13", "0 15", "30 16"]  # UTC, telegram-autopost.yml bilan bir xil
+CRON_SLOTS = ["0 3", "0 6", "0 9", "0 12"]  # UTC, telegram-autopost.yml bilan bir xil
 
 
 def telegram_slot(now):
@@ -136,7 +136,7 @@ def telegram_slot(now):
         day = (local.date() - dt.date(2026, 1, 1)).days
         return day * SLOTS_PER_DAY + CRON_SLOTS.index(sched)
     mins = local.hour * 60 + local.minute - 8 * 60
-    pos = max(0, min(SLOTS_PER_DAY - 1, mins // 90))  # GitHub cron kechikadi (30–80 daq), shuning uchun pastga yaxlitlash
+    pos = max(0, min(SLOTS_PER_DAY - 1, mins // 180))  # GitHub cron kechikadi (30–80 daq), shuning uchun pastga yaxlitlash
     day = (local.date() - dt.date(2026, 1, 1)).days
     return day * SLOTS_PER_DAY + pos
 

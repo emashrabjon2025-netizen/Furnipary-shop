@@ -1,18 +1,12 @@
-name: Telegram avtopost (har 1.5 soat)
+name: Telegram avtopost (har 3 soat)
 
-# Toshkent vaqti bilan 08:00 dan 21:30 gacha har 1.5 soatda bitta mahsulot (UTC = Toshkent - 5).
+# Toshkent vaqti bilan 08:00, 11:00, 14:00, 17:00 da bitta mahsulot (UTC = Toshkent - 5).
 on:
   schedule:
     - cron: "0 3 * * *"
-    - cron: "30 4 * * *"
     - cron: "0 6 * * *"
-    - cron: "30 7 * * *"
     - cron: "0 9 * * *"
-    - cron: "30 10 * * *"
     - cron: "0 12 * * *"
-    - cron: "30 13 * * *"
-    - cron: "0 15 * * *"
-    - cron: "30 16 * * *"
   workflow_dispatch:
 
 concurrency: telegram-autopost
