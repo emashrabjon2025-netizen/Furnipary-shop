@@ -7,6 +7,9 @@ Foydalanish:
 script.json:
 {
   "rubric": "MEBEL BILIM",
+  "hook": true,                          # 1-sahna HOOK: 3D zarb bilan kirish, so'zma-so'z sarlavha, katta "?" belgisi,
+                                         #   riser + boom + ding effektlari; ovoz zarbdan keyin (0.8 s) boshlanadi
+  "next": "Petli nega *osilib* qoladi?", # oxirgi sahnada "ERTAGA ▶" kartasi (keyingi video teaseri) + ding
   "scenes": [
     {"head": "*LDSP* nima?",            # tepadagi katta sarlavha (*sariq*, !qizil!, +yashil+)
      "sub":  "qisqa izoh (ixtiyoriy)",
@@ -97,6 +100,38 @@ def pop(seed=0):
     return (np.sin(2 * np.pi * (900 - 4000 * tt) * tt) * np.exp(-tt * 55)) * 0.18
 
 
+def riser(dur=0.55):
+    """yuqoriga koʻtariluvchi sweep (shovqin + sinus) — hook boshida"""
+    n = int(dur * SR); tt = np.arange(n) / SR; x = np.random.default_rng(7).standard_normal(n)
+    a = 0.01 + 0.35 * (tt / dur) ** 2; y = np.empty(n); s = 0.0
+    for i in range(n):
+        s += a[i] * (x[i] - s); y[i] = s
+    fr = 180 + 900 * (tt / dur) ** 2; tone = np.sin(2 * np.pi * np.cumsum(fr) / SR) * 0.25
+    env = (tt / dur) ** 1.6
+    return (y * 0.8 + tone) * env * 0.55
+
+
+def impact():
+    """zarb: past chastotali boom + qisqa klik — 3D obyekt kirib kelganda"""
+    n = int(1.1 * SR); tt = np.arange(n) / SR
+    boom = np.sin(2 * np.pi * np.cumsum(70 * np.exp(-tt * 5) + 38) / SR) * np.exp(-tt * 4.2)
+    click = np.random.default_rng(3).standard_normal(n) * np.exp(-tt * 90) * 0.35
+    return np.tanh((boom * 0.95 + click) * 1.6) * 0.62
+
+
+def ding():
+    """savol chimi: ikki nota yuqoriga (E6 → A6), qoʻngʻiroq tembri"""
+    n = int(1.2 * SR); out = np.zeros(n)
+    for f0, at in ((1318.5, 0.0), (1760.0, 0.11)):
+        p0 = int(at * SR); tt = np.arange(n - p0) / SR
+        w = (np.sin(2 * np.pi * f0 * tt) + 0.35 * np.sin(2 * np.pi * f0 * 2.76 * tt) * np.exp(-tt * 6)) * np.exp(-tt * 4.5)
+        out[p0:] += w
+    return out * 0.16
+
+
+SFX_FN = {"riser": riser, "impact": impact, "ding": ding, "pop": pop}
+
+
 def serve(root):
     class H(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *a): pass
@@ -127,14 +162,16 @@ def main():
     sc = json.load(open(a.script, encoding="utf-8")); tmp = tempfile.mkdtemp()
     adir = pathlib.Path(a.audio_dir) if a.audio_dir else pathlib.Path(a.script).parent
     voices = []
-    for s in sc["scenes"]:
+    hook = sc.get("hook", True)
+    for si, s in enumerate(sc["scenes"]):
+        va = 0.8 if (hook and si == 0) else 0.25  # hook: ovoz zarbdan keyin boshlanadi
         p = adir / s["audio"] if s.get("audio") else None
         if p and p.exists():
-            v = load_voice(p, tmp, sc.get("tempo", 1.0)); s["voiceDur"] = len(v) / SR; s["voiceAt"] = 0.25
+            v = load_voice(p, tmp, sc.get("tempo", 1.0)); s["voiceDur"] = len(v) / SR; s["voiceAt"] = va
             s["dur"] = round(s["voiceAt"] + s["voiceDur"] + s.get("tail", 0.45), 3)
         else:
             v = None; words = len((s.get("say") or s.get("show") or "").split())
-            s.setdefault("dur", max(2.8, words / 2.4 + 0.8)); s["voiceAt"] = 0.25; s["voiceDur"] = s["dur"] - 0.7
+            s.setdefault("dur", max(2.8, words / 2.4 + 0.8 + (va - 0.25))); s["voiceAt"] = va; s["voiceDur"] = s["dur"] - 0.7
         voices.append(v)
     port = serve(HERE)
     with sync_playwright() as pw:
@@ -142,7 +179,7 @@ def main():
         pg = br.new_page(viewport={"width": 1080, "height": 1920})
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
         pg.goto(f"http://127.0.0.1:{port}/engine.html"); pg.wait_for_function("window.ENGINE_READY === true", timeout=60000)
-        total = pg.evaluate("s => window.setup(s)", sc)
+        total = pg.evaluate("s => window.setup(s)", sc); sfx = pg.evaluate("window.SFX || []")
         if errs: print("JS xatolar:", errs, file=sys.stderr)
         if a.preview:
             outd = pathlib.Path(a.out); outd.mkdir(parents=True, exist_ok=True)
@@ -180,6 +217,10 @@ def main():
     mix += bed * (duck * fade * mgain)[:, None]
     for i, b in enumerate(bounds[1:], 1):
         w = whoosh(seed=i); p0 = int(max(0, b - 0.3) * SR); mix[p0:p0 + len(w)] += (w * 0.35)[:, None]
+    for e in sfx:  # hook riser/impact/ding + yorliq "pop"lari
+        w = SFX_FN[e["k"]](); p0 = int(max(0, e["t"]) * SR); w = w[: max(0, n - p0)]
+        g = 0.55 if e["k"] == "pop" else 1.0
+        mix[p0:p0 + len(w)] += (w * g)[:, None]
     mix += np.stack([vt, vt], 1) * 1.0
     pk = np.abs(mix).max() + 1e-9; mix = mix / pk * 0.9
     raw = pathlib.Path(tmp) / "mix.f32"; mix.astype(np.float32).tofile(raw)

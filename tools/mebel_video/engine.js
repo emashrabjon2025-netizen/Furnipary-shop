@@ -529,6 +529,11 @@ function chunks(text) {
   return out.map(c => { const n = (c.match(/\*/g) || []).length; return n % 2 ? c.replace(/\*/g, '') : c; });
 }
 
+const HOOK_IMPACT = .55;
+function wrapWords(el) {
+  const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment(); c.textContent.split(/(\s+)/).forEach(w => { if (!w) return; if (/^\s+$/.test(w)) { f.appendChild(document.createTextNode(w)); return; } const sp = document.createElement('span'); sp.className = 'kw'; sp.textContent = w; f.appendChild(sp); }); c.replaceWith(f); } else walk(c); }); };
+  walk(el); return [...el.querySelectorAll('.kw')];
+}
 window.setup = async (script) => {
   await document.fonts.load('900 40px Inter'); await document.fonts.load('800 40px Inter');
   S = script; let t = 0;
@@ -542,6 +547,22 @@ window.setup = async (script) => {
     cs.forEach(c => { sc.caps.push({ s: a0 + ad * acc / tot, text: c }); acc += c.length; });
     sc.labEls = (built.labels || []).map(l => { const d = document.createElement('div'); d.className = 'lab ' + (l.style || ''); d.textContent = l.text; d.style.opacity = 0; labWrap.appendChild(d); return { ...l, el: d }; });
   });
+  // HOOK (1-sahna): 3D zarb bilan kirish + savol belgisi + ovoz effektlari (render.py window.SFX dan oladi)
+  const h0 = S.scenes[0]; S.hook = S.hook !== false && !!h0;
+  window.SFX = [];
+  if (S.hook) {
+    window.SFX.push({ t: 0, k: 'riser' }, { t: HOOK_IMPACT, k: 'impact' }, { t: HOOK_IMPACT + .18, k: 'ding' });
+    const q = document.createElement('div'); q.id = 'qmark';
+    q.textContent = /\?/.test((h0.head || '') + (h0.say || '')) ? '?' : '!'; document.body.appendChild(q);
+  }
+  S.scenes.forEach((sc, i) => (sc.labEls || []).forEach(l => window.SFX.push({ t: sc.t0 + l.at, k: 'pop' })));
+  // KEYINGI VIDEO teaseri: oxirgi sahnada "ERTAGA" kartasi (script.next)
+  if (S.next) {
+    const nx = document.createElement('div'); nx.id = 'next';
+    nx.innerHTML = '<span class="nt">ERTAGA ▶</span><span class="nq"></span>'; nx.querySelector('.nq').innerHTML = hl(S.next);
+    document.body.appendChild(nx); const L = S.scenes[S.scenes.length - 1]; S.nextAt = L.t0 + Math.min(.9, L.dur * .2);
+    window.SFX.push({ t: S.nextAt, k: 'ding' });
+  }
   total = t; return total;
 };
 
@@ -554,14 +575,28 @@ window.renderAt = (time) => {
   // camera: preset framing + slow drift / punch-in
   const c = sc.built.cam, tg = new THREE.Vector3(...c.target), pos = new THREE.Vector3(...c.pos).sub(tg);
   const drift = (sc.drift ?? 1) * (lt / sc.dur), ang = -0.18 + drift * 0.36, dolly = 1.08 - 0.10 * eInOut(clamp(lt / sc.dur));
-  pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), ang).multiplyScalar(dolly);
+  const isHook = S.hook && idx === 0, hk = isHook ? 1 - eOut(seg(lt, 0, HOOK_IMPACT)) : 0;
+  pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), ang + hk * 1.7).multiplyScalar(dolly * (1 + hk * 1.1));
+  if (isHook) { const sc0 = .3 + .7 * eBack(seg(lt, 0, HOOK_IMPACT)); sc.built.group.scale.setScalar(sc0); }
   camera.position.copy(tg).add(pos); camera.lookAt(tg);
   camera.setViewOffset(W, H, 0, H * 0.035, W, H); camera.updateMatrixWorld();
   renderer.render(scene, camera);
   // overlay text
   const hin = seg(lt, .05, .45);
-  const head = $('#head'); if (head.dataset.k !== String(idx)) { head.innerHTML = hl(sc.head || ''); head.dataset.k = idx; $('#sub').innerHTML = hl(sc.sub || ''); }
-  head.style.opacity = hin; head.style.filter = `blur(${(1 - hin) * 14}px)`; head.style.transform = `translateY(${(1 - eOut(hin)) * 30}px)`;
+  const head = $('#head'); if (head.dataset.k !== String(idx)) { head.innerHTML = hl((sc.head || '').replace(/\*([^*]+)\*([?!.,:;]+)/g, '*$1$2*')); head.dataset.k = idx; $('#sub').innerHTML = hl(sc.sub || ''); }
+  if (isHook) {
+    if (!head._kw || head.dataset.hk !== '1') { head._kw = wrapWords(head); head.dataset.hk = '1'; }
+    head.style.opacity = 1; head.style.filter = 'none';
+    head._kw.forEach((w, i) => { const a = seg(lt, HOOK_IMPACT - .05 + i * .11, HOOK_IMPACT + .17 + i * .11); w.style.opacity = a; w.style.transform = `scale(${1.9 - .9 * eBack(a)})`; w.style.filter = `blur(${(1 - a) * 10}px)`; });
+  } else { head.dataset.hk = '0'; head.style.opacity = hin; head.style.filter = `blur(${(1 - hin) * 14}px)`; head.style.transform = `translateY(${(1 - eOut(hin)) * 30}px)`; }
+  const shk = isHook && lt > HOOK_IMPACT ? 22 * Math.exp(-(lt - HOOK_IMPACT) * 7) : 0;
+  const sx = shk * Math.sin(lt * 95), sy = shk * Math.cos(lt * 77);
+  $('#c').style.transform = shk > .3 ? `translate(${sx}px,${sy}px) scale(${1 + shk / 400})` : 'none';
+  if (isHook) head.style.transform = `translate(${sx * .6}px,${sy * .6}px)`;
+  const nx = $('#next');
+  if (nx) { const na = seg(time, S.nextAt, S.nextAt + .45) * (1 - seg(time, total - .45, total)); nx.style.display = na > 0 ? 'flex' : 'none'; if (na > 0) { nx.style.opacity = na; nx.style.transform = `translateY(${(1 - eBack(na)) * 120}px) scale(${1 + .025 * Math.sin(time * 6)})`; } }
+  const qm = $('#qmark');
+  if (qm) { const qa = isHook ? seg(lt, HOOK_IMPACT + .1, HOOK_IMPACT + .45) * (1 - seg(lt, sc.dur - .35, sc.dur)) : 0; qm.style.display = qa > 0 ? 'flex' : 'none'; if (qa > 0) { qm.style.opacity = qa; qm.style.transform = `scale(${(.3 + .7 * eBack(qa)) * (1 + .06 * Math.sin(lt * 7))}) rotate(${(1 - eOut(qa)) * -35 + 6 * Math.sin(lt * 2.2)}deg)`; qm.style.setProperty('--ring', ((lt * .9) % 1).toFixed(3)); } }
   const sub = $('#sub'); sub.style.top = (head.offsetTop + head.offsetHeight + 18) + 'px'; const sin = seg(lt, .3, .7); sub.style.opacity = sin;
   $('#step').textContent = String(idx + 1).padStart(2, '0') + '/' + String(S.scenes.length).padStart(2, '0');
   $('#prog i').style.width = (100 * time / total).toFixed(2) + '%';
@@ -588,7 +623,8 @@ window.renderAt = (time) => {
   // transitions
   const fi = 1 - seg(lt, 0, .22), fo = idx < S.scenes.length - 1 ? seg(lt, sc.dur - .12, sc.dur) : seg(time, total - .5, total);
   $('#fade').style.opacity = Math.max(idx === 0 ? 0 : fi, fo) * .9;
-  $('#flash').style.opacity = (1 - seg(lt, 0, .5)) * .8;
+  const fl = idx === 0 && S.hook ? Math.max(0, 1 - Math.abs(lt - HOOK_IMPACT) / .22) : (1 - seg(lt, 0, .5)) * .8;
+  $('#flash').style.opacity = fl;
   return true;
 };
 window.ENGINE_READY = true;
