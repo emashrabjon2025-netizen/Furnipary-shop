@@ -68,5 +68,12 @@
   "date": "2026-11-13",
   "sent_at": "2026-11-13T15:54+05:00",
   "question": "🍳 Oshxonangizda joy yetishmaydimi?"
+ },
+ {
+  "message_id": 15115,
+  "slot": "ertalab",
+  "date": "2026-11-14",
+  "sent_at": "2026-11-14T09:39+05:00",
+  "question": "🛏 Sizningcha, qaysi matras umurtqa uchun foydaliroq?"
  }
 ]
