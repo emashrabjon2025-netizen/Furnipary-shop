@@ -82,5 +82,12 @@
   "date": "2026-11-14",
   "sent_at": "2026-11-14T15:37+05:00",
   "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?"
+ },
+ {
+  "message_id": 15128,
+  "slot": "ertalab",
+  "date": "2026-11-15",
+  "sent_at": "2026-11-15T09:41+05:00",
+  "question": "🏠 Yangi uyga ko'chganingizda, birinchi navbatda nima olasiz?"
  }
 ]
