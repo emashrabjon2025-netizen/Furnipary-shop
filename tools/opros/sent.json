@@ -89,5 +89,12 @@
   "date": "2026-11-15",
   "sent_at": "2026-11-15T09:41+05:00",
   "question": "🏠 Yangi uyga ko'chganingizda, birinchi navbatda nima olasiz?"
+ },
+ {
+  "message_id": 15131,
+  "slot": "kunduz",
+  "date": "2026-11-15",
+  "sent_at": "2026-11-15T15:39+05:00",
+  "question": "🛍 Mebel yoki matras olayotganingizda eng ko'p nimadan xavotir olasiz?"
  }
 ]
