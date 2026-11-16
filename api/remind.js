@@ -4,7 +4,7 @@
 //   30 daqiqa → sizga "🚨" bilan qayta
 // Faqat ish vaqtida (Toshkent 08:30–21:00). Hech qanday maxfiy ma'lumot qaytarmaydi.
 //   GET /api/remind?me=1  → botning username'i (operatorni Telegram'ga ulash havolasi uchun)
-const { list, getOne, put, patch, tg, esc } = require("./_crm");
+const { list, getOne, put, patch, tg, esc, assignOrphans } = require("./_crm");
 
 const tashkentMinutes = () => {
   const d = new Date(Date.now() + 5 * 3600e3);
@@ -27,15 +27,19 @@ module.exports = async (req, res) => {
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients } });
     }
-    const m = tashkentMinutes();
-    if (m < 8 * 60 + 30 || m > 21 * 60) return res.status(200).json({ ok: true, skip: "ish vaqti emas" });
-
     const st = (await getOne("crmSettings", "remind")) || {};
-    if (st.lastRun && Date.now() - Number(st.lastRun) < 3 * 60e3) return res.status(200).json({ ok: true, skip: "yaqinda tekshirildi" });
+    if (st.lastRun && Date.now() - Number(st.lastRun) < 2 * 60e3) return res.status(200).json({ ok: true, skip: "yaqinda tekshirildi" });
     await put("crmSettings", "remind", { lastRun: Date.now() });
 
     const now = Date.now();
     const [leads, ops] = await Promise.all([list("crmLeads"), list("crmOperators")]);
+    // 1) Operatorsiz lid qolmasin — navbat bilan taqsimlash (kecha-kunduz)
+    const assigned = await assignOrphans(leads, ops).catch((e) => (console.error("assign", e.message), []));
+    const upd = Object.fromEntries(assigned.map((a) => [a.id, a.upd]));
+    leads.forEach((l) => upd[l.id] && Object.assign(l, upd[l.id]));
+
+    const m = tashkentMinutes();
+    if (m < 8 * 60 + 30 || m > 21 * 60) return res.status(200).json({ ok: true, assigned: assigned.length, skip: "ish vaqti emas" });
     const opById = Object.fromEntries(ops.map((o) => [o.id, o]));
     const fresh = leads.filter((l) => {
       if (l.stage !== "Yangi" || l.contactedAt) return false;
@@ -62,7 +66,7 @@ module.exports = async (req, res) => {
 
     for (const l of due5) await patch("crmLeads", l.id, { remind5: true });
     for (const l of due30) await patch("crmLeads", l.id, { remind30: true });
-    return res.status(200).json({ ok: true, r5: due5.length, r30: due30.length });
+    return res.status(200).json({ ok: true, assigned: assigned.length, r5: due5.length, r30: due30.length });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, reason: e.message });

@@ -12,6 +12,7 @@ import {
   doc,
   addDoc,
   setDoc,
+  getDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -262,6 +263,21 @@ function fillAccFilter() {
   sel.innerHTML = `<option value="all">Barcha Instagram akkauntlar</option>` + accs.map((a) => `<option value="${escapeHtml(a)}">📸 @${escapeHtml(a)} (${leads.filter((l) => accOf(l) === a && !CLOSED.includes(l.stage)).length})</option>`).join("");
   sel.value = accs.includes(cur) ? cur : "all";
   sel.hidden = accs.length < 2;
+}
+
+// Navbatdagi faol operator (server bilan bir xil hisoblagich: crmSettings/rr)
+async function nextOp() {
+  const act = ops.filter((o) => o.active !== false).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (!act.length) return null;
+  let i = 0;
+  try {
+    const d = await getDoc(doc(db, "crmSettings", "rr"));
+    i = Number(d.exists() ? d.data().i : 0) || 0;
+    await setDoc(doc(db, "crmSettings", "rr"), { i: i + 1 });
+  } catch (_) {
+    i = Math.floor(Math.random() * act.length);
+  }
+  return act[i % act.length];
 }
 
 function bars(rows, colorFn) {
@@ -610,7 +626,7 @@ function openLead(id) {
   f.nextCall.value = id ? l.nextCall || "" : today();
   f.note.value = l.note || "";
   f.assignedTo.innerHTML =
-    `<option value="">— biriktirilmagan —</option>` +
+    `<option value="">${id && !l.assignedTo ? "— biriktirilmagan —" : "🔄 Navbat bilan (avtomatik)"}</option>` +
     ops.filter((o) => o.active !== false || o.id === l.assignedTo).map((o) => `<option value="${o.id}"${o.id === l.assignedTo ? " selected" : ""}>👤 ${escapeHtml(o.name || o.email || "")}</option>`).join("");
   $("#opWrap").hidden = !ops.length;
   $("#leadDlg").showModal();
@@ -642,6 +658,11 @@ $("#leadForm").addEventListener("submit", async (e) => {
     Object.assign(data, { assignedTo: o ? o.id : "", assignedName: o ? o.name || "" : "", assignedAt: o ? new Date().toISOString() : "" });
   }
   if (!data.name && !data.phone) return toast("Ism yoki telefon kiriting", "err");
+  // Operator tanlanmagan ochiq lid — navbatdagi operatorga (lid operatorsiz qolmasin)
+  if (ops.length && !f.assignedTo.value && !CLOSED.includes(data.stage)) {
+    const o = await nextOp();
+    if (o) Object.assign(data, { assignedTo: o.id, assignedName: o.name || "", assignedAt: new Date().toISOString() });
+  }
   if (data.stage === "Rad etdi" && !data.lostReason) return toast("Rad etish sababini tanlang", "err");
   if (data.stage === "Rad etdi") data.lostDate = leads.find((l) => l.id === editLeadId)?.lostDate || today();
   const prev = leads.find((l) => l.id === editLeadId);

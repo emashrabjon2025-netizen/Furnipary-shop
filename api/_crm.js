@@ -199,4 +199,28 @@ async function addLead({ name, phone, region, interest, source, instagram, note,
   return { ok: true, id, repeat: false, operator: op ? op.name : null };
 }
 
-module.exports = { pickOperator, fs, db, getOne, put, del, guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
+// Operatorsiz (yoki o'chirilgan/faol bo'lmagan operatordagi) ochiq lidlarni navbat bilan taqsimlaydi
+async function assignOrphans(leads, ops) {
+  const active = ops.filter((o) => o.active !== false).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (!active.length) return [];
+  const ok = new Set(active.map((o) => o.id));
+  const orphans = leads
+    .filter((l) => !["Sotildi", "Rad etdi"].includes(l.stage) && !ok.has(l.assignedTo || ""))
+    .sort((a, b) => String(a.createdAt || a.date || "").localeCompare(String(b.createdAt || b.date || "")));
+  if (!orphans.length) return [];
+  const rr = (await getOne("crmSettings", "rr")) || {};
+  let i = Number(rr.i) || 0;
+  const done = [];
+  for (const l of orphans) {
+    const op = active[i % active.length];
+    i++;
+    const upd = { assignedTo: op.id, assignedName: op.name || "", assignedAt: new Date().toISOString() };
+    await patch("crmLeads", l.id, upd);
+    await notifyOperator(op, { ...l, ...upd }, false);
+    done.push({ id: l.id, upd });
+  }
+  await put("crmSettings", "rr", { i });
+  return done;
+}
+
+module.exports = { assignOrphans, pickOperator, fs, db, getOne, put, del, guessType, REPEAT_DAYS, whoami, list, findBy, create, patch, today, normPhone, esc, tg, body, clip, addLead, idToken };
