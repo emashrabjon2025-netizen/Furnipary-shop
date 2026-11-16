@@ -254,13 +254,14 @@
           Dollar summalar kurs bo'yicha so'mga aylantiriladi.</p>
         </details>
       </div>
+      <div class="panel"><h2>🎯 Targetdan sotilgan mijozlar</h2><div id="tSold"></div></div>
       <div id="tList" class="rows"></div>
     </div>
 
     <div class="tabpane" id="tab-sales" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
-        <select id="sSection"><option value="main">Asosiy savdo</option><option value="matras">🛏 Matraslar</option><option value="dastavka">🚚 Dastavka</option><option value="all">Hammasi</option></select>
+        <select id="sSection"><option value="main">Asosiy savdo</option><option value="matras">🛏 Matraslar</option><option value="dastavka">🚚 Dastavka</option><option value="target">📣 Target sotuvlar</option><option value="all">Hammasi</option></select>
         <select id="sStatus"><option value="all">Barcha holatlar</option><option value="debt">Qoldig'i borlar</option><option value="open">Yetkazilmaganlar</option></select>
         <input id="sMonth" type="month" />
         <input id="sSearch" type="search" placeholder="Qidirish…" />
@@ -509,6 +510,7 @@
         <label>🚚 Kuryer<select name="courier"></select></label>
         <label>Yetkazish sanasi<input name="deliveryDate" type="date" /></label>
       </div>
+      <label class="check tgt-check"><input name="fromTarget" type="checkbox" /> 📣 Target (reklama) orqali sotildi</label>
       <label>Izoh<textarea name="note" rows="2" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
       <button class="btn btn-red btn-block" type="button" id="saleDel" hidden>🗑 Xaridni o'chirish</button>
@@ -516,7 +518,7 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=10"></script>
-  <script type="module" src="js/crm.js?v=34"></script>
+  <script type="module" src="js/crm.js?v=35"></script>
   <script type="module" src="js/sitechat-admin.js?v=2"></script>
   <script type="module" src="js/operators-admin.js?v=5"></script>
   <script type="module" src="js/delivery-report.js?v=3"></script>

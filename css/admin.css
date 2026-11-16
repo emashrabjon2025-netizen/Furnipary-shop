@@ -233,3 +233,6 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 @media (max-width: 520px) { .mr-kpi { grid-template-columns: 1fr 1fr; } }
 .mr-kpi small.muted { display: block; font-size: 11px; }
 .mt-debt { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.pill.tgt { background: #fff1e6; color: #b5480f; }
+.tgt-check { display: flex; align-items: center; gap: 8px; font-weight: 600; background: #fff7ef; border: 1px solid #f6d9bf; border-radius: 12px; padding: 10px 12px; }
+.tgt-check input { width: 20px; height: 20px; }

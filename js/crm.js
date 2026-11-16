@@ -314,6 +314,9 @@ function renderOpsSales(ym) {
 // Dastavka paneli (kuryer) orqali qo'shilgan sotuvlar ham alohida ("🚚 Dastavka hisobot")
 const isDvSale = (s) => s.source === "Dastavka";
 const isSide = (s) => isMatrasSale(s) || isDvSale(s);
+// Target (reklama) orqali sotilgan: sotuvda belgilangan, yoki belgilanmagan bo'lsa — lid target kampaniyasidan kelgan
+const leadIsTarget = (l) => !!l && (l.source === "Instagram target" || !!campaignOf(l));
+const isTargetSale = (s) => (s.fromTarget === true ? true : s.fromTarget === false ? false : s.source === "Instagram target" || leadIsTarget(s.leadId && leads.find((l) => l.id === s.leadId)));
 
 function renderReport() {
   const ym = $("#rMonth").value || thisMonth();
@@ -939,7 +942,7 @@ function renderSales() {
   const sec = $("#sSection").value;
   const list = sales.filter(
     (s) =>
-      (sec === "all" || (sec === "matras" ? isMatrasSale(s) : sec === "dastavka" ? isDvSale(s) : !isSide(s))) &&
+      (sec === "all" || (sec === "matras" ? isMatrasSale(s) : sec === "dastavka" ? isDvSale(s) : sec === "target" ? isTargetSale(s) : !isSide(s))) &&
       (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !["Yetkazildi", "Bekor qilindi"].includes(s.status) : s.status === st) &&
       (!ym || (s.date || "").startsWith(ym)) &&
       (!q || `${s.name} ${s.phone} ${s.product} ${s.address}`.toLowerCase().includes(q))
@@ -966,6 +969,7 @@ function renderSales() {
         ${telLink(s.phone)}
         <div>🛏 <b>${escapeHtml(s.product || categoryLabel(s.category))}</b> × ${s.qty || 1} <small class="muted">· ${escapeHtml(s.category === "boshqa" ? "Boshqa" : categoryLabel(s.category))}</small></div>
         ${s.address ? `<div class="muted">📍 ${escapeHtml(s.address)}</div>` : ""}
+        ${isTargetSale(s) ? `<div><span class="pill tgt">📣 Target${(() => { const l = s.leadId && leads.find((x) => x.id === s.leadId); const c = l && campaignOf(l); return c ? " · " + escapeHtml(c.name) : ""; })()}</span></div>` : ""}
         ${couriers.length && s.status !== "Bekor qilindi" ? `<div><span class="pill ${s.courier ? "op" : s.status === "Yetkazildi" ? "" : "late"}">🚚 ${escapeHtml(s.courier ? s.courierName || "kuryer" : "kuryer biriktirilmagan")}${s.deliveryDate && s.status !== "Yetkazildi" ? " · " + fmtDate(s.deliveryDate) : ""}</span>${s.collected ? ` <small class="muted">kuryer oldi: ${money(s.collected, s.currency)}</small>` : ""}${s.courierNote ? ` <small class="muted">· ${escapeHtml(s.courierNote)}</small>` : ""}</div>` : ""}
         ${s.note ? `<div class="muted">${escapeHtml(s.note)}</div>` : ""}
         <div class="pay-box">
@@ -1015,6 +1019,7 @@ function openSale(id, prefill) {
   f.date.value = s.date || today();
   f.status.innerHTML = opts(SALE_STATUSES, s.status || "Yangi");
   f.note.value = s.note || "";
+  f.fromTarget.checked = id ? isTargetSale(s) : leadIsTarget(saleFromLead && leads.find((l) => l.id === saleFromLead));
   f.courier.innerHTML =
     `<option value="">— biriktirilmagan —</option>` +
     couriers.filter((c) => c.active !== false || c.id === s.courier).map((c) => `<option value="${c.id}"${c.id === s.courier ? " selected" : ""}>🚚 ${escapeHtml(c.name || c.email || "")}</option>`).join("");
@@ -1066,6 +1071,7 @@ $("#saleForm").addEventListener("submit", async (e) => {
     date: f.date.value || today(),
     status: f.status.value,
     note: f.note.value.trim(),
+    fromTarget: f.fromTarget.checked,
     updatedAt: serverTimestamp(),
   };
   if (couriers.length) {
@@ -1683,9 +1689,36 @@ $("#tMonth").value = thisMonth();
 $("#tMonth").addEventListener("input", renderTarget);
 $("#tShowAll").addEventListener("change", renderTarget);
 
+function renderTargetSold(ym, all) {
+  const box = $("#tSold");
+  if (!box) return;
+  const arr = sales.filter((s) => s.status !== "Bekor qilindi" && (all || (s.date || "").startsWith(ym)) && isTargetSale(s)).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (!arr.length) {
+    box.innerHTML = `<p class="muted">Bu oyda targetdan sotuv yo'q. Sotuv formasida "📣 Target orqali sotildi" belgisini qo'ying — mijoz shu yerda chiqadi.</p>`;
+    return;
+  }
+  const sum = arr.reduce((a, s) => a + toSom(s.amount, s.currency || "$"), 0);
+  const paid = arr.reduce((a, s) => a + toSom(s.paid, s.currency || "$"), 0);
+  const buyers = new Set(arr.map((s) => s.phone || s.id)).size;
+  box.innerHTML = `<div class="mgrid">
+      <div><small>Mijozlar</small><b>${buyers}</b></div>
+      <div><small>Sotuvlar</small><b>${arr.length}</b></div>
+      <div><small>Jami summa</small><b>${sm(sum)}</b></div>
+      <div><small>Olingan</small><b>${sm(paid)}</b>${sum - paid > 0 ? `<small class="neg">qoldiq ${sm(sum - paid)}</small>` : ""}</div>
+    </div>
+    <div class="ttable-wrap"><table class="ttable"><thead><tr><th>Sana</th><th>Mijoz</th><th>Mahsulot</th><th>Summa</th><th>Kampaniya</th></tr></thead><tbody>${arr
+      .map((s) => {
+        const l = s.leadId && leads.find((x) => x.id === s.leadId);
+        const c = l && campaignOf(l);
+        return `<tr><td>${fmtDate(s.date)}</td><td><b>${escapeHtml(s.name || "")}</b><div class="small muted">${escapeHtml(s.phone || "")}</div></td><td class="small">${escapeHtml(s.product || "")}${Number(s.qty) > 1 ? " × " + s.qty : ""}</td><td>${money(s.amount, s.currency)}${(Number(s.amount) || 0) > (Number(s.paid) || 0) ? `<div class="small neg">qoldiq ${money((Number(s.amount) || 0) - (Number(s.paid) || 0), s.currency)}</div>` : ""}</td><td class="small">${c ? escapeHtml(c.name) : "—"}</td></tr>`;
+      })
+      .join("")}</tbody></table></div>`;
+}
+
 function renderTarget() {
   const ym = $("#tMonth").value || thisMonth();
   const all = $("#tShowAll").checked;
+  renderTargetSold(ym, all);
   const list = tgt.campaigns
     .filter((c) => all || campInMonth(c, ym))
     .sort((a, b) => (b.start || "").localeCompare(a.start || ""));
