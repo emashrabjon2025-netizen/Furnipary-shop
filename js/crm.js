@@ -266,6 +266,51 @@ function bars(rows, colorFn) {
 
 // Matras savdosi alohida hisobotda ("🛏 Matras hisobot") — asosiy reja va hisobotga qo'shilmaydi
 const isMatrasSale = (s) => s.category === "matras" || s.source === "Matras panel";
+// Har bir operator sotgan summa (oy bo'yicha). Operator: sotuvdagi operator, bo'lmasa lid kimga biriktirilgan bo'lsa
+function renderOpsSales(ym) {
+  const box = $("#rOps");
+  if (!box) return;
+  const who = (x) => {
+    if (x.operator) return x.operator;
+    const l = x.leadId && leads.find((y) => y.id === x.leadId);
+    return (l && l.assignedTo) || "";
+  };
+  const nameOf = (id, x) => (ops.find((o) => o.id === id) || {}).name || (x && x.operatorName) || "Operator";
+  const arr = sales.filter((x) => (x.date || "").startsWith(ym) && x.status !== "Bekor qilindi");
+  const g = {};
+  arr.forEach((x) => {
+    const k = who(x);
+    const r = (g[k] = g[k] || { n: 0, sum: 0, paid: 0, main: 0, side: 0, name: k ? nameOf(k, x) : "🏪 Do'kon / admin" });
+    const v = toSom(x.amount, x.currency || "$");
+    r.n++;
+    r.sum += v;
+    r.paid += toSom(x.paid, x.currency || "$");
+    if (isSide(x)) r.side += v;
+    else r.main += v;
+  });
+  ops.forEach((o) => o.active !== false && !g[o.id] && (g[o.id] = { n: 0, sum: 0, paid: 0, main: 0, side: 0, name: o.name || "Operator" }));
+  const rows = Object.entries(g).sort((a, b) => (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || b[1].sum - a[1].sum);
+  if (!rows.length) {
+    box.innerHTML = `<p class="muted">Bu oyda sotuv yo'q.</p>`;
+    return;
+  }
+  const target = Number(settings.planRevenue) || DEFAULT_REVENUE;
+  const max = Math.max(1, ...rows.map(([, r]) => r.sum));
+  const medal = ["🥇", "🥈", "🥉"];
+  let i = 0;
+  box.innerHTML = `<div class="ttable-wrap"><table class="ttable">
+    <thead><tr><th>Operator</th><th>Sotuv</th><th>Summa</th><th>Olingan</th><th>Qoldiq</th><th>Rejadan</th></tr></thead>
+    <tbody>${rows
+      .map(([k, r]) => `<tr>
+        <td>${k && r.sum ? medal[i++] || "" : ""} <b>${escapeHtml(r.name)}</b><div class="dr-bar"><i style="width:${Math.round((r.sum / max) * 100)}%"></i></div>${r.side ? `<div class="small muted">shundan matras/dastavka: ${mln(r.side)}</div>` : ""}</td>
+        <td>${r.n}</td><td><b>${mln(r.sum)}</b></td><td>${mln(r.paid)}</td>
+        <td class="${r.sum - r.paid > 0 ? "neg" : ""}">${r.sum - r.paid > 0 ? mln(r.sum - r.paid) : "—"}</td>
+        <td>${Math.round((r.main / target) * 100)}%</td>
+      </tr>`)
+      .join("")}</tbody></table></div>
+    <p class="muted small">Summalar so'mda ($ kurs bo'yicha). "Rejadan" — asosiy ${mln(target)} so'mlik rejaning qancha qismini shu operator bajargani (matras va dastavka sotuvlari hisoblanmaydi).</p>`;
+}
+
 // Dastavka paneli (kuryer) orqali qo'shilgan sotuvlar ham alohida ("🚚 Dastavka hisobot")
 const isDvSale = (s) => s.source === "Dastavka";
 const isSide = (s) => isMatrasSale(s) || isDvSale(s);
@@ -273,6 +318,7 @@ const isSide = (s) => isMatrasSale(s) || isDvSale(s);
 function renderReport() {
   const ym = $("#rMonth").value || thisMonth();
   $("#rTitle").textContent = monthName(ym);
+  renderOpsSales(ym);
   const mSales = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi" && !isSide(s));
   const mLeads = leads.filter((l) => (l.date || "").startsWith(ym));
   const mClients = clients.filter((c) => (c.date || "").startsWith(ym));
