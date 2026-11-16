@@ -4,7 +4,8 @@
   "slot": "ertalab",
   "date": "2026-11-09",
   "sent_at": "2026-11-09T09:50+05:00",
-  "question": "😴 Bilasizmi, inson umrining qancha qismi uyquda o'tadi?"
+  "question": "😴 Bilasizmi, inson umrining qancha qismi uyquda o'tadi?",
+  "reported": "2026-11-16T10:18+05:00"
  },
  {
   "message_id": 15039,
@@ -96,5 +97,12 @@
   "date": "2026-11-15",
   "sent_at": "2026-11-15T15:39+05:00",
   "question": "🛍 Mebel yoki matras olayotganingizda eng ko'p nimadan xavotir olasiz?"
+ },
+ {
+  "message_id": 15139,
+  "slot": "ertalab",
+  "date": "2026-11-16",
+  "sent_at": "2026-11-16T10:18+05:00",
+  "question": "⏰ Siz ertalab qanday turasiz?"
  }
 ]
