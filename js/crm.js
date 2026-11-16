@@ -249,6 +249,21 @@ function start() {
 $("#rMonth").value = thisMonth();
 $("#rMonth").addEventListener("change", renderReport);
 
+// Instagram akkauntlar: ChatPlace'ga ulangan har bir akkaunt lidlari alohida.
+// "account" yozilmagan eski Instagram lidlari — asosiy akkaunt (@furnipart.uz)
+const MAIN_ACC = "furnipart.uz";
+const accOf = (l) => l.account || (["Instagram", "Instagram target"].includes(l.source) ? MAIN_ACC : "");
+const accList = () => [...new Set(leads.map(accOf).filter(Boolean))].sort((a, b) => (a === MAIN_ACC ? -1 : b === MAIN_ACC ? 1 : a.localeCompare(b)));
+const multiAcc = () => accList().length > 1;
+function fillAccFilter() {
+  const accs = accList();
+  const sel = $("#lAcc");
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">Barcha Instagram akkauntlar</option>` + accs.map((a) => `<option value="${escapeHtml(a)}">📸 @${escapeHtml(a)} (${leads.filter((l) => accOf(l) === a && !CLOSED.includes(l.stage)).length})</option>`).join("");
+  sel.value = accs.includes(cur) ? cur : "all";
+  sel.hidden = accs.length < 2;
+}
+
 function bars(rows, colorFn) {
   const max = Math.max(1, ...rows.map((r) => r[1]));
   return rows.length
@@ -400,7 +415,16 @@ function renderReport() {
     const won = all.filter((l) => l.stage === "Sotildi").length;
     return [s, all.length, all.length ? `· ${won} sotildi` : ""];
   }).filter((r) => r[1]);
-  $("#rSources").innerHTML = bars(bySrc);
+  const byAcc = multiAcc()
+    ? accList()
+        .map((a) => {
+          const all = mLeads.filter((l) => accOf(l) === a);
+          const won = all.filter((l) => l.stage === "Sotildi").length;
+          return [`📸 @${a}`, all.length, all.length ? `· ${won} sotildi` : ""];
+        })
+        .filter((r) => r[1])
+    : [];
+  $("#rSources").innerHTML = bars(bySrc) + (byAcc.length ? `<h3 class="small muted" style="margin:14px 0 6px">Instagram akkauntlar bo'yicha</h3>` + bars(byAcc) : "");
 
   const cats = [...CATEGORIES.map((c) => c.id), "boshqa"];
   const byCat = cats
@@ -492,9 +516,11 @@ document.addEventListener("click", async (e) => {
 // ================= LIDLAR =================
 $("#lSource").insertAdjacentHTML("beforeend", opts(SOURCES));
 $("#lStage").insertAdjacentHTML("beforeend", opts(LEAD_STAGES));
-["#lSource", "#lStage", "#lSearch", "#lOp"].forEach((s) => $(s).addEventListener("input", renderLeads));
+["#lSource", "#lStage", "#lSearch", "#lOp", "#lAcc"].forEach((s) => $(s).addEventListener("input", renderLeads));
 
 function renderLeads() {
+  fillAccFilter();
+  const acc = $("#lAcc").hidden ? "all" : $("#lAcc").value;
   const src = $("#lSource").value;
   const st = $("#lStage").value;
   const q = $("#lSearch").value.trim().toLowerCase();
@@ -503,6 +529,7 @@ function renderLeads() {
   const list = leads.filter(
     (l) =>
       (src === "all" || l.source === src) &&
+      (acc === "all" || accOf(l) === acc) &&
       (opf === "all" || (opf === "none" ? !l.assignedTo : l.assignedTo === opf)) &&
       (st === "all" ? true : st === "open" ? !CLOSED.includes(l.stage) : st === "stale" ? isStale(l) : st === "nodate" ? noDate(l) : l.stage === st) &&
       (!q || `${l.name} ${l.phone} ${l.interest} ${l.note} ${l.region} ${l.instagram}`.toLowerCase().includes(q)) &&
@@ -528,6 +555,7 @@ function renderLeads() {
           <b>${escapeHtml(l.name || "Nomsiz")}</b>
           <small>${escapeHtml(l.source || "")} · ${fmtDate(l.date)}</small>
         </div>
+        ${multiAcc() && accOf(l) ? `<div><span class="pill acc">📸 @${escapeHtml(accOf(l))}</span></div>` : ""}
         ${telLink(l.phone)}
         ${ops.length ? `<div><span class="pill ${l.assignedTo ? "op" : "late"}">👤 ${escapeHtml(l.assignedTo ? l.assignedName || (ops.find((o) => o.id === l.assignedTo) || {}).name || "operator" : "operator biriktirilmagan")}</span>${l.attempts ? ` <small class="muted">urinish ${l.attempts}</small>` : ""}</div>` : ""}
         ${l.region ? `<div class="muted">📍 ${escapeHtml(l.region)}</div>` : ""}
@@ -1178,7 +1206,7 @@ $("#crmExport").addEventListener("click", async () => {
     );
     sheet(
       leads.map((l) => ({
-        Sana: l.date, Ism: l.name, Telefon: l.phone, Viloyat: l.region, Manba: l.source, Mahsulot: l.interest, Instagram: l.instagram,
+        Sana: l.date, Ism: l.name, Telefon: l.phone, Viloyat: l.region, Manba: l.source, Akkaunt: accOf(l), Mahsulot: l.interest, Instagram: l.instagram,
         Bosqich: l.stage, "Keyingi qo'ng'iroq": l.nextCall, Izoh: l.note,
       })),
       "Lidlar"

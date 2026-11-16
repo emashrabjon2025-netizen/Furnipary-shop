@@ -1,5 +1,6 @@
 // Yangi lidni CRMga qo'shadi. ChatPlace (Instagram bot) shu manzilga POST yuboradi:
-//   {"token":"<CRM_LEAD_TOKEN>","ism":"..","telefon":"..","viloyat":"..","mahsulot":"..","manba":"..","instagram":".."}
+//   {"token":"<CRM_LEAD_TOKEN>","ism":"..","telefon":"..","viloyat":"..","mahsulot":"..","manba":"..","instagram":"..","akkaunt":"furnipart.uz"}
+// "akkaunt" — lid qaysi Instagram akkauntimizdan kelgani (har bir ChatPlace boti o'z nomini yuboradi)
 // Tekshirish: GET /api/lead?key=<CRM_LEAD_TOKEN>  → Firebase'ga ulanish holati
 const { addLead, body, idToken, tg, whoami, list } = require("./_crm");
 const ADMIN_UID = "B3O0Gn3vA3al6kmBZw5porxAEXC3";
@@ -44,6 +45,7 @@ module.exports = async (req, res) => {
       interest: b.mahsulot || b.product,
       instagram: b.instagram || b.username,
       note: b.izoh || b.note,
+      account: b.akkaunt || b.account || b.sahifa || "",
       source,
     });
     return res.status(r.ok ? 200 : 400).json(r);

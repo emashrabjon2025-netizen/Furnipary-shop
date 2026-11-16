@@ -137,6 +137,7 @@ async function notifyOperator(op, lead, repeat) {
       `👤 ${esc(lead.name || "")} · ${esc(lead.phone || "")}`,
       lead.interest ? `🛏 ${esc(lead.interest)}` : "",
       lead.region ? `📍 ${esc(lead.region)}` : "",
+      lead.account ? `📸 @${esc(lead.account)}` : "",
       ``,
       `👉 https://furnipart-shop.vercel.app/operator`,
     ].filter((x) => x !== "").join("\n"),
@@ -144,7 +145,8 @@ async function notifyOperator(op, lead, repeat) {
   ).catch(() => {});
 }
 
-async function addLead({ name, phone, region, interest, source, instagram, note }) {
+async function addLead({ name, phone, region, interest, source, instagram, note, account }) {
+  account = clip(account, 40).replace(/^@/, "").toLowerCase();
   phone = normPhone(phone);
   name = clip(name, 60) || (instagram ? "@" + clip(instagram, 40) : "");
   interest = clip(interest, 200);
@@ -156,6 +158,7 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     if (interest && !(open.interest || "").includes(interest)) upd.interest = [open.interest, interest].filter(Boolean).join(" · ").slice(0, 300);
     upd.note = [open.note, `${today()}: qayta murojaat${interest ? " — " + interest : ""}`].filter(Boolean).join(" · ").slice(0, 1000);
     if (!open.region && region) upd.region = clip(region, 120);
+    if (!open.account && account) upd.account = account;
     if (open.stage !== "Yangi") upd.stage = "Yangi";
     let op = null;
     try {
@@ -184,6 +187,7 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     region: clip(region, 120),
     interest,
     source: source || "Instagram",
+    ...(account ? { account } : {}),
     stage: "Yangi",
     instagram: clip(instagram, 60).replace(/^@/, ""),
     ctype: guessType(interest),
@@ -191,7 +195,7 @@ async function addLead({ name, phone, region, interest, source, instagram, note 
     note: clip(note, 1000) + (existing.length ? (note ? " · " : "") + "Avval ham murojaat qilgan" : ""),
     date: today(),
   });
-  await notifyOperator(op, { name, phone, interest, region }, false);
+  await notifyOperator(op, { name, phone, interest, region, account }, false);
   return { ok: true, id, repeat: false, operator: op ? op.name : null };
 }
 

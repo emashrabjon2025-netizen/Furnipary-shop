@@ -259,7 +259,7 @@ function renderLead() {
   const closed = CLOSED.includes(l.stage);
   $("#leadBody").innerHTML = `
     <h2>${esc(l.name || "Nomsiz")}</h2>
-    <p class="muted">${esc(l.source || "")}${created ? ` · ${ago(created)} keldi` : ""} · <b>${esc(l.stage)}</b></p>
+    <p class="muted">${esc(l.source || "")}${l.account ? ` · 📸 @${esc(l.account)}` : ""}${created ? ` · ${ago(created)} keldi` : ""} · <b>${esc(l.stage)}</b></p>
     ${l.interest ? `<p>🛏 <b>${esc(l.interest)}</b></p>` : ""}
     ${l.region ? `<p>📍 ${esc(l.region)}</p>` : ""}
     ${l.instagram ? `<p><a href="https://instagram.com/${encodeURIComponent(l.instagram)}" target="_blank" rel="noopener">@${esc(l.instagram)}</a></p>` : ""}
