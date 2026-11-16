@@ -19,10 +19,51 @@ const sum = (arr) => {
 };
 const deliveredDay = (s) => (s.deliveredAt ? ymd(new Date(s.deliveredAt)) : s.date || "");
 
+// Dastavka paneli orqali qo'shilgan sotuvlar (asosiy savdo rejasiga qo'shilmaydi)
+const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+const fmtD = (s) => (s ? s.split("-").reverse().slice(0, 2).join(".") : "");
+const prod = (s) => {
+  const l = String(s.product || "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  return l.length > 1 ? `${l[0]} +${l.length - 1}` : l[0] || (s.hasPhotos ? "📷 rasmda" : "—");
+};
+function renderDvSales(ym) {
+  const box = $("#dvSalesRep");
+  if (!box) return;
+  const [y, m] = ym.split("-").map(Number);
+  $("#dvTitle").textContent = `🚚 Dastavka · ${MONTHS[m - 1]} ${y}`;
+  const arr = sales.filter((s) => s.source === "Dastavka" && s.status !== "Bekor qilindi" && (s.date || "").startsWith(ym)).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (!arr.length) {
+    box.innerHTML = `<p class="muted">Bu oyda dastavka panelidan sotuv qo'shilmagan.</p>`;
+    return;
+  }
+  const done = arr.filter((s) => s.status === "Yetkazildi");
+  const wait = arr.filter((s) => s.status !== "Yetkazildi");
+  const byDay = {};
+  arr.forEach((s) => (byDay[s.date] = byDay[s.date] || []).push(s));
+  box.innerHTML = `
+    <div class="mgrid dr-kpi">
+      <div><small>Sotuvlar</small><b>${arr.length} ta</b></div>
+      <div><small>Jami summa</small><b>${sum(arr)}</b></div>
+      <div><small>Yetkazildi</small><b>${done.length} ta · ${sum(done)}</b></div>
+      <div><small>Kutilmoqda</small><b class="${wait.length ? "neg" : ""}">${wait.length} ta · ${sum(wait)}</b></div>
+    </div>
+    <h3 class="dr-h">📅 Kunlar bo'yicha</h3>
+    <div class="ttable-wrap"><table class="ttable"><thead><tr><th>Sana</th><th>Soni</th><th>Summa</th></tr></thead><tbody>${Object.entries(byDay)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([d, v]) => `<tr><td>${fmtD(d)}</td><td>${v.length}</td><td>${sum(v)}</td></tr>`)
+      .join("")}</tbody></table></div>
+    <h3 class="dr-h">🧾 Sotuvlar ro'yxati</h3>
+    <div class="ttable-wrap"><table class="ttable"><thead><tr><th>Sana</th><th>Mijoz</th><th>Mahsulot</th><th>Summa</th><th>Holat</th></tr></thead><tbody>${arr
+      .map((s) => `<tr><td>${fmtD(s.date)}</td><td><b>${esc(s.name || "")}</b><div class="small muted">${esc(areaOf(s))}</div></td><td class="small">${esc(prod(s))}</td><td>${sum([s])}</td><td class="small">${s.status === "Yetkazildi" ? "✅" : "⏳"} ${esc(s.status || "")}</td></tr>`)
+      .join("")}</tbody></table></div>
+    <p class="muted small">Bu sotuvlar asosiy savdo rejasiga qo'shilmaydi. "Sotuvlar" bo'limida ularni "🚚 Dastavka" filtri orqali ko'rish mumkin.</p>`;
+}
+
 function render() {
   const box = $("#rDelivery");
   if (!box) return;
-  const ym = $("#rMonth").value || ymd(new Date()).slice(0, 7);
+  const ym = $("#dvMonth").value || ymd(new Date()).slice(0, 7);
+  renderDvSales(ym);
   const live = sales.filter((s) => s.status !== "Bekor qilindi");
   const done = live.filter((s) => s.status === "Yetkazildi" && s.courier && deliveredDay(s).startsWith(ym));
   const waiting = live.filter((s) => s.status !== "Yetkazildi" && s.courier);
@@ -101,7 +142,8 @@ function start() {
   ];
 }
 
-$("#rMonth").addEventListener("change", render);
+$("#dvMonth").value = ymd(new Date()).slice(0, 7);
+$("#dvMonth").addEventListener("change", render);
 onAuthStateChanged(auth, (user) => {
   if (user && ADMIN_UIDS.includes(user.uid)) start();
   else {

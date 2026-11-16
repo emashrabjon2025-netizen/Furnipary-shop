@@ -266,11 +266,14 @@ function bars(rows, colorFn) {
 
 // Matras savdosi alohida hisobotda ("🛏 Matras hisobot") — asosiy reja va hisobotga qo'shilmaydi
 const isMatrasSale = (s) => s.category === "matras" || s.source === "Matras panel";
+// Dastavka paneli (kuryer) orqali qo'shilgan sotuvlar ham alohida ("🚚 Dastavka hisobot")
+const isDvSale = (s) => s.source === "Dastavka";
+const isSide = (s) => isMatrasSale(s) || isDvSale(s);
 
 function renderReport() {
   const ym = $("#rMonth").value || thisMonth();
   $("#rTitle").textContent = monthName(ym);
-  const mSales = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi" && !isMatrasSale(s));
+  const mSales = sales.filter((s) => (s.date || "").startsWith(ym) && s.status !== "Bekor qilindi" && !isSide(s));
   const mLeads = leads.filter((l) => (l.date || "").startsWith(ym));
   const mClients = clients.filter((c) => (c.date || "").startsWith(ym));
 
@@ -890,12 +893,12 @@ function renderSales() {
   const sec = $("#sSection").value;
   const list = sales.filter(
     (s) =>
-      (sec === "all" || (sec === "matras" ? isMatrasSale(s) : !isMatrasSale(s))) &&
+      (sec === "all" || (sec === "matras" ? isMatrasSale(s) : sec === "dastavka" ? isDvSale(s) : !isSide(s))) &&
       (st === "all" ? true : st === "debt" ? s.status !== "Bekor qilindi" && (Number(s.amount) || 0) > (Number(s.paid) || 0) : st === "open" ? !["Yetkazildi", "Bekor qilindi"].includes(s.status) : s.status === st) &&
       (!ym || (s.date || "").startsWith(ym)) &&
       (!q || `${s.name} ${s.phone} ${s.product} ${s.address}`.toLowerCase().includes(q))
   );
-  const open = sales.filter((s) => !["Yetkazildi", "Bekor qilindi"].includes(s.status) && !isMatrasSale(s)).length;
+  const open = sales.filter((s) => !["Yetkazildi", "Bekor qilindi"].includes(s.status) && !isSide(s)).length;
   $("#sCount").textContent = open || "";
   const valid = list.filter((s) => s.status !== "Bekor qilindi");
   $("#sSummary").innerHTML = list.length

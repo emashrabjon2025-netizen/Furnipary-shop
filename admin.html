@@ -50,6 +50,7 @@
       <button class="tab" data-tab="sales">Sotuvlar <span id="sCount"></span></button>
       <button class="tab" data-tab="target">📣 Target</button>
       <button class="tab" data-tab="mtrep">🛏 Matras hisobot</button>
+      <button class="tab" data-tab="dvrep">🚚 Dastavka hisobot</button>
       <button class="tab" data-tab="ops">👥 Operatorlar</button>
       <button class="tab" data-tab="sitechat">💬 Sayt chat <span id="chatCount" class="badge-red"></span></button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
@@ -82,7 +83,6 @@
         <div class="panel"><h2>🛏 Qaysi mahsulotga ko'p lid keldi</h2><div id="rProducts"></div></div>
         <div class="panel"><h2>📍 Qaysi viloyatdan ko'p lid keldi</h2><div id="rRegions"></div></div>
       </div>
-      <div class="panel dr-panel"><h2>🚚 Yetkazib berilgan joylar</h2><div id="rDelivery"></div></div>
     </div>
 
     <!-- CRM: Lidlar -->
@@ -114,6 +114,17 @@
     </div>
 
     <!-- CRM: Sotuvlar -->
+    <!-- Dastavka hisoboti (kuryer paneli orqali qo'shilgan sotuvlar — asosiy savdodan alohida) -->
+    <div class="tabpane" id="tab-dvrep" hidden>
+      <div class="toolbar">
+        <input id="dvMonth" type="month" />
+        <a class="btn btn-line" href="/dastavka" target="_blank" rel="noopener">🚚 Dastavka paneli ›</a>
+      </div>
+      <h2 id="dvTitle" class="sec-h"></h2>
+      <div class="panel"><h2>💵 Dastavka savdosi</h2><div id="dvSalesRep"></div></div>
+      <div class="panel dr-panel"><h2>🚚 Yetkazib berilgan joylar</h2><div id="rDelivery"></div></div>
+    </div>
+
     <!-- Matras hisoboti (asosiy savdodan alohida) -->
     <div class="tabpane" id="tab-mtrep" hidden>
       <div class="toolbar">
@@ -248,7 +259,7 @@
     <div class="tabpane" id="tab-sales" hidden>
       <div class="toolbar">
         <button class="btn btn-yellow" id="newSale" type="button">+ Yangi sotuv</button>
-        <select id="sSection"><option value="main">Asosiy savdo</option><option value="matras">🛏 Matraslar</option><option value="all">Hammasi</option></select>
+        <select id="sSection"><option value="main">Asosiy savdo</option><option value="matras">🛏 Matraslar</option><option value="dastavka">🚚 Dastavka</option><option value="all">Hammasi</option></select>
         <select id="sStatus"><option value="all">Barcha holatlar</option><option value="debt">Qoldig'i borlar</option><option value="open">Yetkazilmaganlar</option></select>
         <input id="sMonth" type="month" />
         <input id="sSearch" type="search" placeholder="Qidirish…" />
@@ -504,10 +515,10 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=10"></script>
-  <script type="module" src="js/crm.js?v=32"></script>
+  <script type="module" src="js/crm.js?v=33"></script>
   <script type="module" src="js/sitechat-admin.js?v=2"></script>
   <script type="module" src="js/operators-admin.js?v=5"></script>
-  <script type="module" src="js/delivery-report.js?v=2"></script>
+  <script type="module" src="js/delivery-report.js?v=3"></script>
   <script type="module" src="js/matras-report.js?v=1"></script>
   <script type="module" src="js/pwa-panel.js?v=1"></script>
 </body>
