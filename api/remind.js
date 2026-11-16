@@ -19,6 +19,14 @@ module.exports = async (req, res) => {
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.status(200).json({ ok: !!j.ok, username: j.result && j.result.username });
     }
+    if (req.query.rules) {
+      // Firestore qoidalari e'lon qilinganmi — faqat ha/yo'q (ma'lumot qaytarmaydi)
+      const ok = async (c) => list(c).then((x) => x.length, () => -1);
+      const out = {};
+      for (const c of ["dvClients", "dvPhotos", "crmCouriers", "matrasClients"]) out[c] = await ok(c);
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients } });
+    }
     const m = tashkentMinutes();
     if (m < 8 * 60 + 30 || m > 21 * 60) return res.status(200).json({ ok: true, skip: "ish vaqti emas" });
 
