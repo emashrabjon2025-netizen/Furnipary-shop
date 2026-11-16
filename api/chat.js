@@ -56,6 +56,8 @@ async function onTelegram(req, res) {
   if (start) {
     const op = await getOne("crmOperators", start[1]);
     if (op) {
+      if (op.tgChat && String(op.tgChat) !== String(m.chat.id))
+        await tg(`ℹ️ ${esc(op.name || "Operator")} uchun lid xabarlari endi boshqa Telegram akkauntga yuboriladi.`, { chat_id: op.tgChat }).catch(() => {});
       await put("crmOperators", start[1], { tgChat: String(m.chat.id), tgName: clip((m.from && (m.from.username || m.from.first_name)) || "", 60) });
       await tg(`✅ ${esc(op.name || "Operator")}, Telegram ulandi. Yangi lidlar va eslatmalar shu yerga keladi.\n\n👉 https://furnipart-shop.vercel.app/operator`, { chat_id: m.chat.id });
       await tg(`👤 Operator <b>${esc(op.name || "")}</b> Telegram'ni uladi.`);

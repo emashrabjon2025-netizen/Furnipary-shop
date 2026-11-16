@@ -94,7 +94,12 @@ function render() {
           <div><small>O'rt. urinish</small><b>${s.attempts}</b></div>
         </div>
         ${s.reasons.length ? `<p class="small">❌ Ko'p rad etish sababi: ${s.reasons.map(([r, n]) => `${esc(r)} (${n})`).join(", ")}</p>` : ""}
-        <p class="small">${o.tgChat ? `✈️ Telegram ulangan${o.tgName ? ` (@${esc(o.tgName)})` : ""} — yangi lid va eslatmalar unga boradi` : `✈️ Telegram ulanmagan. ${link ? `Operator shu havolani ochib <b>Start</b> bossin:<br><a href="${link}" target="_blank" rel="noopener">${link}</a> <button class="pill" type="button" data-copy="${link}">nusxalash</button>` : "Bot nomini olishning iloji bo'lmadi."}`}</p>
+        <p class="small">${o.tgChat ? `✈️ Telegram ulangan${o.tgName ? ` (@${esc(o.tgName)})` : ""} — yangi lid va eslatmalar unga boradi` + (link ? `
+          <details class="tg-relink"><summary>🔄 Boshqa Telegram akkauntga ulash</summary>
+            Kerakli akkauntdan (operatorning o'z Telegrami) shu havolani ochib <b>Start</b> bosing — xabarlar o'sha akkauntga o'tadi:<br>
+            <a href="${link}" target="_blank" rel="noopener">${link}</a> <button class="pill" type="button" data-copy="${link}">nusxalash</button>
+            <br><button class="btn btn-sm btn-line" type="button" data-tgoff="${o.id}" style="margin-top:6px">✖ Hozirgi Telegramni uzish</button>
+          </details>` : "") : `✈️ Telegram ulanmagan. ${link ? `Operator shu havolani ochib <b>Start</b> bossin:<br><a href="${link}" target="_blank" rel="noopener">${link}</a> <button class="pill" type="button" data-copy="${link}">nusxalash</button>` : "Bot nomini olishning iloji bo'lmadi."}`}</p>
         <div class="btn-row"><button class="btn btn-sm btn-line" type="button" data-move="${o.id}" ${s.waiting ? "" : "disabled"}>↪ Bog'lanilmagan lidlarini boshqalarga o'tkazish</button></div>
       </div>`;
     })
@@ -241,6 +246,12 @@ document.addEventListener("click", async (e) => {
       un.forEach((x) => batch.update(doc(db, "crmSales", x.id), { courier: c.id, courierName: c.name || "" }));
       await batch.commit().then(() => toast(`${un.length} ta yetkazish biriktirildi`)).catch((err) => toast(err.message, "err"));
     }
+  }
+  const off = e.target.closest("[data-tgoff]");
+  if (off) {
+    const o = ops.find((x) => x.id === off.dataset.tgoff);
+    if (o && confirm(`${o.name}ning Telegrami (@${o.tgName || "?"}) uzilsinmi? Lid xabarlari unga bormaydi.`))
+      await updateDoc(doc(db, "crmOperators", o.id), { tgChat: "", tgName: "" }).then(() => toast("Telegram uzildi")).catch((err) => toast(err.message, "err"));
   }
   const cp = e.target.closest("[data-copy]");
   if (cp) {
