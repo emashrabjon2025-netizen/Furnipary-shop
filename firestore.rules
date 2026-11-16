@@ -80,6 +80,15 @@ service cloud.firestore {
         && request.resource.data.get('paid', 0) >= resource.data.get('paid', 0)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paid', 'collected', 'deliveredAt', 'deliveryDate', 'courierNote', 'deliveryLog', 'updatedAt', 'area']);
     }
+    // Dastavka: mijozlar bazasi va yetkazish rasmlari
+    match /dvClients/{id} {
+      allow read, write: if isAdmin();
+      allow read, create, update: if isCourier();
+    }
+    match /dvPhotos/{id} {
+      allow read, write: if isAdmin();
+      allow read, create: if isCourier();
+    }
     match /crmSettings/{id} {
       allow read, write: if isAdmin();
       allow read: if id == 'scripts' && isOperator();

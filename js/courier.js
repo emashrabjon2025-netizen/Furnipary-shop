@@ -17,9 +17,10 @@ import {
   setDoc,
   addDoc,
   writeBatch,
+  deleteDoc,
 } from "./firebase.js";
 import { ADMIN_UIDS } from "./config.js";
-import { $, $$, escapeHtml as esc, toast, normalizePhone } from "./util.js";
+import { $, $$, escapeHtml as esc, toast, normalizePhone, compressImage } from "./util.js";
 import { areaOf, setCustomAreas, allAreaNames, customAreas, AREAS } from "./areas.js";
 
 let me = null;
@@ -30,6 +31,11 @@ let area = "all";
 let openId = null;
 let showAllCities = false;
 let unsub = [];
+let clients = []; // dastavka mijozlar bazasi (dvClients)
+let cliSearch = "";
+let cliEditId = null;
+let addPhotos = []; // qo'shish formasidagi rasmlar (data-URL)
+const photoCache = {};
 
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -56,6 +62,11 @@ const sumStr = (arr, short) => {
 };
 const dday = (s) => s.deliveryDate || s.date || today();
 const fmtDate = (s) => (s ? s.split("-").reverse().slice(0, 2).join(".") : "");
+const prodLines = (s) => String(s.product || "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+const prodShort = (s) => {
+  const l = prodLines(s);
+  return l.length > 1 ? `${l[0]} +${l.length - 1} ta` : (l[0] || "") + (Number(s.qty) > 1 ? ` × ${s.qty}` : "");
+};
 const mapUrl = (s) => `https://yandex.uz/maps/?text=${encodeURIComponent(`${s.address || ""}, Farg'ona viloyati`)}`;
 
 // Mijozga tayyor xabarlar
@@ -68,7 +79,7 @@ const TEMPLATES = [
 const fill = (t, s) =>
   t
     .replace(/\{ism\}/g, (s.name || "").split(" ")[0] || "")
-    .replace(/\{mahsulot\}/g, s.product || "buyurtma")
+    .replace(/\{mahsulot\}/g, prodLines(s).join(", ") || "buyurtma")
     .replace(/\{vaqt\}/g, (() => {
       const d = new Date(Date.now() + 40 * 60e3);
       return `${pad(d.getHours())}:${pad(d.getMinutes() < 30 ? 0 : 30)}`;
@@ -122,6 +133,12 @@ onAuthStateChanged(auth, async (user) => {
       }, () => {})
     );
   unsub.push(
+    onSnapshot(collection(db, "dvClients"), (snap) => {
+      clients = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    }, () => {})
+  );
+  unsub.push(
     onSnapshot(doc(db, "crmSettings", "cities"), (d) => {
       setCustomAreas(d.exists() ? d.data().list : []);
       render();
@@ -162,6 +179,12 @@ function render() {
   $("#nToday").textContent = todayList.length || "";
   $("#nTomorrow").textContent = tmr.length || "";
   $("#nLater").textContent = later.length || "";
+  $("#nClients").textContent = clients.length || "";
+  $(".dv-tools").hidden = view === "clients";
+  if (view === "clients") {
+    $("#dvRoute").innerHTML = "";
+    return renderClients();
+  }
   const doneToday = list.filter((s) => s.status === "Yetkazildi" && s.deliveredAt && ymd(new Date(s.deliveredAt)) === t);
   $("#dvKpi").innerHTML = `
     <div><small>Bugun yetkazish</small><b>${todayList.length}</b></div>
@@ -206,7 +229,7 @@ function render() {
           return `<button type="button" class="op-card dv-card ${s.status === "Yo'lda" ? "new" : ""} ${late ? "late" : ""}" data-open="${s.id}">
             <span class="oc-top"><b>${esc(s.name || "Mijoz")}</b><span class="pill ${s.status === "Yetkazildi" ? "ok" : s.status === "Yo'lda" ? "today" : late ? "late" : ""}">${s.status === "Yetkazildi" ? "✅ yetkazildi" : s.status === "Yo'lda" ? "🚚 yo'lda" : late ? "⏰ " + fmtDate(dday(s)) : "📅 " + (dday(s) === t ? "bugun" : dday(s) === tomorrow() ? "ertaga" : fmtDate(dday(s)))}</span></span>
             <span class="oc-int">📍 <b>${esc(areaOf(s))}</b> · ${esc(s.address || "manzil yozilmagan")}</span>
-            <span class="oc-mid">📦 ${esc(s.product || "")}${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</span>
+            ${s.product || s.hasPhotos ? `<span class="oc-mid">📦 ${esc(prodShort(s))}${s.hasPhotos ? " 📷" : ""}</span>` : ""}
             <span class="oc-bot"><small>${esc(s.phone || "")}</small><b class="dv-rest">💵 ${fmt(total(s), s.currency)}</b></span>
           </button>`;
         })
@@ -257,7 +280,20 @@ $("#dvList").addEventListener("click", (e) => {
   openId = b.dataset.open;
   renderCard();
   $("#dvDlg").showModal();
+  loadPhotos(openId);
 });
+
+async function loadPhotos(id) {
+  const s = list.find((x) => x.id === id);
+  if (!s || !s.hasPhotos || photoCache[id]) return;
+  try {
+    const d = await getDoc(doc(db, "dvPhotos", id));
+    photoCache[id] = d.exists() ? d.data().images || [] : [];
+  } catch (_) {
+    photoCache[id] = [];
+  }
+  if (openId === id && $("#dvDlg").open) renderCard();
+}
 
 // ---------- kartochka ----------
 let tpl = 0;
@@ -274,7 +310,8 @@ function renderCard() {
     <a class="dv-addr" href="${mapUrl(s)}" target="_blank" rel="noopener">📍 <b>${esc(areaOf(s))}</b> — ${esc(s.address || "manzil yozilmagan")} <span>xaritada ›</span></a>
     <label class="dv-city">🏙 Shahar <select id="dvCity">${allAreaNames().concat(["Boshqa"]).map((n) => `<option ${n === areaOf(s) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
     ${me.admin ? `<p class="muted">🚚 Kuryer: ${esc(s.courierName || "biriktirilgan")} <button type="button" class="chip" data-act="unassign">✖ Dastavkadan olib tashlash</button></p>` : ""}
-    <p>📦 <b>${esc(s.product || "")}</b>${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}</p>
+    ${prodLines(s).length ? `<ul class="dv-prod">${prodLines(s).map((x) => `<li>📦 ${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${s.hasPhotos ? `<div class="dv-photos" id="cardPhotos">${(photoCache[s.id] || []).map((u) => `<a href="${u}" target="_blank"><img src="${u}" alt="" /></a>`).join("") || `<small class="muted">📷 rasm yuklanmoqda…</small>`}</div>` : ""}
     <p>💵 Summa: <b class="dv-rest">${fmt(total(s), s.currency)}</b>${done ? " · ✅ yetkazildi" : ""}</p>
     ${s.note ? `<p class="muted">📝 ${esc(s.note)}</p>` : ""}
     ${s.courierNote ? `<p class="muted">🚚 ${esc(s.courierNote)}</p>` : ""}
@@ -418,6 +455,8 @@ $("#dvAdd").addEventListener("click", () => {
   const f = $("#addForm").elements;
   $("#addForm").reset();
   f.area.innerHTML = `<option value="">— manzildan aniqlansin —</option>` + allAreaNames().map((n) => `<option ${n === area ? "selected" : ""}>${esc(n)}</option>`).join("");
+  addPhotos = [];
+  drawAddPhotos();
   addWhen = view === "tomorrow" ? "tomorrow" : "today";
   $$("#addWhen .btn").forEach((b) => b.classList.toggle("on", b.dataset.when === addWhen));
   $("#addCourierWrap").hidden = !me.admin;
@@ -436,8 +475,9 @@ function saleDoc(d, c) {
     phone: d.phone,
     address: d.address,
     ...(d.area ? { area: d.area } : {}),
-    product: d.product,
+    product: d.product || "",
     qty: d.qty || 1,
+    ...(d.hasPhotos ? { hasPhotos: true } : {}),
     amount: d.amount,
     paid: 0,
     currency: d.currency === "$" ? "$" : "so'm",
@@ -464,13 +504,21 @@ $("#addForm").addEventListener("submit", async (e) => {
   const btn = e.target.querySelector("[type=submit]");
   btn.disabled = true;
   try {
-    await addDoc(
-      collection(db, "crmSales"),
+    const ref = doc(collection(db, "crmSales"));
+    const imgs = addPhotos.slice(0, 3);
+    if (imgs.length) await setDoc(doc(db, "dvPhotos", ref.id), { images: imgs, createdAt: serverTimestamp() });
+    await setDoc(
+      ref,
       saleDoc(
-        { name: f.name.value.trim(), phone, address: f.address.value.trim(), area: f.area.value, product: f.product.value.trim(), qty: Number(f.qty.value) || 1, amount, currency: f.currency.value, note: f.note.value.trim(), deliveryDate: addWhen === "tomorrow" ? tomorrow() : today() },
+        { name: f.name.value.trim(), phone, address: f.address.value.trim(), area: f.area.value, product: f.product.value.trim(), qty: 1, amount, currency: f.currency.value, note: f.note.value.trim(), deliveryDate: addWhen === "tomorrow" ? tomorrow() : today(), hasPhotos: imgs.length > 0 },
         c
       )
     );
+    if (imgs.length) photoCache[ref.id] = imgs;
+    // Mijozlar bazasida yo'q bo'lsa — qo'shib qo'yamiz
+    const dg = digits(phone).slice(-9);
+    if (!clients.some((x) => digits(x.phone).slice(-9) === dg || (x.phone2 && digits(x.phone2).slice(-9) === dg)))
+      addDoc(collection(db, "dvClients"), { name: f.name.value.trim(), phone, phone2: "", area: f.area.value || "", address: f.address.value.trim(), note: "", createdAt: serverTimestamp() }).catch(() => {});
     $("#addDlg").close();
     toast(`✅ ${f.name.value.trim()} — ${addWhen === "tomorrow" ? "ertangi" : "bugungi"} ro'yxatga qo'shildi`);
   } catch (err) {
@@ -572,3 +620,236 @@ $("#dvImport").addEventListener("change", async (e) => {
     toast("Import bo'lmadi: " + err.message, "err");
   }
 });
+
+// ---------- Qo'shish formasidagi rasmlar ----------
+function drawAddPhotos() {
+  $("#addPhotos").innerHTML = addPhotos
+    .map((u, i) => `<span class="ph"><img src="${u}" alt="" /><button type="button" data-rmph="${i}" aria-label="O'chirish">×</button></span>`)
+    .join("");
+}
+$("#addPhotoIn").addEventListener("change", async (e) => {
+  const files = [...e.target.files];
+  e.target.value = "";
+  for (const f of files) {
+    if (addPhotos.length >= 3) {
+      toast("3 tagacha rasm qo'shiladi", "err");
+      break;
+    }
+    try {
+      addPhotos.push(await compressImage(f, 1100, 0.7));
+    } catch (err) {
+      toast(err.message, "err");
+    }
+  }
+  drawAddPhotos();
+});
+$("#addPhotos").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-rmph]");
+  if (!b) return;
+  addPhotos.splice(Number(b.dataset.rmph), 1);
+  drawAddPhotos();
+});
+
+// ---------- 👥 Mijozlar bazasi ----------
+const cliArea = (c) => c.area || areaOf({ address: c.address || "" });
+function renderClients() {
+  const q = cliSearch.toLowerCase().trim();
+  const qd = q.replace(/\D/g, "");
+  const counts = {};
+  clients.forEach((c) => {
+    const a = cliArea(c);
+    counts[a] = (counts[a] || 0) + 1;
+  });
+  const names = allAreaNames().concat(counts["Boshqa"] ? ["Boshqa"] : []).filter((a) => counts[a] || a === area);
+  names.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+  const tile = (key, label, n) => `<button type="button" class="city ${area === key ? "on" : ""}" data-area="${esc(key)}"><b>${esc(label)}</b><span>${n || 0}</span></button>`;
+  $("#dvAreas").innerHTML = `
+    <div class="dv-tools">
+      <button class="btn btn-yellow" type="button" id="cliAdd">➕ Mijoz qo'shish</button>
+      <label class="btn btn-dark file-btn">📥 Excel'dan mijozlar<input id="cliImport" type="file" accept=".xlsx,.xls,.csv" hidden /></label>
+    </div>
+    <input class="dv-search" id="cliQ" type="search" placeholder="🔎 Ism yoki telefon bo'yicha qidirish" value="${esc(cliSearch)}" />
+    <div class="city-grid">${tile("all", "Hammasi", clients.length)}${names.map((a) => tile(a, a, counts[a])).join("")}
+      <button type="button" class="city add" id="cityAdd"><b>➕</b><small>Shahar qo'shish</small></button></div>`;
+  const shown = clients
+    .filter((c) => area === "all" || cliArea(c) === area)
+    .filter((c) => !q || (c.name || "").toLowerCase().includes(q) || (qd.length >= 2 && (digits(c.phone).includes(qd) || digits(c.phone2).includes(qd))))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  $("#dvList").innerHTML = shown.length
+    ? shown
+        .map((c) => {
+          const n = list.filter((s) => digits(s.phone).slice(-9) === digits(c.phone).slice(-9)).length;
+          return `<button type="button" class="op-card dv-card" data-cli="${c.id}">
+            <span class="oc-top"><b>${esc(c.name || "Mijoz")}</b>${n ? `<span class="pill ok">🚚 ${n}</span>` : ""}</span>
+            <span class="oc-int">📍 <b>${esc(cliArea(c))}</b>${c.address ? " · " + esc(c.address) : ""}</span>
+            <span class="oc-bot"><small>📞 ${esc(c.phone || "")}${c.phone2 ? " · " + esc(c.phone2) : ""}</small></span>
+          </button>`;
+        })
+        .join("")
+    : `<p class="empty">${clients.length ? "Topilmadi" : "Bazada hali mijoz yo'q — ➕ yoki Excel orqali qo'shing"}</p>`;
+}
+
+function renderCliCard(c) {
+  const d = digits(c.phone);
+  const hist = list.filter((s) => digits(s.phone).slice(-9) === d.slice(-9)).sort((a, b) => dday(b).localeCompare(dday(a)));
+  const phoneBtns = (p) => {
+    const x = digits(p);
+    return `<div class="op-contact dv-c4">
+      <a class="btn btn-yellow" href="tel:+${x}">📞</a>
+      <a class="btn btn-line" href="tg://resolve?phone=${x}">✈️</a>
+      <a class="btn btn-line" href="sms:+${x}">💬</a>
+      <a class="btn btn-line" href="https://wa.me/${x}" target="_blank" rel="noopener">🟢</a>
+    </div>`;
+  };
+  $("#dvBody").innerHTML = `
+    <h2>${esc(c.name || "Mijoz")}</h2>
+    <p class="muted">📍 ${esc(cliArea(c))}${c.address ? " — " + esc(c.address) : ""}</p>
+    ${c.note ? `<p class="muted">📝 ${esc(c.note)}</p>` : ""}
+    <p><b>${esc(c.phone || "")}</b></p>${phoneBtns(c.phone)}
+    ${c.phone2 ? `<p><b>${esc(c.phone2)}</b></p>${phoneBtns(c.phone2)}` : ""}
+    <button class="btn btn-dark btn-block" type="button" data-cact="deliver" style="margin-top:12px">🚚 Yetkazish qo'shish</button>
+    <div class="op-contact" style="margin-top:8px">
+      <button class="btn btn-line" type="button" data-cact="edit">✏️ Tahrirlash</button>
+      ${me.admin ? `<button class="btn btn-line" type="button" data-cact="del">🗑 O'chirish</button>` : ""}
+    </div>
+    ${hist.length ? `<h3 class="op-h">Yetkazishlar</h3><ul class="op-log">${hist.slice(0, 8).map((s) => `<li>${fmtDate(dday(s))} — ${esc(prodShort(s) || "buyurtma")} · ${esc(s.status || "")}</li>`).join("")}</ul>` : ""}`;
+  $("#dvBody").dataset.cli = c.id;
+}
+
+function openCliForm(c) {
+  cliEditId = c ? c.id : null;
+  const f = $("#cliForm").elements;
+  $("#cliForm").reset();
+  $("#cliTitle").textContent = c ? "✏️ Mijozni tahrirlash" : "👥 Yangi mijoz";
+  f.area.innerHTML = `<option value="">— manzildan aniqlansin —</option>` + allAreaNames().map((n) => `<option>${esc(n)}</option>`).join("");
+  if (c) ["name", "phone", "phone2", "address", "note"].forEach((k) => (f[k].value = c[k] || ""));
+  f.area.value = c ? c.area || "" : area !== "all" && area !== "Boshqa" ? area : "";
+  $("#cliDlg").showModal();
+}
+
+$("#dvAreas").addEventListener("input", (e) => {
+  if (e.target.id !== "cliQ") return;
+  cliSearch = e.target.value;
+  const pos = e.target.selectionStart;
+  renderClients();
+  const i = $("#cliQ");
+  i.focus();
+  i.setSelectionRange(pos, pos);
+});
+$("#dvAreas").addEventListener("click", (e) => {
+  if (e.target.closest("#cliAdd")) openCliForm(null);
+});
+$("#dvAreas").addEventListener("change", (e) => {
+  if (e.target.id === "cliImport") importClients(e.target);
+});
+$("#dvList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-cli]");
+  if (!b) return;
+  const c = clients.find((x) => x.id === b.dataset.cli);
+  if (!c) return;
+  openId = null;
+  renderCliCard(c);
+  $("#dvDlg").showModal();
+});
+$("#dvBody").addEventListener("click", async (e) => {
+  const a = e.target.closest("[data-cact]");
+  if (!a) return;
+  const c = clients.find((x) => x.id === $("#dvBody").dataset.cli);
+  if (!c) return;
+  if (a.dataset.cact === "edit") {
+    $("#dvDlg").close();
+    openCliForm(c);
+  } else if (a.dataset.cact === "del") {
+    if (!confirm(`${c.name} bazadan o'chirilsinmi?`)) return;
+    try {
+      await deleteDoc(doc(db, "dvClients", c.id));
+      $("#dvDlg").close();
+      toast("O'chirildi");
+    } catch (err) {
+      toast("O'chmadi: " + err.message, "err");
+    }
+  } else if (a.dataset.cact === "deliver") {
+    $("#dvDlg").close();
+    $("#dvAdd").click();
+    const f = $("#addForm").elements;
+    f.name.value = c.name || "";
+    f.phone.value = c.phone || "";
+    f.address.value = c.address || "";
+    if (c.area) f.area.value = c.area;
+  }
+});
+$("#cliForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const phone = normalizePhone(f.phone.value);
+  if (!phone) return toast("Telefon raqam noto'g'ri", "err");
+  const phone2 = f.phone2.value.trim() ? normalizePhone(f.phone2.value) || f.phone2.value.trim() : "";
+  const data = { name: f.name.value.trim(), phone, phone2, area: f.area.value, address: f.address.value.trim(), note: f.note.value.trim(), updatedAt: serverTimestamp() };
+  const dg = digits(phone).slice(-9);
+  if (!cliEditId && clients.some((x) => digits(x.phone).slice(-9) === dg)) return toast("Bu raqam bazada bor", "err");
+  try {
+    if (cliEditId) await updateDoc(doc(db, "dvClients", cliEditId), data);
+    else await addDoc(collection(db, "dvClients"), { ...data, createdAt: serverTimestamp() });
+    $("#cliDlg").close();
+    toast("✅ Saqlandi");
+  } catch (err) {
+    toast("Saqlanmadi: " + err.message, "err");
+  }
+});
+
+async function importClients(input) {
+  const file = input.files[0];
+  input.value = "";
+  if (!file) return;
+  try {
+    const XLSX = await import(XLSX_URL);
+    const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "", raw: false });
+    const names = allAreaNames();
+    const have = new Set(clients.map((x) => digits(x.phone).slice(-9)));
+    const items = [];
+    let bad = 0,
+      dup = 0;
+    for (const r of rows) {
+      const name = String(pickCol(r, "ism", "mijoz", "klient", "name", "fio") || "").trim();
+      const p1 = String(pickCol(r, "telefon", "tel", "phone", "raqam") || "");
+      if (!name && !p1) continue;
+      const [a, b] = p1.split(/[\/;,]| va /).map((x) => x.trim());
+      const phone = normalizePhone(a);
+      if (!phone) {
+        bad++;
+        continue;
+      }
+      const dg = digits(phone).slice(-9);
+      if (have.has(dg)) {
+        dup++;
+        continue;
+      }
+      have.add(dg);
+      const p2raw = String(pickCol(r, "2-tel", "telefon 2", "telefon2", "qo'shimcha") || b || "").trim();
+      const rawArea = String(pickCol(r, "shahar", "tuman", "hudud") || "").trim();
+      const norm = (x) => x.toLowerCase().replace(/[ʻʼ'`‘’]/g, "").replace(/\s*sh\.?$/, "").trim();
+      const ar = names.find((n) => norm(n) === norm(rawArea)) || "";
+      items.push({
+        name: name || "Mijoz",
+        phone,
+        phone2: p2raw ? normalizePhone(p2raw) || p2raw : "",
+        area: ar,
+        address: String(pickCol(r, "manzil", "adres", "address") || "").trim(),
+        note: String(pickCol(r, "izoh", "note") || "").trim(),
+        createdAt: serverTimestamp(),
+      });
+    }
+    if (!items.length) return toast(dup ? `Hammasi bazada bor (${dup} ta)` : "Faylda mijoz topilmadi", "err");
+    if (!confirm(`${items.length} ta mijoz bazaga qo'shilsinmi?` + (dup ? `\n${dup} ta raqam bazada bor — o'tkazildi` : "") + (bad ? `\n${bad} ta qatorda raqam noto'g'ri` : ""))) return;
+    for (let i = 0; i < items.length; i += 400) {
+      const bt = writeBatch(db);
+      items.slice(i, i + 400).forEach((d) => bt.set(doc(collection(db, "dvClients")), d));
+      await bt.commit();
+    }
+    toast(`✅ ${items.length} ta mijoz qo'shildi`);
+  } catch (err) {
+    console.error(err);
+    toast("Import bo'lmadi: " + err.message, "err");
+  }
+}

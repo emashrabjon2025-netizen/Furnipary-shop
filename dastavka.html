@@ -9,7 +9,7 @@
   <link rel="icon" href="img/logo.png" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
-  <link rel="stylesheet" href="css/operator.css?v=7" />
+  <link rel="stylesheet" href="css/operator.css?v=8" />
   <link rel="manifest" href="/manifest-dastavka.webmanifest" />
   <link rel="apple-touch-icon" href="/img/app-dastavka-180.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -50,6 +50,7 @@
       <button class="tab" data-v="tomorrow">📅 Ertaga yetkaziladigan <span id="nTomorrow"></span></button>
       <button class="tab" data-v="later">🗓 Keyingi kunlar <span id="nLater"></span></button>
       <button class="tab" data-v="done">✅ Yetkazilgan</button>
+      <button class="tab" data-v="clients">👥 Mijozlar <span id="nClients"></span></button>
     </nav>
     <div class="dv-areas" id="dvAreas"></div>
     <div class="dv-route" id="dvRoute"></div>
@@ -73,12 +74,15 @@
       </div>
       <label>Shahar / tuman<select name="area"></select></label>
       <label>Manzil *<input name="address" required maxlength="160" placeholder="Ko'cha, uy, mo'ljal" /></label>
-      <label>Mahsulot *<input name="product" required maxlength="160" placeholder="Masalan: Ortopedik matras 160×200" /></label>
+      <label>Mahsulotlar ro'yxati <small class="muted">(ixtiyoriy — har birini yangi qatordan)</small>
+        <textarea name="product" rows="4" maxlength="1500" placeholder="Ortopedik matras 160×200&#10;Divan bosh tomoni&#10;Sushilka 80 sm"></textarea></label>
+      <label>📷 Rasm (ro'yxat yoki nakladnoy rasmi, 3 tagacha)</label>
+      <div class="dv-photos" id="addPhotos"></div>
+      <label class="btn btn-line btn-block file-btn">📷 Rasm qo'shish<input id="addPhotoIn" type="file" accept="image/*" multiple hidden /></label>
       <div class="two">
-        <label>Soni<input name="qty" type="number" min="1" value="1" inputmode="numeric" /></label>
+        <label>Umumiy summa *<input name="amount" inputmode="decimal" required placeholder="2 900 000" /></label>
         <label>Valyuta<select name="currency"><option>so'm</option><option>$</option></select></label>
       </div>
-      <label>Umumiy summa *<input name="amount" inputmode="decimal" required placeholder="2 900 000" /></label>
       <label>Qachon yetkaziladi</label>
       <div class="reason-btns" id="addWhen">
         <button type="button" class="btn btn-line on" data-when="today">🚚 Bugun</button>
@@ -87,6 +91,23 @@
       <label id="addCourierWrap" hidden>🚚 Kuryer<select name="courier"></select></label>
       <label>Izoh<input name="note" maxlength="300" placeholder="Qavat, lift, qo'ng'iroq qilib borish…" /></label>
       <button class="btn btn-yellow btn-block" type="submit">Qo'shish</button>
+    </form>
+  </dialog>
+
+  <!-- Mijoz (baza) -->
+  <dialog id="cliDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="cliForm" class="pform">
+      <h2 id="cliTitle">👥 Yangi mijoz</h2>
+      <div class="two">
+        <label>Ism *<input name="name" required maxlength="60" /></label>
+        <label>Telefon *<input name="phone" type="tel" inputmode="tel" required placeholder="90 123 45 67" /></label>
+      </div>
+      <label>2-telefon<input name="phone2" type="tel" inputmode="tel" placeholder="ixtiyoriy" /></label>
+      <label>Shahar / tuman<select name="area"></select></label>
+      <label>Manzil<input name="address" maxlength="160" placeholder="Ko'cha, uy, mo'ljal" /></label>
+      <label>Izoh<input name="note" maxlength="300" /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
     </form>
   </dialog>
 
@@ -118,7 +139,7 @@
     </form>
   </dialog>
 
-  <script type="module" src="js/courier.js?v=8"></script>
+  <script type="module" src="js/courier.js?v=9"></script>
   <script type="module" src="js/pwa-panel.js?v=1"></script>
 </body>
 </html>
