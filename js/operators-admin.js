@@ -73,7 +73,12 @@ function render() {
 
   const un = leads.filter((l) => !l.assignedTo && !CLOSED.includes(l.stage));
   const active = ops.filter((o) => o.active !== false);
-  $("#opUnassigned").innerHTML = un.length && active.length ? `<button class="pill late" id="opSpread">👤 Biriktirilmagan ochiq lidlar: ${un.length} — operatorlarga taqsimlash</button>` : "";
+  const loads = active.map((o) => leads.filter((l) => l.assignedTo === o.id && !CLOSED.includes(l.stage)).length);
+  const uneven = active.length > 1 && Math.max(...loads) - Math.min(...loads) > 1;
+  $("#opUnassigned").innerHTML = [
+    un.length && active.length ? `<button class="pill late" id="opSpread">👤 Biriktirilmagan ochiq lidlar: ${un.length} — operatorlarga taqsimlash</button>` : "",
+    active.length > 1 ? `<button class="btn ${uneven ? "btn-yellow" : "btn-line"}" type="button" id="opBalance">⚖️ Teng taqsimlash</button> <small class="muted">Faqat hali bog'lanilmagan lidlar o'tkaziladi — operator gaplashgan mijoz o'zida qoladi.</small>` : "",
+  ].join(" ");
 
   $("#opCards").innerHTML = rows
     .map(({ o, s }) => {
@@ -90,7 +95,7 @@ function render() {
         </div>
         ${s.reasons.length ? `<p class="small">❌ Ko'p rad etish sababi: ${s.reasons.map(([r, n]) => `${esc(r)} (${n})`).join(", ")}</p>` : ""}
         <p class="small">${o.tgChat ? `✈️ Telegram ulangan${o.tgName ? ` (@${esc(o.tgName)})` : ""} — yangi lid va eslatmalar unga boradi` : `✈️ Telegram ulanmagan. ${link ? `Operator shu havolani ochib <b>Start</b> bossin:<br><a href="${link}" target="_blank" rel="noopener">${link}</a> <button class="pill" type="button" data-copy="${link}">nusxalash</button>` : "Bot nomini olishning iloji bo'lmadi."}`}</p>
-        <div class="btn-row"><button class="btn btn-sm btn-line" type="button" data-move="${o.id}" ${s.open ? "" : "disabled"}>↪ Ochiq lidlarini boshqalarga o'tkazish</button></div>
+        <div class="btn-row"><button class="btn btn-sm btn-line" type="button" data-move="${o.id}" ${s.waiting ? "" : "disabled"}>↪ Bog'lanilmagan lidlarini boshqalarga o'tkazish</button></div>
       </div>`;
     })
     .join("");
@@ -158,6 +163,48 @@ function renderMatras() {
     .join("");
 }
 
+// Operator hali bog'lanmagan lid (qo'ng'iroq/urinish yo'q) — faqat shunday lid boshqasiga o'tkaziladi
+const untouched = (l) => l.stage === "Yangi" && !l.contactedAt && !(Number(l.attempts) > 0);
+
+// ⚖️ Teng taqsimlash: ochiq lidlar soni faol operatorlarda teng bo'lsin.
+// Ko'p yuklangan operatordan faqat bog'lanilmagan lidlar (eng yangilari) kam yuklanganga o'tadi.
+async function balance() {
+  const active = ops.filter((o) => o.active !== false);
+  if (active.length < 2) return toast("Kamida 2 ta faol operator kerak", "err");
+  const ids = new Set(active.map((o) => o.id));
+  const open = leads.filter((l) => !CLOSED.includes(l.stage));
+  const load = Object.fromEntries(active.map((o) => [o.id, open.filter((l) => l.assignedTo === o.id).length]));
+  const newest = (a, b) => String(b.createdAt?.seconds || b.createdAt || b.date || "").localeCompare(String(a.createdAt?.seconds || a.createdAt || a.date || ""));
+  const movable = Object.fromEntries(active.map((o) => [o.id, open.filter((l) => l.assignedTo === o.id && untouched(l)).sort(newest)]));
+  // operatorsiz yoki faol bo'lmagan operatordagi bog'lanilmagan lidlar ham taqsimlanadi
+  const orphans = open.filter((l) => !ids.has(l.assignedTo || "") && (!l.assignedTo || untouched(l)));
+  const moves = [];
+  const minOp = () => active.reduce((a, b) => (load[b.id] < load[a.id] ? b : a));
+  orphans.forEach((l) => {
+    const o = minOp();
+    load[o.id]++;
+    moves.push([l, o]);
+  });
+  for (let guard = 0; guard < 2000; guard++) {
+    const to = minOp();
+    const from = active.filter((o) => movable[o.id].length).reduce((a, b) => (!a || load[b.id] > load[a.id] ? b : a), null);
+    if (!from || load[from.id] - load[to.id] <= 1) break;
+    const l = movable[from.id].shift();
+    load[from.id]--;
+    load[to.id]++;
+    moves.push([l, to]);
+  }
+  if (!moves.length) return toast("Lidlar allaqachon teng (yoki o'tkazsa bo'ladigan bog'lanilmagan lid yo'q)");
+  const plan = active.map((o) => `${o.name}: ${load[o.id]} ta`).join("\n");
+  if (!confirm(`${moves.length} ta bog'lanilmagan lid qayta taqsimlanadi.\nNatija (ochiq lidlar):\n${plan}\n\nOperator gaplashgan mijozlar o'zida qoladi.`)) return;
+  for (let i = 0; i < moves.length; i += 400) {
+    const batch = writeBatch(db);
+    moves.slice(i, i + 400).forEach(([l, o]) => batch.update(doc(db, "crmLeads", l.id), { assignedTo: o.id, assignedName: o.name || "", assignedAt: new Date().toISOString(), remind5: false, remind30: false }));
+    await batch.commit();
+  }
+  toast(`⚖️ ${moves.length} ta lid teng taqsimlandi`);
+}
+
 async function spread(list, exceptId) {
   const active = ops.filter((o) => o.active !== false && o.id !== exceptId);
   if (!active.length) return toast("Faol operator yo'q", "err");
@@ -173,6 +220,7 @@ async function spread(list, exceptId) {
 }
 
 document.addEventListener("click", async (e) => {
+  if (e.target.id === "opBalance") await balance().catch((err) => toast(err.message, "err"));
   if (e.target.id === "opSpread") {
     const un = leads.filter((l) => !l.assignedTo && !CLOSED.includes(l.stage));
     if (confirm(`${un.length} ta lid operatorlarga teng taqsimlansinmi?`)) await spread(un).catch((err) => toast(err.message, "err"));
@@ -180,8 +228,10 @@ document.addEventListener("click", async (e) => {
   const mv = e.target.closest("[data-move]");
   if (mv) {
     const o = ops.find((x) => x.id === mv.dataset.move);
-    const list = leads.filter((l) => l.assignedTo === o.id && !CLOSED.includes(l.stage));
-    if (confirm(`${o.name}ning ${list.length} ta ochiq lidi boshqa operatorlarga o'tkazilsinmi?`)) await spread(list, o.id).catch((err) => toast(err.message, "err"));
+    const all = leads.filter((l) => l.assignedTo === o.id && !CLOSED.includes(l.stage));
+    const list = all.filter(untouched);
+    if (!list.length) return toast(`${o.name}da bog'lanilmagan lid yo'q — gaplashgan mijozlari o'zida qoladi`);
+    if (confirm(`${o.name}ning ${list.length} ta bog'lanilmagan lidi boshqa operatorlarga o'tkazilsinmi?` + (all.length > list.length ? `\n${all.length - list.length} ta gaplashgan mijoz o'zida qoladi.` : ""))) await spread(list, o.id).catch((err) => toast(err.message, "err"));
   }
   if (e.target.id === "crAssign") {
     const c = couriers.find((x) => x.id === $("#crPick").value);

@@ -204,8 +204,11 @@ async function assignOrphans(leads, ops) {
   const active = ops.filter((o) => o.active !== false).sort((a, b) => String(a.id).localeCompare(String(b.id)));
   if (!active.length) return [];
   const ok = new Set(active.map((o) => o.id));
+  const exists = new Set(ops.map((o) => o.id));
+  const touched = (l) => l.stage !== "Yangi" || l.contactedAt || Number(l.attempts) > 0;
   const orphans = leads
-    .filter((l) => !["Sotildi", "Rad etdi"].includes(l.stage) && !ok.has(l.assignedTo || ""))
+    // operatori yo'q lid — albatta; faol bo'lmagan operatordagi lid — faqat u hali bog'lanmagan bo'lsa
+    .filter((l) => !["Sotildi", "Rad etdi"].includes(l.stage) && !ok.has(l.assignedTo || "") && !(l.assignedTo && exists.has(l.assignedTo) && touched(l)))
     .sort((a, b) => String(a.createdAt || a.date || "").localeCompare(String(b.createdAt || b.date || "")));
   if (!orphans.length) return [];
   const rr = (await getOne("crmSettings", "rr")) || {};
