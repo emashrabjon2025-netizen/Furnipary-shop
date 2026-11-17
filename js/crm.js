@@ -583,7 +583,7 @@ function renderLeads() {
         ${l.stage === "Rad etdi" && l.lostReason ? `<div><span class="pill late">✖ ${escapeHtml(l.lostReason)}</span>${l.lostNote ? ` <small class="muted">${escapeHtml(l.lostNote)}</small>` : ""}</div>` : ""}
         ${
           l.nextCall && !CLOSED.includes(l.stage)
-            ? `<div><span class="pill ${l.nextCall < t ? "late" : l.nextCall === t ? "today" : ""}">📞 ${fmtDate(l.nextCall)}</span></div>`
+            ? `<div><span class="pill ${l.nextCall < t ? "late" : l.nextCall === t ? "today" : ""}">📞 ${fmtDate(l.nextCall)}${l.nextCallTime ? " " + escapeHtml(l.nextCallTime) : ""}</span></div>`
             : ""
         }
         ${isStale(l) ? `<div><span class="pill late">⏰ ${Math.floor((Date.now() - tsMs(l.createdAt)) / 3600e3)} soatdan beri javobsiz</span></div>` : ""}
@@ -624,6 +624,7 @@ function openLead(id) {
     `<option value="">Avtomatik (kalit so'z va sana bo'yicha)</option><option value="none"${l.campaign === "none" ? " selected" : ""}>Reklamadan emas</option>` +
     tgt.campaigns.map((c) => `<option value="${escapeHtml(c.id)}"${l.campaign === c.id ? " selected" : ""}>📣 ${escapeHtml(c.name)}</option>`).join("");
   f.nextCall.value = id ? l.nextCall || "" : today();
+  f.nextCallTime.value = id ? l.nextCallTime || "" : "";
   f.note.value = l.note || "";
   f.assignedTo.innerHTML =
     `<option value="">${id && !l.assignedTo ? "— biriktirilmagan —" : "🔄 Navbat bilan (avtomatik)"}</option>` +
@@ -649,6 +650,7 @@ $("#leadForm").addEventListener("submit", async (e) => {
     ctype: f.ctype.value,
     campaign: f.campaign.value,
     nextCall: f.nextCall.value || "",
+    nextCallTime: f.nextCall.value ? f.nextCallTime.value || "" : "",
     note: f.note.value.trim(),
     updatedAt: serverTimestamp(),
   };

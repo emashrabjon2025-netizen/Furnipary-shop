@@ -114,3 +114,7 @@
 .dv-prod li { background: #f7f6f2; border-radius: 10px; padding: 6px 10px; font-weight: 600; }
 .dv-search { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; margin: 0 0 10px; }
 .dv-c4 { grid-template-columns: repeat(4, 1fr) !important; }
+
+.op-next-row { display: grid; grid-template-columns: 1fr 140px; gap: 8px; }
+.op-next-row input { min-width: 0; }
+.op-next small { font-weight: 400; }

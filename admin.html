@@ -373,7 +373,10 @@
       </div>
       <label>Mijoz turi<select name="ctype"></select></label>
       <label>Reklama kampaniyasi<select name="campaign"></select></label>
-      <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
+      <div class="two">
+        <label>Keyingi qo'ng'iroq sanasi<input name="nextCall" type="date" /></label>
+        <label>Soati <small class="muted">(5 daq oldin eslatma)</small><input name="nextCallTime" type="time" step="300" /></label>
+      </div>
       <label id="opWrap" hidden>Operator<select name="assignedTo"></select></label>
       <label>Izoh<textarea name="note" rows="3" maxlength="1000"></textarea></label>
       <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
@@ -519,7 +522,7 @@
   </dialog>
 
   <script type="module" src="js/admin.js?v=10"></script>
-  <script type="module" src="js/crm.js?v=37"></script>
+  <script type="module" src="js/crm.js?v=38"></script>
   <script type="module" src="js/sitechat-admin.js?v=2"></script>
   <script type="module" src="js/operators-admin.js?v=7"></script>
   <script type="module" src="js/delivery-report.js?v=3"></script>

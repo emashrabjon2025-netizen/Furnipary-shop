@@ -64,9 +64,35 @@ module.exports = async (req, res) => {
     if (due5.length) await tg([`⏰ <b>5 daqiqadan beri qo'ng'iroq qilinmagan lidlar: ${due5.length}</b>`, ...due5.map(line)].join("\n"));
     if (due30.length) await tg([`🚨 <b>30 daqiqadan oshdi — lid sovuyapti: ${due30.length}</b>`, ...due30.map(line)].join("\n"));
 
+    // Belgilangan soatdagi qo'ng'iroq — 5 daqiqa oldin operatorga eslatma
+    const td = new Date(now + 5 * 3600e3).toISOString().slice(0, 10);
+    const toMin = (t) => (/^\d{1,2}:\d{2}$/.test(t || "") ? Number(t.split(":")[0]) * 60 + Number(t.split(":")[1]) : null);
+    const timed = leads.filter((l) => {
+      if (["Sotildi", "Rad etdi"].includes(l.stage) || l.nextCall !== td) return false;
+      const tm = toMin(l.nextCallTime);
+      if (tm === null) return false;
+      const left = tm - m;
+      return left <= 6 && left >= -30 && l.callRemindFor !== `${td} ${l.nextCallTime}`;
+    });
+    for (const l of timed) {
+      const op = opById[l.assignedTo];
+      const left = toMin(l.nextCallTime) - m;
+      const msg = [
+        `⏰ <b>${left > 0 ? `${left} daqiqadan keyin` : "Hozir"} qo'ng'iroq qilish kerak — ${esc(l.nextCallTime)}</b>`,
+        `👤 <b>${esc(l.name || "Nomsiz")}</b> ${esc(l.phone || "")}`,
+        l.interest ? `🛏 ${esc(l.interest)}` : "",
+        l.note ? `📝 ${esc(String(l.note).slice(-200))}` : "",
+        ``,
+        `👉 https://furnipart-shop.vercel.app/operator`,
+      ].filter((x) => x !== "").join("\n");
+      if (op && op.tgChat && op.active !== false) await tg(msg, { chat_id: op.tgChat }).catch(() => {});
+      else await tg(msg + `\n(operatorga yuborib bo'lmadi${l.assignedName ? " · " + esc(l.assignedName) : ""})`).catch(() => {});
+      await patch("crmLeads", l.id, { callRemindFor: `${td} ${l.nextCallTime}` });
+    }
+
     for (const l of due5) await patch("crmLeads", l.id, { remind5: true });
     for (const l of due30) await patch("crmLeads", l.id, { remind30: true });
-    return res.status(200).json({ ok: true, assigned: assigned.length, r5: due5.length, r30: due30.length });
+    return res.status(200).json({ ok: true, assigned: assigned.length, r5: due5.length, r30: due30.length, timed: timed.length });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, reason: e.message });

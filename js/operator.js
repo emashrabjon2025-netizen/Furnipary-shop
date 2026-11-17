@@ -161,7 +161,7 @@ function card(l) {
   const late = isNew(l) && created && Date.now() - created > 5 * 60e3;
   const att = Number(l.attempts) || 0;
   return `<button type="button" class="op-card ${late ? "late" : ""} ${isNew(l) ? "new" : ""}" data-open="${l.id}">
-    <span class="oc-top"><b>${esc(l.name || "Nomsiz")}</b>${isNew(l) ? `<span class="pill ${late ? "late" : "today"}">${late ? "⏰ " : "🆕 "}${created ? ago(created) : "yangi"}</span>` : l.nextCall ? `<span class="pill ${l.nextCall < today() ? "late" : "today"}">📞 ${l.nextCall < today() ? "kechikdi " + fmtDate(l.nextCall) : l.nextCall === today() ? "bugun" : fmtDate(l.nextCall)}</span>` : ""}</span>
+    <span class="oc-top"><b>${esc(l.name || "Nomsiz")}</b>${isNew(l) ? `<span class="pill ${late ? "late" : "today"}">${late ? "⏰ " : "🆕 "}${created ? ago(created) : "yangi"}</span>` : l.nextCall ? `<span class="pill ${l.nextCall < today() ? "late" : "today"}">📞 ${l.nextCall < today() ? "kechikdi " + fmtDate(l.nextCall) : l.nextCall === today() ? "bugun" : fmtDate(l.nextCall)}${l.nextCallTime ? " " + esc(l.nextCallTime) : ""}</span>` : ""}</span>
     <span class="oc-mid">${esc(l.phone || "")}${l.region ? ` · 📍 ${esc(l.region)}` : ""}</span>
     ${l.interest ? `<span class="oc-int">🛏 ${esc(l.interest)}</span>` : ""}
     <span class="oc-bot"><small>${esc(l.stage)}${att ? ` · urinish ${att}/${MIN_ATTEMPTS}` : ""}</small>${l.stage === "Sotildi" && l.soldAmount ? `<small>💰 ${esc(l.soldAmount)}</small>` : ""}</span>
@@ -284,7 +284,10 @@ function renderLead() {
       <button class="btn btn-yellow" type="button" data-res="sold">💰 Sotildi</button>
       <button class="btn btn-ghost-d" type="button" data-res="lost">✖ Olmadi</button>
     </div>
-    <label class="op-next">Keyingi qo'ng'iroq <input type="date" id="nextCall" value="${esc(l.nextCall || "")}" /></label>`
+    <div class="op-next">Keyingi qo'ng'iroq
+      <div class="op-next-row"><input type="date" id="nextCall" value="${esc(l.nextCall || "")}" /><input type="time" id="nextCallTime" value="${esc(l.nextCallTime || "")}" step="300" /></div>
+      <small class="muted">Soat qo'ysangiz — 5 daqiqa oldin Telegram'ga va shu panelga eslatma keladi</small>
+    </div>`
     }
     <label class="op-note">Izoh (mijoz nima dedi)<textarea id="leadNote" rows="3" maxlength="1000">${esc(l.note || "")}</textarea></label>
     <button class="btn btn-dark btn-sm" type="button" id="saveNote">Izohni saqlash</button>
@@ -324,6 +327,7 @@ $("#leadBody").addEventListener("click", async (e) => {
   if (!r) return;
   const note = $("#leadNote").value.trim();
   const next = $("#nextCall")?.value;
+  const nextT = $("#nextCallTime")?.value || "";
   const att = Number(l.attempts) || 0;
   const res = r.dataset.res;
   if (res === "noans") {
@@ -334,15 +338,16 @@ $("#leadBody").addEventListener("click", async (e) => {
       {
         note,
         nextCall: addDays(days),
+        ...(l.nextCallTime ? { nextCallTime: "" } : {}),
         attemptLog: arrayUnion({ at: Date.now(), t: "📵 ko'tarmadi" }),
         ...(att === 0 ? { attempts: 1, lastAttemptAt: Date.now() } : {}),
       },
       n >= MIN_ATTEMPTS ? `Urinishlar ${n}/${MIN_ATTEMPTS}. Endi "Olmadi → Javob bermadi" deb yopish mumkin` : `Keyingi urinish: ${fmtDate(addDays(days))}`
     );
   } else if (res === "talk") {
-    await save(l, { stage: "Bog'lanildi", note, nextCall: next && next > today() ? next : addDays(1), attemptLog: arrayUnion({ at: Date.now(), t: "✅ gaplashdik" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi — keyingi qo'ng'iroq sanasini tekshiring");
+    await save(l, { stage: "Bog'lanildi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(1), ...timeUpd(l, nextT), attemptLog: arrayUnion({ at: Date.now(), t: "✅ gaplashdik" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi — keyingi qo'ng'iroq sanasini tekshiring");
   } else if (res === "think") {
-    await save(l, { stage: "O'ylab ko'radi", note, nextCall: next && next > today() ? next : addDays(2), attemptLog: arrayUnion({ at: Date.now(), t: "🤔 o'ylab ko'radi" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi");
+    await save(l, { stage: "O'ylab ko'radi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(2), ...timeUpd(l, nextT), attemptLog: arrayUnion({ at: Date.now(), t: "🤔 o'ylab ko'radi" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi");
   } else if (res === "sold") {
     openSale(l);
   } else if (res === "lost") {
@@ -350,6 +355,7 @@ $("#leadBody").addEventListener("click", async (e) => {
   }
 });
 
+const timeUpd = (l, t) => (t !== (l.nextCallTime || "") ? { nextCallTime: t } : {});
 async function save(l, data, msg) {
   try {
     await updateDoc(doc(db, "crmLeads", l.id), { ...data, updatedAt: serverTimestamp() });
@@ -368,6 +374,54 @@ function openSale(l) {
   f.note.value = "";
   $("#saleDlg").showModal();
 }
+// Sana yoki soat o'zgarsa — darhol saqlanadi (natija tugmasini bosish shart emas)
+$("#leadBody").addEventListener("change", async (e) => {
+  if (!["nextCall", "nextCallTime"].includes(e.target.id)) return;
+  const l = leads.find((x) => x.id === openId);
+  if (!l) return;
+  const d = $("#nextCall").value;
+  const t = $("#nextCallTime").value || "";
+  if (!d) return;
+  await save(l, { nextCall: d, ...timeUpd(l, t) }, t ? `📞 ${fmtDate(d)} soat ${t} — 5 daqiqa oldin eslatamiz` : `📞 Keyingi qo'ng'iroq: ${fmtDate(d)}`);
+});
+
+// Panel ochiq bo'lsa — belgilangan soatdan 5 daqiqa oldin ovozli/vizual eslatma
+const alerted = new Set();
+function checkTimedCalls() {
+  const now = new Date(Date.now() + 5 * 3600e3);
+  const td = now.toISOString().slice(0, 10);
+  const m = now.getUTCHours() * 60 + now.getUTCMinutes();
+  leads.forEach((l) => {
+    if (CLOSED.includes(l.stage) || l.nextCall !== td || !/^\d{1,2}:\d{2}$/.test(l.nextCallTime || "")) return;
+    const [h, mi] = l.nextCallTime.split(":").map(Number);
+    const left = h * 60 + mi - m;
+    const key = l.id + td + l.nextCallTime;
+    if (left > 5 || left < -30 || alerted.has(key)) return;
+    alerted.add(key);
+    const text = `⏰ ${left > 0 ? left + " daqiqadan keyin" : "Hozir"} qo'ng'iroq: ${l.name || "mijoz"} (${l.nextCallTime})`;
+    toast(text);
+    try {
+      navigator.vibrate && navigator.vibrate([300, 150, 300]);
+      const a = new (window.AudioContext || window.webkitAudioContext)();
+      const o = a.createOscillator();
+      o.frequency.value = 880;
+      o.connect(a.destination);
+      o.start();
+      o.stop(a.currentTime + 0.4);
+    } catch (_) {}
+    try {
+      if ("Notification" in window && Notification.permission === "granted") new Notification("FURNIPART operator", { body: text, tag: key });
+    } catch (_) {}
+  });
+}
+setInterval(checkTimedCalls, 30e3);
+setTimeout(checkTimedCalls, 4000);
+document.addEventListener("click", () => {
+  try {
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+  } catch (_) {}
+}, { once: true });
+
 $("#saleForm").elements.product.addEventListener("change", (e) => {
   const p = products.find((x) => x.name === e.target.value);
   const f = $("#saleForm").elements;

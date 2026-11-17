@@ -62,7 +62,7 @@ service cloud.firestore {
       allow update: if isOperator()
         && resource.data.assignedTo == request.auth.uid
         && request.resource.data.assignedTo == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'nextCall', 'note', 'attempts', 'lastAttemptAt', 'attemptLog', 'contactedAt', 'lostReason', 'lostNote', 'lostDate', 'soldAmount', 'soldAt', 'updatedAt', 'region']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'nextCall', 'note', 'attempts', 'lastAttemptAt', 'attemptLog', 'contactedAt', 'lostReason', 'lostNote', 'lostDate', 'soldAmount', 'soldAt', 'updatedAt', 'region', 'nextCallTime']);
     }
     match /crmClients/{id} { allow read, write: if isAdmin(); }
     match /crmSales/{id} {
