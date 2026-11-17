@@ -20,7 +20,8 @@
   "slot": "ertalab",
   "date": "2026-11-10",
   "sent_at": "2026-11-10T09:39+05:00",
-  "question": "🤔 Sizningcha, matrasni qanchada bir marta aylantirib (ag'darib) qo'yish kerak?"
+  "question": "🤔 Sizningcha, matrasni qanchada bir marta aylantirib (ag'darib) qo'yish kerak?",
+  "reported": "2026-11-17T09:45+05:00"
  },
  {
   "message_id": 15055,
@@ -112,5 +113,12 @@
   "date": "2026-11-16",
   "sent_at": "2026-11-16T16:20+05:00",
   "question": "👫 Turmush o'rtog'ingiz bilan bir matrasda yaxshi uxlaysizmi?"
+ },
+ {
+  "message_id": 15150,
+  "slot": "ertalab",
+  "date": "2026-11-17",
+  "sent_at": "2026-11-17T09:45+05:00",
+  "question": "🧠 Sizningcha, asl Blum furnitura va arzon nusxaning farqi nimada?"
  }
 ]
