@@ -13,6 +13,28 @@ const tashkentMinutes = () => {
 
 module.exports = async (req, res) => {
   try {
+    if (req.query.ics) {
+      // Telefon kalendariga eslatma (.ics): ?ics=1&d=YYYY-MM-DD&t=HH:MM&title=..&desc=..
+      const d = String(req.query.d || ""), t = String(req.query.t || "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !/^\d{1,2}:\d{2}$/.test(t)) return res.status(400).send("sana/soat noto'g'ri");
+      const clean = (s) => String(s || "").replace(/[\r\n]+/g, " ").replace(/([,;\\])/g, "\\$1").slice(0, 300);
+      const [h, mi] = t.split(":").map(Number);
+      const start = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10), h - 5, mi)); // Toshkent UTC+5
+      const z = (x) => x.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+      const end = new Date(start.getTime() + 15 * 60e3);
+      const ics = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//FURNIPART//CRM//UZ", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+        "BEGIN:VEVENT", `UID:${z(start)}-${Math.random().toString(36).slice(2)}@furnipart`, `DTSTAMP:${z(new Date())}`,
+        `DTSTART:${z(start)}`, `DTEND:${z(end)}`, `SUMMARY:${clean(req.query.title || "📞 Qo'ng'iroq")}`, `DESCRIPTION:${clean(req.query.desc)}`,
+        "BEGIN:VALARM", "TRIGGER:-PT5M", "ACTION:DISPLAY", "DESCRIPTION:5 daqiqadan keyin qo'ng'iroq", "END:VALARM",
+        "BEGIN:VALARM", "TRIGGER:PT0M", "ACTION:DISPLAY", "DESCRIPTION:Qo'ng'iroq vaqti", "END:VALARM",
+        "END:VEVENT", "END:VCALENDAR",
+      ].join("\r\n");
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", 'inline; filename="qongiroq.ics"');
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).send(ics);
+    }
     if (req.query.me) {
       const token = process.env.TELEGRAM_BOT_TOKEN;
       const j = token ? await fetch(`https://api.telegram.org/bot${token}/getMe`).then((r) => r.json()) : {};

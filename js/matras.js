@@ -170,7 +170,7 @@ function clientRow(c) {
   return `<button type="button" class="op-card ${isDue(c) ? "new" : ""} ${late ? "late" : ""}" data-open="${c.id}">
     <span class="oc-top"><b>${esc(c.name || "Nomsiz")}</b><span class="pill st-${STATUSES.indexOf(c.status || "Yangi")}">${ST_ICON[c.status || "Yangi"] || ""} ${esc(c.status || "Yangi")}</span></span>
     <span class="oc-mid">${esc(c.phone || "")}${c.address ? ` · 📍 ${esc(c.address)}` : ""}</span>
-    <span class="oc-bot"><small>${esc(c.kind || "")}${c.nextCall ? ` · 📞 ${c.nextCall === today() ? "bugun" : late ? "kechikdi " + fmtDate(c.nextCall) : fmtDate(c.nextCall)}` : ""}</small><small>${Number(c.bought) ? `🛏 ${c.bought} ta oldi` : ""}${Number(c.inProcess) ? ` · ⏳ ${c.inProcess}` : ""}</small></span>
+    <span class="oc-bot"><small>${esc(c.kind || "")}${c.nextCall ? ` · 📞 ${c.nextCall === today() ? "bugun" : late ? "kechikdi " + fmtDate(c.nextCall) : fmtDate(c.nextCall)}${c.nextCallTime ? " " + esc(c.nextCallTime) : ""}` : ""}</small><small>${Number(c.bought) ? `🛏 ${c.bought} ta oldi` : ""}${Number(c.inProcess) ? ` · ⏳ ${c.inProcess}` : ""}</small></span>
   </button>`;
 }
 
@@ -190,7 +190,7 @@ function render() {
         .join("");
       if (chip !== "all") base = base.filter((c) => (c.status || "Yangi") === chip);
     } else $("#mtChips").innerHTML = "";
-    base = base.filter(match).sort((a, b) => (view === "today" ? (a.nextCall || "").localeCompare(b.nextCall || "") : ms(b.updatedAt || b.createdAt) - ms(a.updatedAt || a.createdAt)));
+    base = base.filter(match).sort((a, b) => (view === "today" ? ((a.nextCall || "") + (a.nextCallTime || "")).localeCompare((b.nextCall || "") + (b.nextCallTime || "")) : ms(b.updatedAt || b.createdAt) - ms(a.updatedAt || a.createdAt)));
     list.innerHTML = base.length
       ? base.map(clientRow).join("")
       : `<p class="empty">${view === "today" ? "Bugunga qo'ng'iroq qolmadi 👏 Mijozlar bo'limidan yangi mijozlarga qo'ng'iroq qiling." : q ? "Topilmadi" : "Mijoz yo'q — ➕ Mijoz qo'shish yoki 📥 Excel'dan qo'shing."}</p>`;
@@ -285,15 +285,53 @@ function renderCard() {
       <span class="mt-step"><button type="button" class="chip" data-inp="-1">−</button><b>${Number(c.inProcess) || 0}</b><button type="button" class="chip" data-inp="1">+</button></span>
     </div>
     <div class="mt-row"><span>🛏 Jami olgan</span><b>${Number(c.bought) || 0} ta</b></div>
-    <label class="op-next">Keyingi qo'ng'iroq
-      <span class="mt-dates"><input type="date" id="mtNext" value="${esc(c.nextCall || "")}" /><button type="button" class="chip" data-nd="1">ertaga</button><button type="button" class="chip" data-nd="3">3 kun</button><button type="button" class="chip" data-nd="7">1 hafta</button></span>
-    </label>
+    <div class="op-next">Keyingi qo'ng'iroq
+      <span class="mt-dates"><input type="date" id="mtNext" value="${esc(c.nextCall || "")}" /><input type="time" id="mtTime" value="${esc(c.nextCallTime || "")}" /></span>
+      <span class="mt-dates"><button type="button" class="chip" data-nd="1">ertaga</button><button type="button" class="chip" data-nd="3">3 kun</button><button type="button" class="chip" data-nd="7">1 hafta</button></span>
+      ${c.nextCall && c.nextCallTime ? `<div class="mt-alarm">
+        <button type="button" class="btn btn-yellow btn-sm" id="mtAlarm">⏰ Telefonga budilnik qo'yish (${esc(c.nextCallTime)})</button>
+        <small class="muted">${IS_IOS ? `Kalendarga 5 daqiqa oldin va vaqtida signal bilan qo'shiladi. Soat ilovasidagi budilnik uchun: <a href="#" id="mtShortcutHelp">sozlash</a>` : "Soat ilovasida 5 daqiqa oldinga budilnik ochiladi"}</small>
+      </div>` : `<small class="muted">Sana va soatni qo'yib «Saqlash»ni bosing — telefon budilnigiga qo'shish tugmasi chiqadi</small>`}
+    </div>
     <label class="op-note">Izoh<textarea id="mtNote" rows="3" maxlength="1000">${esc(c.note || "")}</textarea></label>
     <div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="mtSave">Saqlash</button><button class="btn btn-line btn-sm" type="button" id="mtEdit">✏️ Tahrirlash</button>${me.admin ? `<button class="btn btn-line btn-sm" type="button" id="mtDel">🗑 O'chirish</button>` : ""}</div>
     <button class="btn btn-yellow btn-block mt-sell" type="button" id="mtSell">💰 Sotuv qo'shish</button>
     ${mySales.length ? `<h3 class="op-h">Xaridlari</h3>${mySales.map((s) => `<div class="mt-buy"><span>🛏 ${esc(s.model || s.product || "")}${s.size ? " · " + esc(s.size) : ""}${Number(s.qty) > 1 ? ` × ${s.qty}` : ""}<br><small class="muted">${fmtDate(s.date)} · 🛡 ${fmtDate(s.warrantyUntil || addYears(s.date || today(), 5))} gacha</small></span><b>${fmt(s.amount, s.currency)}</b></div>`).join("")}` : ""}
     ${log.length ? `<h3 class="op-h">Tarix</h3><ul class="op-log">${log.map((a) => `<li>${new Date(a.at).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} — ${esc(a.t)}</li>`).join("")}</ul>` : ""}
   `;
+}
+
+// ---------- ⏰ Telefon budilnigi ----------
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
+function minus5(t) {
+  const [h, m] = t.split(":").map(Number);
+  const x = (h * 60 + m - 5 + 1440) % 1440;
+  return [Math.floor(x / 60), x % 60];
+}
+function setPhoneAlarm(c) {
+  const d = c.nextCall, t = c.nextCallTime;
+  if (!d || !t) return toast("Avval sana va soatni saqlang", "err");
+  const title = `📞 ${c.name || "Mijoz"} — matras`;
+  const desc = `${c.name || ""} ${c.phone || ""}${c.note ? " · " + String(c.note).slice(0, 120) : ""}`;
+  const ics = `/api/remind?ics=1&d=${d}&t=${encodeURIComponent(t)}&title=${encodeURIComponent(title)}&desc=${encodeURIComponent(desc)}`;
+  const [h, m] = minus5(t);
+  if (IS_ANDROID) {
+    // Soat ilovasida budilnik (5 daqiqa oldin). Android budilnigi sanani bilmaydi — eng yaqin shu soatga qo'yiladi
+    const label = encodeURIComponent(`${c.name || "Mijoz"} ${c.phone || ""}`.slice(0, 40));
+    location.href = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${h};i.android.intent.extra.alarm.MINUTES=${m};S.android.intent.extra.alarm.MESSAGE=${label};B.android.intent.extra.alarm.SKIP_UI=false;end`;
+    if (d !== today()) setTimeout(() => confirm(`Budilnik ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ga qo'yildi (sana budilnikda bo'lmaydi). Kalendarga ham ${fmtDate(d)} sanasi bilan qo'shilsinmi?`) && (location.href = ics), 1500);
+    return;
+  }
+  let hasShortcut = false;
+  try {
+    hasShortcut = localStorage.getItem("fpShortcut") === "1";
+  } catch (_) {}
+  if (IS_IOS && hasShortcut && confirm(`⏰ Soat ilovasida budilnik qo'yilsinmi (${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")})?\n\nOK — budilnik («FURNIPART budilnik» buyrug'i kerak)\nBekor — kalendarga eslatma`)) {
+    location.href = `shortcuts://run-shortcut?name=${encodeURIComponent("FURNIPART budilnik")}&input=text&text=${encodeURIComponent(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)}`;
+    return;
+  }
+  location.href = ics;
 }
 
 async function patchClient(id, data, msg) {
@@ -333,9 +371,21 @@ $("#mtBody").addEventListener("click", async (e) => {
   const nd = e.target.closest("[data-nd]");
   if (nd) {
     $("#mtNext").value = addDays(Number(nd.dataset.nd));
-    return patchClient(c.id, { nextCall: $("#mtNext").value }, `📞 Keyingi qo'ng'iroq: ${fmtDate($("#mtNext").value)}`);
+    return patchClient(c.id, { nextCall: $("#mtNext").value, nextCallTime: $("#mtTime").value || "" }, `📞 Keyingi qo'ng'iroq: ${fmtDate($("#mtNext").value)}${$("#mtTime").value ? " " + $("#mtTime").value : ""}`);
   }
-  if (e.target.id === "mtSave") return patchClient(c.id, { nextCall: $("#mtNext").value || "", note: $("#mtNote").value.trim() }, "Saqlandi");
+  if (e.target.id === "mtSave") {
+    const d = $("#mtNext").value || "";
+    return patchClient(c.id, { nextCall: d, nextCallTime: d ? $("#mtTime").value || "" : "", note: $("#mtNote").value.trim() }, d && $("#mtTime").value ? `Saqlandi — 📞 ${fmtDate(d)} ${$("#mtTime").value}. Endi ⏰ budilnik qo'ying` : "Saqlandi");
+  }
+  if (e.target.id === "mtAlarm") return setPhoneAlarm(c);
+  if (e.target.id === "mtShortcutHelp") {
+    e.preventDefault();
+    const ok = confirm("iPhone Soat ilovasida budilnik avtomatik qo'yilishi uchun (bir marta sozlanadi):\n\n1) «Команды / Shortcuts» ilovasini oching → «+» yangi buyruq.\n2) «Создать будильник / Create Alarm» amalini qo'shing.\n3) Vaqt maydoniga «Входные данные / Shortcut Input» ni tanlang.\n4) Buyruq nomini aynan: FURNIPART budilnik deb saqlang.\n\nSozlab bo'lgach OK bosing — ⏰ tugmasi endi budilnik yoki kalendarni so'raydi.");
+    try {
+      localStorage.setItem("fpShortcut", ok ? "1" : "0");
+    } catch (_) {}
+    return ok && toast("✅ Budilnik buyrug'i yoqildi");
+  }
   if (e.target.id === "mtEdit") return openClientForm(c);
   if (e.target.id === "mtDel") {
     if (!confirm(`${c.name} bazadan o'chirilsinmi?`)) return;

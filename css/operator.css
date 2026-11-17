@@ -118,3 +118,6 @@
 .op-next-row { display: grid; grid-template-columns: 1fr 140px; gap: 8px; }
 .op-next-row input { min-width: 0; }
 .op-next small { font-weight: 400; }
+
+.mt-dates input[type=time] { width: 120px; }
+.mt-alarm { display: grid; gap: 4px; margin-top: 6px; }
