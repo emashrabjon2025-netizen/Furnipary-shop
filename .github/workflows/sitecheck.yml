@@ -14,6 +14,7 @@ jobs:
           echo "chat: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/chat?cid=aaaaaaaaaaaaaaaaaaaa")"
           echo "dastavka v: $(curl -s "$B/dastavka?x=$RANDOM" | grep -o 'courier.js?v=[0-9]*\|data-v="clients"\|id="addPhotoIn"\|id="cliForm"' | tr '\n' ' ')"
           echo "courier.js new: $(curl -s "$B/js/courier.js?v=9&x=$RANDOM" | grep -c 'renderClients\|dvPhotos\|prodLines')"
+          echo "operator v: $(curl -s "$B/operator?x=$RANDOM" | grep -o 'operator.js?v=[0-9]*\|operator.css?v=[0-9]*' | tr '\n' ' ') time-ui: $(curl -s "$B/js/operator.js?v=6&x=$RANDOM" | grep -c 'nextCallTime')"
           echo "rules: $(curl -s "$B/api/remind?rules=1")"
           echo "remind: $(curl -s "$B/api/remind?me=1")"
           echo "lead-health: $(curl -s -o /dev/null -w '%{http_code}' "$B/api/lead")"

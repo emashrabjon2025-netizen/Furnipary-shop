@@ -25,7 +25,8 @@ module.exports = async (req, res) => {
       const out = {};
       for (const c of ["dvClients", "dvPhotos", "crmCouriers", "matrasClients"]) out[c] = await ok(c);
       res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients } });
+      const ls = await list("crmLeads").catch(() => []);
+      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients, leadsWithTime: ls.filter((l) => l.nextCallTime).length, timedReminded: ls.filter((l) => l.callRemindFor).length } });
     }
     const st = (await getOne("crmSettings", "remind")) || {};
     if (st.lastRun && Date.now() - Number(st.lastRun) < 2 * 60e3) return res.status(200).json({ ok: true, skip: "yaqinda tekshirildi" });
