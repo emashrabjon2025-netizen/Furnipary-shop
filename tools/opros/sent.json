@@ -28,7 +28,8 @@
   "slot": "kunduz",
   "date": "2026-11-10",
   "sent_at": "2026-11-10T15:50+05:00",
-  "question": "💸 Matras olishda sizni nima to'xtatib turibdi?"
+  "question": "💸 Matras olishda sizni nima to'xtatib turibdi?",
+  "reported": "2026-11-17T15:57+05:00"
  },
  {
   "message_id": 15066,
@@ -120,5 +121,12 @@
   "date": "2026-11-17",
   "sent_at": "2026-11-17T09:45+05:00",
   "question": "🧠 Sizningcha, asl Blum furnitura va arzon nusxaning farqi nimada?"
+ },
+ {
+  "message_id": 15160,
+  "slot": "kunduz",
+  "date": "2026-11-17",
+  "sent_at": "2026-11-17T15:57+05:00",
+  "question": "🔧 Siz mebelchimisiz? Ishingizda eng ko'p qaysi muammo chiqadi?"
  }
 ]
