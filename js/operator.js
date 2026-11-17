@@ -127,7 +127,8 @@ function start() {
     onSnapshot(query(collection(db, "crmLeads"), where("assignedTo", "==", me.uid)), (snap) => {
       leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
-      if (openId && $("#leadDlg").open) renderLead();
+      // sana/soat tanlanayotganda kartochkani qayta chizmaymiz (iPhone'da tanlagich yopilib qoladi)
+      if (openId && $("#leadDlg").open && !["nextCall", "nextCallTime", "leadNote"].includes(document.activeElement && document.activeElement.id)) renderLead();
     }, (err) => showErr(err)),
     onSnapshot(query(collection(db, "crmSales"), where("operator", "==", me.uid)), (snap) => {
       sales = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -285,7 +286,8 @@ function renderLead() {
       <button class="btn btn-ghost-d" type="button" data-res="lost">✖ Olmadi</button>
     </div>
     <div class="op-next">Keyingi qo'ng'iroq
-      <div class="op-next-row"><input type="date" id="nextCall" value="${esc(l.nextCall || "")}" /><input type="time" id="nextCallTime" value="${esc(l.nextCallTime || "")}" step="300" /></div>
+      <div class="op-next-row"><input type="date" id="nextCall" value="${esc(l.nextCall || "")}" /><input type="time" id="nextCallTime" value="${esc(l.nextCallTime || "")}" /></div>
+      <button class="btn btn-dark btn-sm" type="button" id="saveTime">💾 Sana va soatni saqlash</button>
       <small class="muted">Soat qo'ysangiz — 5 daqiqa oldin Telegram'ga va shu panelga eslatma keladi</small>
     </div>`
     }
@@ -338,16 +340,18 @@ $("#leadBody").addEventListener("click", async (e) => {
       {
         note,
         nextCall: addDays(days),
-        ...(l.nextCallTime ? { nextCallTime: "" } : {}),
         attemptLog: arrayUnion({ at: Date.now(), t: "📵 ko'tarmadi" }),
         ...(att === 0 ? { attempts: 1, lastAttemptAt: Date.now() } : {}),
       },
       n >= MIN_ATTEMPTS ? `Urinishlar ${n}/${MIN_ATTEMPTS}. Endi "Olmadi → Javob bermadi" deb yopish mumkin` : `Keyingi urinish: ${fmtDate(addDays(days))}`
     );
+    if (l.nextCallTime) setCallTime(l, addDays(days), "", true);
   } else if (res === "talk") {
-    await save(l, { stage: "Bog'lanildi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(1), ...timeUpd(l, nextT), attemptLog: arrayUnion({ at: Date.now(), t: "✅ gaplashdik" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi — keyingi qo'ng'iroq sanasini tekshiring");
+    await save(l, { stage: "Bog'lanildi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(1), attemptLog: arrayUnion({ at: Date.now(), t: "✅ gaplashdik" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi — keyingi qo'ng'iroq sanasini tekshiring");
+    if (nextT !== (l.nextCallTime || "")) setCallTime(l, next && (next > today() || (next === today() && nextT)) ? next : addDays(1), nextT, !nextT);
   } else if (res === "think") {
-    await save(l, { stage: "O'ylab ko'radi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(2), ...timeUpd(l, nextT), attemptLog: arrayUnion({ at: Date.now(), t: "🤔 o'ylab ko'radi" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi");
+    await save(l, { stage: "O'ylab ko'radi", note, nextCall: next && (next > today() || (next === today() && nextT)) ? next : addDays(2), attemptLog: arrayUnion({ at: Date.now(), t: "🤔 o'ylab ko'radi" }), ...(l.contactedAt ? {} : { contactedAt: serverTimestamp() }) }, "Saqlandi");
+    if (nextT !== (l.nextCallTime || "")) setCallTime(l, next && (next > today() || (next === today() && nextT)) ? next : addDays(2), nextT, !nextT);
   } else if (res === "sold") {
     openSale(l);
   } else if (res === "lost") {
@@ -355,7 +359,20 @@ $("#leadBody").addEventListener("click", async (e) => {
   }
 });
 
-const timeUpd = (l, t) => (t !== (l.nextCallTime || "") ? { nextCallTime: t } : {});
+// Soat server orqali saqlanadi (operator qoidalarini o'zgartirish shart emas)
+async function setCallTime(l, date, time, quiet) {
+  try {
+    const idt = await auth.currentUser.getIdToken();
+    const r = await fetch("/api/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calltime: { idToken: idt, leadId: l.id, date, time } }) });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw new Error(j.reason || "server xatosi");
+    if (!quiet) toast(time ? `📞 ${fmtDate(date)} soat ${time} — 5 daqiqa oldin eslatamiz` : `📞 Keyingi qo'ng'iroq: ${fmtDate(date)}`);
+    return true;
+  } catch (e) {
+    toast("Soat saqlanmadi: " + e.message, "err");
+    return false;
+  }
+}
 async function save(l, data, msg) {
   try {
     await updateDoc(doc(db, "crmLeads", l.id), { ...data, updatedAt: serverTimestamp() });
@@ -375,14 +392,15 @@ function openSale(l) {
   $("#saleDlg").showModal();
 }
 // Sana yoki soat o'zgarsa — darhol saqlanadi (natija tugmasini bosish shart emas)
-$("#leadBody").addEventListener("change", async (e) => {
-  if (!["nextCall", "nextCallTime"].includes(e.target.id)) return;
+$("#leadBody").addEventListener("click", async (e) => {
+  if (e.target.id !== "saveTime") return;
   const l = leads.find((x) => x.id === openId);
   if (!l) return;
   const d = $("#nextCall").value;
-  const t = $("#nextCallTime").value || "";
-  if (!d) return;
-  await save(l, { nextCall: d, ...timeUpd(l, t) }, t ? `📞 ${fmtDate(d)} soat ${t} — 5 daqiqa oldin eslatamiz` : `📞 Keyingi qo'ng'iroq: ${fmtDate(d)}`);
+  if (!d) return toast("Sanani tanlang", "err");
+  e.target.disabled = true;
+  await setCallTime(l, d, $("#nextCallTime").value || "");
+  e.target.disabled = false;
 });
 
 // Panel ochiq bo'lsa — belgilangan soatdan 5 daqiqa oldin ovozli/vizual eslatma
