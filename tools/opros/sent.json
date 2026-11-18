@@ -44,7 +44,8 @@
   "slot": "kunduz",
   "date": "2026-11-11",
   "sent_at": "2026-11-11T15:55+05:00",
-  "question": "🚪 Uyingizdagi shkaf eshiklari osilib yoki qiyshayib qolganmi?"
+  "question": "🚪 Uyingizdagi shkaf eshiklari osilib yoki qiyshayib qolganmi?",
+  "reported": "2026-11-18T15:57+05:00"
  },
  {
   "message_id": 15083,
@@ -136,5 +137,12 @@
   "date": "2026-11-18",
   "sent_at": "2026-11-18T09:48+05:00",
   "question": "🛋 Divan tanlashda siz uchun eng muhimi nima?"
+ },
+ {
+  "message_id": 15172,
+  "slot": "kunduz",
+  "date": "2026-11-18",
+  "sent_at": "2026-11-18T15:58+05:00",
+  "question": "📅 Yaqin 1 oyda siz uyingiz uchun nima olishni rejalashtiryapsiz?"
  }
 ]
