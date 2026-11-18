@@ -36,7 +36,8 @@
   "slot": "ertalab",
   "date": "2026-11-11",
   "sent_at": "2026-11-11T09:44+05:00",
-  "question": "🚪 Sizningcha, oshxona shkafi eshigi qancha marta ochib-yopiladi (yiliga)?"
+  "question": "🚪 Sizningcha, oshxona shkafi eshigi qancha marta ochib-yopiladi (yiliga)?",
+  "reported": "2026-11-18T09:48+05:00"
  },
  {
   "message_id": 15073,
@@ -128,5 +129,12 @@
   "date": "2026-11-17",
   "sent_at": "2026-11-17T15:57+05:00",
   "question": "🔧 Siz mebelchimisiz? Ishingizda eng ko'p qaysi muammo chiqadi?"
+ },
+ {
+  "message_id": 15166,
+  "slot": "ertalab",
+  "date": "2026-11-18",
+  "sent_at": "2026-11-18T09:48+05:00",
+  "question": "🛋 Divan tanlashda siz uchun eng muhimi nima?"
  }
 ]
