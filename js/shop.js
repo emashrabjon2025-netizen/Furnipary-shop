@@ -177,7 +177,7 @@ function renderGrid() {
       const priceDiff = new Set(g.items.map(effectivePrice)).size > 1;
       return `<article class="card" data-id="${p.id}">
         <button class="card-img" data-open="${p.id}" aria-label="${escapeHtml(g.title)}">
-          <img src="${escapeHtml(imgOf(p))}" alt="" loading="lazy" />
+          <img src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(g.title)}" loading="lazy" />
           ${sale ? `<span class="badge">Chegirma</span>` : ""}
           ${out ? `<span class="badge badge-dark">Tugagan</span>` : many ? `<span class="badge badge-dark">${g.items.length} xil</span>` : ""}
         </button>
@@ -215,7 +215,7 @@ async function openProduct(id) {
     <div class="pd-gal">
       <div class="pd-track" id="pdTrack">
         <div class="pd-img"><img id="pdImg" data-i="0" src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(p.name)}" /></div>
-        ${Array.from({ length: Math.min(4, Number(p.extraCount) || 0) }, (_, i) => `<div class="pd-img"><img data-i="${i + 1}" data-extra="${i + 1}" src="${escapeHtml(imgOf(p))}" class="loading" alt="" /></div>`).join("")}
+        ${Array.from({ length: Math.min(4, Number(p.extraCount) || 0) }, (_, i) => `<div class="pd-img"><img data-i="${i + 1}" data-extra="${i + 1}" src="${escapeHtml(imgOf(p))}" class="loading" alt="${escapeHtml(p.name)}" /></div>`).join("")}
       </div>
       ${Number(p.extraCount) > 0 ? `<div class="pd-dots" id="pdDots">${Array.from({ length: 1 + Math.min(4, Number(p.extraCount) || 0) }, (_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</div>` : ""}
       <span class="pd-zoom" aria-hidden="true">🔍</span>
@@ -345,7 +345,7 @@ function renderCart() {
   $("#cartItems").innerHTML = lines
     .map(
       (l) => `<div class="line">
-      <img src="${escapeHtml(imgOf(l.p))}" alt="" />
+      <img src="${escapeHtml(imgOf(l.p))}" alt="${escapeHtml(l.p.name || "")}" />
       <div class="line-info"><b>${escapeHtml(l.p.name)}</b><span>${formatPrice(l.price)}</span></div>
       <div class="qty">
         <button data-dec="${l.id}" aria-label="Kamaytirish">−</button><span>${l.qty}</span><button data-inc="${l.id}" aria-label="Ko'paytirish">+</button>

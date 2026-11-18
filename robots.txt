@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /operator
+Disallow: /dastavka
+Disallow: /matras
+Disallow: /api/
+
+Sitemap: https://furnipart-shop.vercel.app/sitemap.xml
