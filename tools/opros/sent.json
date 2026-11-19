@@ -60,7 +60,8 @@
   "slot": "kunduz",
   "date": "2026-11-12",
   "sent_at": "2026-11-12T15:57+05:00",
-  "question": "🛋 Divaningiz qanday ahvolda?"
+  "question": "🛋 Divaningiz qanday ahvolda?",
+  "reported": "2026-11-19T15:57+05:00"
  },
  {
   "message_id": 15098,
@@ -152,5 +153,12 @@
   "date": "2026-11-19",
   "sent_at": "2026-11-19T09:51+05:00",
   "question": "📏 Bilasizmi, ikki kishilik standart matras o'lchami qancha?"
+ },
+ {
+  "message_id": 15187,
+  "slot": "kunduz",
+  "date": "2026-11-19",
+  "sent_at": "2026-11-19T15:57+05:00",
+  "question": "👵 Ota-onangiz qanday matrasda uxlaydilar?"
  }
 ]
