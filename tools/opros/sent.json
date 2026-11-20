@@ -76,7 +76,8 @@
   "slot": "kunduz",
   "date": "2026-11-13",
   "sent_at": "2026-11-13T15:54+05:00",
-  "question": "🍳 Oshxonangizda joy yetishmaydimi?"
+  "question": "🍳 Oshxonangizda joy yetishmaydimi?",
+  "reported": "2026-11-20T15:56+05:00"
  },
  {
   "message_id": 15115,
@@ -168,5 +169,12 @@
   "date": "2026-11-20",
   "sent_at": "2026-11-20T09:48+05:00",
   "question": "🍳 Oshxonangizda sizni eng ko'p nima bezovta qiladi?"
+ },
+ {
+  "message_id": 15197,
+  "slot": "kunduz",
+  "date": "2026-11-20",
+  "sent_at": "2026-11-20T15:56+05:00",
+  "question": "💰 Sifatli matras uchun qancha sarflashga tayyorsiz?"
  }
 ]
