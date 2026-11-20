@@ -1,0 +1,19 @@
+name: audit-live
+on: workflow_dispatch
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          B=https://furnipart-shop.vercel.app
+          for p in / /robots.txt /sitemap.xml /dastavka /matras /admin /operator /api/lead /api/chat /api/digest /img/logo.png /manifest.webmanifest /nonexistent; do echo "$p -> $(curl -s -o /dev/null -w '%{http_code} %{time_total}s %{size_download}b' $B$p)"; done
+          echo "--- headers"; curl -sI $B/ | grep -iE "cache-control|x-frame|content-security|strict-transport|x-content|referrer|server|x-vercel"
+          echo "--- head tags"; curl -s $B/ | grep -E "og:|canonical|ld\+json|<title" | cut -c1-160
+          echo "--- robots"; curl -s $B/robots.txt | head -12
+          echo "--- sitemap"; curl -s $B/sitemap.xml | head -6
+          echo "--- old site"; curl -s -o /dev/null -w "%{http_code}\n" https://furnipart-web.vercel.app/
+          echo "--- firebase auth signup open?"; curl -s -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU" -H 'Content-Type: application/json' -d '{"returnSecureToken":false}' | head -c 300
+          echo; echo "--- orders public read?"; curl -s -o /dev/null -w "%{http_code}\n" "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents/orders?pageSize=1"
+          echo "--- products public read"; curl -s -o /dev/null -w "%{http_code}\n" "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents/products?pageSize=1"
+          echo "--- crmLeads public read?"; curl -s -o /dev/null -w "%{http_code}\n" "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents/crmLeads?pageSize=1"
+          echo "--- lead api no key"; curl -s "$B/api/lead" | head -c 200
