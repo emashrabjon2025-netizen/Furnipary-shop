@@ -121,3 +121,8 @@
 
 .mt-dates input[type=time] { width: 120px; }
 .mt-alarm { display: grid; gap: 4px; margin-top: 6px; }
+
+.op-addlead { margin: 10px 0; }
+.chip-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-weight: 400; }
+.chip-pick .chip.on { background: #111; color: #fff; border-color: #111; }
+.fld { display: block; font-weight: 600; margin: 8px 0; }

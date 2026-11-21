@@ -9,7 +9,7 @@
   <link rel="icon" href="img/logo.png" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
-  <link rel="stylesheet" href="css/operator.css?v=9" />
+  <link rel="stylesheet" href="css/operator.css?v=10" />
   <link rel="manifest" href="/manifest-operator.webmanifest" />
   <link rel="apple-touch-icon" href="/img/app-operator-180.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -40,6 +40,7 @@
 
   <section id="appView" class="wrap" hidden>
     <div class="op-kpi" id="opKpi"></div>
+    <button class="btn btn-yellow btn-block op-addlead" type="button" id="opAddLead">➕ Lid qo'shish</button>
     <nav class="tabs" id="opTabs">
       <button class="tab on" data-v="today">📞 Bugun <span id="nToday"></span></button>
       <button class="tab" data-v="open">Ochiq lidlar <span id="nOpen"></span></button>
@@ -48,6 +49,56 @@
     </nav>
     <div id="opList"></div>
   </section>
+
+  <!-- Operator o'zi lid qo'shadi -->
+  <dialog id="addLeadDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="addLeadForm" class="pform">
+      <h2>➕ Yangi lid</h2>
+      <p class="muted small">Komment, direkt, qo'ng'iroq yoki boshqa joydan o'zingiz olgan raqamni qo'shing — lid sizga biriktiriladi.</p>
+      <div class="two">
+        <label>Ism<input name="name" maxlength="80" placeholder="Mijoz ismi" /></label>
+        <label>Telefon *<input name="phone" type="tel" inputmode="tel" required placeholder="90 123 45 67" /></label>
+      </div>
+      <div class="fld">Qayerdan olindi? *
+        <div class="chip-pick" id="alChannel">
+          <button type="button" class="chip on" data-ch="Komment">💬 Komment</button>
+          <button type="button" class="chip" data-ch="Direkt">✉️ Direkt</button>
+          <button type="button" class="chip" data-ch="Instagram story">📸 Story</button>
+          <button type="button" class="chip" data-ch="Telegram">✈️ Telegram</button>
+          <button type="button" class="chip" data-ch="Qo'ng'iroq">📞 Qo'ng'iroq qildi</button>
+          <button type="button" class="chip" data-ch="Do'konga keldi">🏪 Do'konga keldi</button>
+          <button type="button" class="chip" data-ch="Tavsiya">🤝 Tanish orqali</button>
+          <button type="button" class="chip" data-ch="Sayt">🌐 Sayt</button>
+          <button type="button" class="chip" data-ch="Boshqa">… Boshqa</button>
+        </div>
+      </div>
+      <div class="fld">Targetdanmi (reklama)?
+        <div class="chip-pick" id="alTarget">
+          <button type="button" class="chip" data-tg="1">📣 Ha, targetdan</button>
+          <button type="button" class="chip on" data-tg="0">Yo'q, oddiy</button>
+        </div>
+      </div>
+      <div id="alIg">
+        <div class="two">
+          <label>Instagram akkauntimiz<select name="account">
+            <option value="furnipart.uz">@furnipart.uz</option>
+            <option value="furnipart_uz">@furnipart_uz</option>
+            <option value="blum.fergana">@blum.fergana</option>
+          </select></label>
+          <label>Mijoz Instagrami<input name="instagram" maxlength="60" placeholder="@username (ixtiyoriy)" /></label>
+        </div>
+      </div>
+      <label>Nima so'radi (mahsulot)<input name="interest" maxlength="200" placeholder="Masalan: Mramor matras 160×200" /></label>
+      <label>Shahar / tuman<input name="region" maxlength="120" placeholder="Masalan: Marg'ilon" /></label>
+      <div class="two">
+        <label>Holati<select name="stage"><option>Yangi</option><option>Bog'lanildi</option><option>O'ylab ko'radi</option></select></label>
+        <label>Keyingi qo'ng'iroq<input name="nextCall" type="date" /></label>
+      </div>
+      <label>Izoh<textarea name="note" rows="2" maxlength="1000" placeholder="Mijoz nima dedi"></textarea></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
 
   <!-- Lid kartasi -->
   <dialog id="leadDlg" class="sheet op-sheet">
@@ -87,7 +138,7 @@
     </form>
   </dialog>
 
-  <script type="module" src="js/operator.js?v=6"></script>
+  <script type="module" src="js/operator.js?v=7"></script>
   <script type="module" src="js/pwa-panel.js?v=1"></script>
 </body>
 </html>

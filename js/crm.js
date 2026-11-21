@@ -346,7 +346,7 @@ function renderOpsSales(ym) {
 const isDvSale = (s) => s.source === "Dastavka";
 const isSide = (s) => isMatrasSale(s) || isDvSale(s);
 // Target (reklama) orqali sotilgan: sotuvda belgilangan, yoki belgilanmagan bo'lsa — lid target kampaniyasidan kelgan
-const leadIsTarget = (l) => !!l && (l.source === "Instagram target" || !!campaignOf(l));
+const leadIsTarget = (l) => !!l && (l.target === true || l.source === "Instagram target" || !!campaignOf(l));
 const isTargetSale = (s) => (s.fromTarget === true ? true : s.fromTarget === false ? false : s.source === "Instagram target" || leadIsTarget(s.leadId && leads.find((l) => l.id === s.leadId)));
 
 function renderReport() {
@@ -569,7 +569,7 @@ function renderLeads() {
           (l) => `<div class="order crm-card ${isStale(l) || noDate(l) ? "alarm" : ""}" data-s="${escapeHtml(l.stage)}">
         <div class="order-head">
           <b>${escapeHtml(l.name || "Nomsiz")}</b>
-          <small>${escapeHtml(l.source || "")} · ${fmtDate(l.date)}</small>
+          <small>${escapeHtml(l.source || "")}${l.channel && l.channel !== l.source ? " · " + escapeHtml(l.channel) : ""}${l.addedBy === "operator" ? " · ➕ operator" : ""} · ${fmtDate(l.date)}</small>
         </div>
         ${multiAcc() && accOf(l) ? `<div><span class="pill acc">📸 @${escapeHtml(accOf(l))}</span></div>` : ""}
         ${telLink(l.phone)}

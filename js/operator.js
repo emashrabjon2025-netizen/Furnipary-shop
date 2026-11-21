@@ -529,3 +529,74 @@ document.addEventListener("click", (e) => {
   const x = e.target.closest("[data-close]");
   if (x) x.closest("dialog")?.close();
 });
+
+// ---------- ➕ Operator o'zi lid qo'shadi ----------
+let alChannel = "Komment",
+  alTarget = false;
+function alSync() {
+  $$("#alChannel [data-ch]").forEach((b) => b.classList.toggle("on", b.dataset.ch === alChannel));
+  $$("#alTarget [data-tg]").forEach((b) => b.classList.toggle("on", (b.dataset.tg === "1") === alTarget));
+  $("#alIg").hidden = !(alTarget || ["Komment", "Direkt", "Instagram story"].includes(alChannel));
+}
+$("#opAddLead").addEventListener("click", () => {
+  $("#addLeadForm").reset();
+  alChannel = "Komment";
+  alTarget = false;
+  $("#addLeadForm").elements.nextCall.value = today();
+  alSync();
+  $("#addLeadDlg").showModal();
+});
+$("#alChannel").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ch]");
+  if (!b) return;
+  alChannel = b.dataset.ch;
+  alSync();
+});
+$("#alTarget").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tg]");
+  if (!b) return;
+  alTarget = b.dataset.tg === "1";
+  alSync();
+});
+$("#addLeadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  if (!normalizePhone(f.phone.value)) return toast("Telefon raqam noto'g'ri", "err");
+  const btn = e.target.querySelector("[type=submit]");
+  btn.disabled = true;
+  try {
+    const idt = await auth.currentUser.getIdToken();
+    const payload = {
+      idToken: idt,
+      name: f.name.value.trim(),
+      phone: f.phone.value.trim(),
+      channel: alChannel,
+      target: alTarget,
+      account: $("#alIg").hidden ? "" : f.account.value,
+      instagram: $("#alIg").hidden ? "" : f.instagram.value.trim(),
+      interest: f.interest.value.trim(),
+      region: f.region.value.trim(),
+      stage: f.stage.value,
+      nextCall: f.nextCall.value,
+      note: f.note.value.trim(),
+    };
+    const r = await fetch("/api/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oplead: payload }) });
+    const j = await r.json().catch(() => ({}));
+    if (j.dup) {
+      toast(j.reason, "err");
+      if (j.mine && j.leadId) {
+        $("#addLeadDlg").close();
+        const b = document.querySelector(`[data-open="${j.leadId}"]`);
+        if (b) b.click();
+      }
+      return;
+    }
+    if (!j.ok) throw new Error(j.reason || "server xatosi");
+    $("#addLeadDlg").close();
+    toast("✅ Lid qo'shildi — ro'yxatingizda");
+  } catch (err) {
+    toast("Qo'shilmadi: " + err.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
