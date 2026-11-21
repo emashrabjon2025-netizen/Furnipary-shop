@@ -42,7 +42,7 @@ export function recHtml(l) {
         (r) => `<div class="rec-item">
           <div class="rec-meta">🎧 ${esc(when(r.at))}${r.dur ? " · " + dur(r.dur) : ""} · ${kb(r.size || 0)}${r.byName ? " · " + esc(r.byName) : ""}
             ${tgLink(r) ? ` · <a href="${tgLink(r)}" target="_blank" rel="noopener">Telegram'da ochish</a>` : ""}</div>
-          ${r.fileId ? `<button type="button" class="btn btn-line btn-sm" data-rec-play="${esc(r.fileId)}">▶️ Tinglash</button>` : ""}
+          ${r.fileId ? `<button type="button" class="btn btn-line btn-sm" data-rec-play="${esc(r.fileId)}" data-tg="${esc(tgLink(r))}">▶️ Tinglash</button>` : ""}
         </div>`
       )
       .join("")}
@@ -64,7 +64,13 @@ async function play(btn) {
     a.preload = "auto";
     a.src = `/api/rec?file=${encodeURIComponent(btn.dataset.recPlay)}&t=${encodeURIComponent(await idt())}`;
     a.className = "rec-audio";
-    a.addEventListener("error", () => toast("Tinglab bo'lmadi — Telegram'dan oching", "err"));
+    a.addEventListener("error", () => {
+      const tl = btn.dataset.tg;
+      const p = document.createElement("div");
+      p.className = "small";
+      p.innerHTML = tl ? `⚠️ Bu formatni brauzer o'ynatmadi — <a href="${tl}" target="_blank" rel="noopener">Telegram'da tinglang</a>` : "⚠️ Tinglab bo'lmadi — yozuv Telegram'da bor";
+      a.replaceWith(p);
+    });
     btn.replaceWith(a);
   } catch (e) {
     btn.disabled = false;

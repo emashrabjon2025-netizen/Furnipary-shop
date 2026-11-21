@@ -59,7 +59,22 @@ module.exports = async (req, res) => {
       const type = { mp3: "audio/mpeg", m4a: "audio/mp4", mp4: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg", wav: "audio/wav", amr: "audio/amr" }[ext] || "application/octet-stream";
       res.setHeader("Content-Type", type);
       res.setHeader("Cache-Control", "private, max-age=3600");
-      return res.status(200).send(buf);
+      res.setHeader("Accept-Ranges", "bytes");
+      // iPhone Safari audio uchun Range (206) so'rovlari shart
+      const rg = String(req.headers.range || "").match(/bytes=(\d*)-(\d*)/);
+      if (rg) {
+        let start = rg[1] === "" ? Math.max(0, buf.length - Number(rg[2])) : Number(rg[1]);
+        let end = rg[1] !== "" && rg[2] !== "" ? Math.min(Number(rg[2]), buf.length - 1) : buf.length - 1;
+        if (start >= buf.length || start > end) {
+          res.setHeader("Content-Range", `bytes */${buf.length}`);
+          return res.status(416).end();
+        }
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${buf.length}`);
+        res.setHeader("Content-Length", String(end - start + 1));
+        return res.status(206).end(buf.subarray(start, end + 1));
+      }
+      res.setHeader("Content-Length", String(buf.length));
+      return res.status(200).end(buf);
     }
 
     if (req.method !== "POST") return res.status(405).json({ ok: false });
