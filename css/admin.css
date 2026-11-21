@@ -237,3 +237,9 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 .pill.tgt { background: #fff1e6; color: #b5480f; }
 .tgt-check { display: flex; align-items: center; gap: 8px; font-weight: 600; background: #fff7ef; border: 1px solid #f6d9bf; border-radius: 12px; padding: 10px 12px; }
 .tgt-check input { width: 20px; height: 20px; }
+
+.rec-box { margin: 12px 0; }
+.rec-item { display: grid; gap: 6px; padding: 8px 10px; background: #f7f6f2; border-radius: 12px; margin-bottom: 6px; }
+.rec-meta { font-size: 13px; }
+.rec-audio { width: 100%; }
+.rec-up.busy { opacity: .6; pointer-events: none; }

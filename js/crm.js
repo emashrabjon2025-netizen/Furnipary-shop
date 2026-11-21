@@ -4,6 +4,7 @@
 //  Firestore kolleksiyalari: crmLeads, crmClients, crmSales, crmSettings
 // =====================================================================
 import { ADMIN_UIDS, CATEGORIES } from "./config.js";
+import { recHtml, bindRecordings } from "./recordings.js";
 import {
   db,
   auth,
@@ -189,6 +190,7 @@ function start() {
   unsub.push(
     onSnapshot(query(collection(db, "crmLeads"), orderBy("createdAt", "desc")), (snap) => {
       leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      drawLeadRec();
       renderLeads();
       renderReport();
     }, onErr("leads"))
@@ -569,7 +571,7 @@ function renderLeads() {
           (l) => `<div class="order crm-card ${isStale(l) || noDate(l) ? "alarm" : ""}" data-s="${escapeHtml(l.stage)}">
         <div class="order-head">
           <b>${escapeHtml(l.name || "Nomsiz")}</b>
-          <small>${escapeHtml(l.source || "")}${l.channel && l.channel !== l.source ? " · " + escapeHtml(l.channel) : ""}${l.addedBy === "operator" ? " · ➕ operator" : ""} · ${fmtDate(l.date)}</small>
+          <small>${escapeHtml(l.source || "")}${l.channel && l.channel !== l.source ? " · " + escapeHtml(l.channel) : ""}${l.addedBy === "operator" ? " · ➕ operator" : ""}${(l.recordings || []).length ? ` · 🎙 ${l.recordings.length}` : ""} · ${fmtDate(l.date)}</small>
         </div>
         ${multiAcc() && accOf(l) ? `<div><span class="pill acc">📸 @${escapeHtml(accOf(l))}</span></div>` : ""}
         ${telLink(l.phone)}
@@ -631,7 +633,17 @@ function openLead(id) {
     ops.filter((o) => o.active !== false || o.id === l.assignedTo).map((o) => `<option value="${o.id}"${o.id === l.assignedTo ? " selected" : ""}>👤 ${escapeHtml(o.name || o.email || "")}</option>`).join("");
   $("#opWrap").hidden = !ops.length;
   $("#leadDlg").showModal();
+  drawLeadRec();
 }
+// 🎙 lid ichidagi qo'ng'iroq yozuvlari (faqat mavjud lid uchun)
+function drawLeadRec() {
+  const box = $("#leadRec");
+  if (!box) return;
+  if ([...box.querySelectorAll("audio")].some((a) => !a.paused)) return;
+  const l = editLeadId && leads.find((x) => x.id === editLeadId);
+  box.innerHTML = l ? recHtml(l) : "";
+}
+bindRecordings($("#leadRec"));
 
 $("#leadForm").addEventListener("submit", async (e) => {
   e.preventDefault();

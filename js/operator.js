@@ -18,6 +18,7 @@ import {
   onAuthStateChanged,
 } from "./firebase.js";
 import { DEFAULT_SCRIPTS } from "./scripts.js";
+import { recHtml, bindRecordings } from "./recordings.js";
 import { $, $$, escapeHtml as esc, toast, normalizePhone, effectivePrice, formatPrice } from "./util.js";
 
 const LOST = ["Qimmat", "Yetkazib berish / uzoq", "Raqobatchidan oldi", "Javob bermadi", "Hozir kerak emas", "Kerakli mahsulot yo'q", "Shunchaki so'radi", "Boshqa"];
@@ -128,7 +129,7 @@ function start() {
       leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
       // sana/soat tanlanayotganda kartochkani qayta chizmaymiz (iPhone'da tanlagich yopilib qoladi)
-      if (openId && $("#leadDlg").open && !["nextCall", "nextCallTime", "leadNote"].includes(document.activeElement && document.activeElement.id)) renderLead();
+      if (openId && $("#leadDlg").open && !["nextCall", "nextCallTime", "leadNote"].includes(document.activeElement && document.activeElement.id) && ![...document.querySelectorAll("#leadBody audio")].some((a) => !a.paused)) renderLead();
     }, (err) => showErr(err)),
     onSnapshot(query(collection(db, "crmSales"), where("operator", "==", me.uid)), (snap) => {
       sales = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -297,6 +298,7 @@ function renderLead() {
       <summary>📜 Skript — ${{ matras: "matras", furnitura: "furnitura / mebelchi", divan: "divan", umumiy: "umumiy" }[sc.k]}</summary>
       <pre>${esc(sc.txt)}</pre>
     </details>
+    ${recHtml(l)}
     ${log.length ? `<h3 class="op-h">Tarix</h3><ul class="op-log">${log.map((a) => `<li>${new Date(a.at).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} — ${esc(a.t)}</li>`).join("")}</ul>` : ""}
   `;
 }
@@ -600,3 +602,5 @@ $("#addLeadForm").addEventListener("submit", async (e) => {
     btn.disabled = false;
   }
 });
+
+bindRecordings($("#leadBody"));

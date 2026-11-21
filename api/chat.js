@@ -65,6 +65,18 @@ async function onTelegram(req, res) {
     return res.status(200).json({ ok: true });
   }
   if (!m || String(m.chat && m.chat.id) !== owner) return res.status(200).json({ ok: true });
+  // Yopiq kanaldan biror post forward qilinsa — qo'ng'iroq yozuvlari shu kanalga boradi
+  const fwd = m.forward_from_chat || (m.forward_origin && m.forward_origin.chat);
+  if (fwd && fwd.type === "channel") {
+    const t = await tg(`✅ Bu kanal FURNIPART CRM qo'ng'iroq yozuvlari uchun ulandi. Operatorlar lidga yuklagan 🎙 yozuvlar shu yerga keladi.`, { chat_id: fwd.id });
+    if (t.ok) {
+      await put("crmSettings", "rec", { chatId: String(fwd.id), title: clip(fwd.title || "", 80), at: Date.now() });
+      await tg(`🎙 Qo'ng'iroq yozuvlari endi <b>${esc(fwd.title || "kanal")}</b> kanaliga yuboriladi.`, { reply_to_message_id: m.message_id });
+    } else {
+      await tg(`⚠️ <b>${esc(fwd.title || "Kanal")}</b>ga yozib bo'lmadi. Botni kanalga <b>admin</b> qilib qo'shing (xabar yuborish huquqi bilan), keyin shu kanaldan postni qayta forward qiling.`, { reply_to_message_id: m.message_id });
+    }
+    return res.status(200).json({ ok: true });
+  }
   const text = clip(m.text || m.caption, 1000);
   const ref = m.reply_to_message && (m.reply_to_message.text || m.reply_to_message.caption || "");
   const hit = ref && ref.match(/#c([A-Za-z0-9_-]{16,40})/);

@@ -126,3 +126,9 @@
 .chip-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-weight: 400; }
 .chip-pick .chip.on { background: #111; color: #fff; border-color: #111; }
 .fld { display: block; font-weight: 600; margin: 8px 0; }
+
+.rec-box { margin: 12px 0; }
+.rec-item { display: grid; gap: 6px; padding: 8px 10px; background: #f7f6f2; border-radius: 12px; margin-bottom: 6px; }
+.rec-meta { font-size: 13px; }
+.rec-audio { width: 100%; }
+.rec-up.busy { opacity: .6; pointer-events: none; }
