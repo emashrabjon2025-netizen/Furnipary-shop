@@ -84,7 +84,8 @@
   "slot": "ertalab",
   "date": "2026-11-14",
   "sent_at": "2026-11-14T09:39+05:00",
-  "question": "🛏 Sizningcha, qaysi matras umurtqa uchun foydaliroq?"
+  "question": "🛏 Sizningcha, qaysi matras umurtqa uchun foydaliroq?",
+  "reported": "2026-11-21T09:45+05:00"
  },
  {
   "message_id": 15121,
@@ -176,5 +177,12 @@
   "date": "2026-11-20",
   "sent_at": "2026-11-20T15:56+05:00",
   "question": "💰 Sifatli matras uchun qancha sarflashga tayyorsiz?"
+ },
+ {
+  "message_id": 15201,
+  "slot": "ertalab",
+  "date": "2026-11-21",
+  "sent_at": "2026-11-21T09:45+05:00",
+  "question": "🌙 Siz kechasi necha soat uxlaysiz?"
  }
 ]
