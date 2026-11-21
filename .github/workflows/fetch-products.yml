@@ -17,52 +17,23 @@ jobs:
       - env:
           CAT: ${{ github.event.inputs.cat }}
         run: |
+          curl -s -m 120 "https://furnipart-shop.vercel.app/api/remind?products=$CAT" -o /tmp/p.json
           python3 - <<'PY'
-          import json, os, base64, re, urllib.request, urllib.error
-          B = "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents"
+          import json, os, base64, re
           cat = os.environ["CAT"].lower()
-          KEY = "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU"
-          def get(u):
-              r = urllib.request.Request(u, headers={"Referer": "https://furnipart-shop.vercel.app/", "Origin": "https://furnipart-shop.vercel.app"})
-              try:
-                  return json.load(urllib.request.urlopen(r, timeout=30))
-              except urllib.error.HTTPError as e:
-                  print("HTTP", e.code, u.split("?")[0], e.read()[:300]); raise
-          docs, tok = [], ""
-          while True:
-              d = get(f"{B}/products?key={KEY}&pageSize=300" + (f"&pageToken={tok}" if tok else ""))
-              docs += d.get("documents", [])
-              tok = d.get("nextPageToken")
-              if not tok: break
-          def val(v):
-              if not v: return None
-              k = list(v)[0]; x = v[k]
-              if k == "mapValue": return {a: val(b) for a, b in x.get("fields", {}).items()}
-              if k == "arrayValue": return [val(i) for i in x.get("values", [])]
-              return x
+          d = json.load(open("/tmp/p.json"))
           out = f"tools/tmp/{re.sub('[^a-z0-9]+','-',cat)}"
           os.makedirs(out, exist_ok=True)
-          items = []
-          for doc in docs:
-              f = {a: val(b) for a, b in doc.get("fields", {}).items()}
-              pid = doc["name"].split("/")[-1]
-              blob = json.dumps(f, ensure_ascii=False).lower()
-              if cat not in str(f.get("category", "")).lower() and cat not in str(f.get("name", "")).lower(): continue
-              ims = []
-              for suf in [""] + [f"__{i}" for i in range(1, 5)]:
-                  try:
-                      im = get(f"{B}/productImages/{pid}{suf}?key={KEY}")
-                      data = val(im["fields"].get("data") or im["fields"].get("image") or im["fields"].get("src"))
-                      if data and "base64," in data:
-                          fn = f"{pid}{suf or '__0'}.jpg"
-                          open(f"{out}/{fn}", "wb").write(base64.b64decode(data.split("base64,", 1)[1]))
-                          ims.append(fn)
-                  except Exception as e:
-                      pass
-              f.pop("image", None)
-              items.append({"id": pid, **{k: v for k, v in f.items() if not (isinstance(v, str) and v.startswith("data:"))}, "files": ims})
-          json.dump(items, open(f"{out}/products.json", "w"), ensure_ascii=False, indent=1)
-          print(len(items), "mahsulot", sum(len(i["files"]) for i in items), "rasm")
+          for it in d.get("items", []):
+              files = []
+              for k, src in enumerate(it.pop("imgs", [])):
+                  if "base64," in src:
+                      fn = f"{it['id']}__{k}.jpg"
+                      open(f"{out}/{fn}", "wb").write(base64.b64decode(src.split("base64,", 1)[1]))
+                      files.append(fn)
+              it["files"] = files
+          json.dump(d.get("items", []), open(f"{out}/products.json", "w"), ensure_ascii=False, indent=1, default=str)
+          print(len(d.get("items", [])), "mahsulot")
           PY
           git config user.name "github-actions"; git config user.email "actions@github.com"
           git add tools/tmp && git commit -m "fetch-products: $CAT" && git push || echo "o'zgarish yo'q"

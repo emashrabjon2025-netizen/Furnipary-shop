@@ -91,6 +91,25 @@ module.exports = async (req, res) => {
       await put("crmSettings", "igrep", { date: day, at: Date.now(), cp });
       return res.status(200).json({ ok: !!r.ok, sent: true });
     }
+    if (req.query.products) {
+      // Saytdagi ommaviy mahsulotlar (nom, narx, rasm) kategoriya bo'yicha — PDF/kontent tayyorlash uchun
+      const cat = String(req.query.products).toLowerCase();
+      const ps = (await list("products")).filter((p) => String(p.category || "").toLowerCase().includes(cat) || String(p.name || "").toLowerCase().includes(cat)).slice(0, 10);
+      const out = [];
+      let total = 0;
+      for (const p of ps) {
+        const imgs = [];
+        for (const suf of ["", "__1", "__2"]) {
+          const d = await getOne("productImages", p.id + suf).catch(() => null);
+          const src = d && (d.data || d.image || d.src);
+          if (src && total + src.length < 4e6) (imgs.push(src), (total += src.length));
+        }
+        const { image, ...rest } = p;
+        out.push({ ...Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== "string" || !v.startsWith("data:"))), imgs });
+      }
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ ok: true, n: out.length, items: out });
+    }
     if (req.query.ics) {
       // Telefon kalendariga eslatma (.ics): ?ics=1&d=YYYY-MM-DD&t=HH:MM&title=..&desc=..
       const d = String(req.query.d || ""), t = String(req.query.t || "");
