@@ -2,6 +2,22 @@
 import { auth } from "./firebase.js";
 import { escapeHtml as esc, toast } from "./util.js";
 
+let BOT = "";
+try {
+  BOT = sessionStorage.getItem("fpBot") || "";
+} catch (_) {}
+if (!BOT)
+  fetch("/api/remind?me=1")
+    .then((r) => r.json())
+    .then((j) => {
+      if (!j.username) return;
+      BOT = j.username;
+      try {
+        sessionStorage.setItem("fpBot", BOT);
+      } catch (_) {}
+      document.querySelectorAll("[data-botlink]").forEach((a) => ((a.href = "https://t.me/" + BOT), (a.textContent = "@" + BOT)));
+    })
+    .catch(() => {});
 const MAX = 4.4 * 1024 * 1024;
 const kb = (n) => (n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.round(n / 1024) + " KB");
 const dur = (s) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "");
@@ -33,7 +49,8 @@ export function recHtml(l) {
     <label class="btn btn-dark btn-block file-btn rec-up">🎙 Yozuvni yuklash (audio fayl)
       <input type="file" accept="audio/*,.m4a,.mp3,.aac,.ogg,.opus,.amr,.wav,.3gp" hidden data-rec-file />
     </label>
-    <small class="muted">Yozuv lidga saqlanadi va Telegram kanalga yuboriladi. Hajmi 4 MB gacha.</small>
+    <small class="muted">Yozuv lidga saqlanadi va Telegram kanalga yuboriladi (4 MB gacha).<br>
+      📲 <b>Osonroq:</b> yozuvni telefondan «Поделиться» → Telegram → <a data-botlink href="https://t.me/${BOT}" target="_blank" rel="noopener">${BOT ? "@" + BOT : "botimiz"}</a> ga yuboring, izohiga mijoz raqamini yozing — o'zi shu lidga qo'shiladi (20 MB gacha).</small>
   </div>`;
 }
 

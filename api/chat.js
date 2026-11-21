@@ -5,7 +5,7 @@
 //   GET  ?setup=<CRM_LEAD_TOKEN>                   → Telegram webhook'ni ulash (bir marta)
 //   GET  ?info=<CRM_LEAD_TOKEN>                    → webhook holati
 const crypto = require("crypto");
-const { body, clip, esc, tg, normPhone, addLead, getOne, put, fs, db, idToken } = require("./_crm");
+const { body, clip, esc, tg, normPhone, addLead, getOne, put, patch, list, findBy, fs, db, idToken } = require("./_crm");
 const { sendOne } = require("./_push");
 
 const okCid = (s) => /^[A-Za-z0-9_-]{16,40}$/.test(String(s || ""));
@@ -45,6 +45,72 @@ async function botApi(method, payload) {
   return r.json().catch(() => ({ ok: false }));
 }
 
+// ---------- 🎙 Operator yozuvni botga yuboradi → lidga biriktiriladi ----------
+const ADMIN_UID = "B3O0Gn3vA3al6kmBZw5porxAEXC3";
+function audioOf(m) {
+  if (!m) return null;
+  if (m.audio) return { ...m.audio, kind: "audio" };
+  if (m.voice) return { ...m.voice, kind: "voice", file_name: "ovozli.ogg" };
+  const d = m.document;
+  if (d && (/^audio\//.test(d.mime_type || "") || /\.(m4a|mp3|aac|amr|ogg|opus|wav|3gp|awb)$/i.test(d.file_name || ""))) return { ...d, kind: "document" };
+  if (m.video_note) return { ...m.video_note, kind: "video_note", file_name: "dumaloq.mp4" };
+  return null;
+}
+const phoneIn = (s) => {
+  const d = String(s || "").replace(/\D/g, "");
+  const m = d.match(/(998)?(\d{9})(?!\d)/);
+  return m ? normPhone(m[2]) : "";
+};
+const tnow = () => {
+  const d = new Date(Date.now() + 5 * 3600e3).toISOString();
+  return `${d.slice(8, 10)}.${d.slice(5, 7)} ${d.slice(11, 16)}`;
+};
+async function attachRecording(m, who, res) {
+  // audio: shu xabarda yoki reply qilingan xabarda; raqam: izohda yoki reply matnida
+  const own = audioOf(m);
+  const src = own ? m : audioOf(m.reply_to_message) ? m.reply_to_message : null;
+  const media = own || audioOf(m.reply_to_message);
+  const phone = phoneIn(own ? m.caption : m.text) || phoneIn(m.caption) || "";
+  const reply = (text) => tg(text, { chat_id: m.chat.id, reply_to_message_id: m.message_id });
+  if (!media) return false;
+  if (!phone) {
+    await reply("🎙 Yozuv keldi. Endi <b>shu yozuvga Reply qilib</b> mijozning telefon raqamini yozing (masalan: 90 999 88 22) — lidga biriktiraman.");
+    return true;
+  }
+  const all = (await findBy("crmLeads", "phone", phone)).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const open = all.filter((l) => !["Sotildi", "Rad etdi"].includes(l.stage));
+  const pool = who.admin ? (open.length ? open : all) : (open.length ? open : all).filter((l) => l.assignedTo === who.uid);
+  const lead = pool[0];
+  if (!lead) {
+    await reply(all.length && !who.admin ? `⚠️ ${esc(phone)} raqamli lid sizga biriktirilmagan (${esc(all[0].assignedName || "boshqa operator")}da).` : `⚠️ ${esc(phone)} raqamli lid topilmadi. Avval panelda «➕ Lid qo'shish» qiling, keyin yozuvni qayta yuboring.`);
+    return true;
+  }
+  const rec = (await getOne("crmSettings", "rec")) || {};
+  const dest = String(rec.chatId || process.env.TELEGRAM_CHAT_ID || "");
+  const caption = [
+    `🎙 <b>Qo'ng'iroq yozuvi</b>`,
+    `👤 <b>${esc(lead.name || "Mijoz")}</b> ${esc(lead.phone || "")}`,
+    lead.interest ? `🛏 ${esc(lead.interest)}` : "",
+    `🎧 Operator: ${esc(who.name)} · ${tnow()}`,
+    `📌 Holati: ${esc(lead.stage || "")}${lead.source ? " · " + esc(lead.source) : ""}`,
+    `#lid_${String(lead.id).slice(0, 8)}`,
+  ].filter(Boolean).join("\n");
+  let msgId = src.message_id,
+    chatId = String(m.chat.id),
+    chatUser = "";
+  if (dest && dest !== String(m.chat.id)) {
+    const c = await botApi("copyMessage", { chat_id: dest, from_chat_id: m.chat.id, message_id: src.message_id, caption, parse_mode: "HTML" });
+    if (c.ok) {
+      msgId = c.result.message_id;
+      chatId = dest;
+    }
+  }
+  const item = { fileId: media.file_id, msgId, chatId, chatUser, name: clip(media.file_name || media.kind, 80), size: media.file_size || 0, dur: media.duration || 0, at: Date.now(), by: who.uid, byName: who.name, via: "telegram" };
+  await patch("crmLeads", lead.id, { recordings: fs.arrayUnion(item) });
+  await reply(`✅ Yozuv <b>${esc(lead.name || "mijoz")}</b> (${esc(lead.phone || "")}) lidiga qo'shildi${media.file_size > 20e6 ? "\n⚠️ Fayl 20 MB dan katta — panelda tinglab bo'lmaydi, Telegram'da tinglanadi." : ""}`);
+  return true;
+}
+
 // Telegram'dan kelgan javob
 async function onTelegram(req, res) {
   if (req.headers["x-telegram-bot-api-secret-token"] !== hookSecret()) return res.status(401).json({ ok: false });
@@ -62,6 +128,21 @@ async function onTelegram(req, res) {
       await tg(`✅ ${esc(op.name || "Operator")}, Telegram ulandi. Yangi lidlar va eslatmalar shu yerga keladi.\n\n👉 https://furnipart-shop.vercel.app/operator`, { chat_id: m.chat.id });
       await tg(`👤 Operator <b>${esc(op.name || "")}</b> Telegram'ni uladi.`);
     }
+    return res.status(200).json({ ok: true });
+  }
+  // 🎙 yozuv: operator (Telegram'i ulangan) yoki admin yuboradi
+  if (m && m.chat && m.chat.type === "private" && (audioOf(m) || audioOf(m.reply_to_message))) {
+    let who = null;
+    if (String(m.chat.id) === owner) who = { admin: true, uid: ADMIN_UID, name: "Admin" };
+    else {
+      const op = (await list("crmOperators")).find((o) => String(o.tgChat || "") === String(m.chat.id) && o.active !== false);
+      if (op) who = { admin: false, uid: op.id, name: op.name || "Operator" };
+    }
+    if (who) {
+      await attachRecording(m, who, res);
+      return res.status(200).json({ ok: true });
+    }
+    await tg("⚠️ Avval operator panelidagi havola orqali Telegram'ingizni ulang.", { chat_id: m.chat.id });
     return res.status(200).json({ ok: true });
   }
   if (!m || String(m.chat && m.chat.id) !== owner) return res.status(200).json({ ok: true });
