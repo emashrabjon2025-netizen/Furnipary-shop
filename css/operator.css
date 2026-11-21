@@ -132,3 +132,5 @@
 .rec-meta { font-size: 13px; }
 .rec-audio { width: 100%; }
 .rec-up.busy { opacity: .6; pointer-events: none; }
+.op-next-row { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) !important; }
+.op-next-row input, .mt-dates input { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
