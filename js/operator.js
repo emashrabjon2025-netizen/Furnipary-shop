@@ -294,11 +294,11 @@ function renderLead() {
     }
     <label class="op-note">Izoh (mijoz nima dedi)<textarea id="leadNote" rows="3" maxlength="1000">${esc(l.note || "")}</textarea></label>
     <button class="btn btn-dark btn-sm" type="button" id="saveNote">Izohni saqlash</button>
+    ${recHtml(l)}
     <details class="op-script" ${l.stage === "Yangi" ? "open" : ""}>
       <summary>📜 Skript — ${{ matras: "matras", furnitura: "furnitura / mebelchi", divan: "divan", umumiy: "umumiy" }[sc.k]}</summary>
       <pre>${esc(sc.txt)}</pre>
     </details>
-    ${recHtml(l)}
     ${log.length ? `<h3 class="op-h">Tarix</h3><ul class="op-log">${log.map((a) => `<li>${new Date(a.at).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} — ${esc(a.t)}</li>`).join("")}</ul>` : ""}
   `;
 }
