@@ -14,17 +14,28 @@ const tashkentMinutes = () => {
 module.exports = async (req, res) => {
   try {
     if (req.query.igrep) {
-      // 📊 Instagram kunlik hisoboti (21:00). w = qiziqishlarga yozilganlar, dm = Direct'da yozishganlar (ChatPlace'dan)
+      // 📊 Instagram kunlik hisoboti (21:00) — HAR BIR Instagram akkaunt uchun alohida.
+      // cp = ChatPlace raqamlari: "furnipart.uz:12:3;furnipart_uz:5:1"  (akkaunt:qiziqishlarga yozilganlar:Direct'da yozganlar)
       const t = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
       const day = /^\d{4}-\d{2}-\d{2}$/.test(req.query.d || "") ? req.query.d : t;
       const st = (await getOne("crmSettings", "igrep")) || {};
       if (req.query.auto && st.date === day) return res.status(200).json({ ok: true, skip: "bugun yuborilgan" });
-      if (st.at && Date.now() - Number(st.at) < 10 * 60e3 && st.date === day && !req.query.force) return res.status(200).json({ ok: true, skip: "yaqinda yuborilgan" });
+      if (st.at && Date.now() - Number(st.at) < 10 * 60e3 && st.date === day && !req.query.force && !req.query.dry) return res.status(200).json({ ok: true, skip: "yaqinda yuborilgan" });
+      const MAIN = "furnipart.uz";
+      const cp = {};
+      String(req.query.cp || "").split(/[;,]/).forEach((x) => {
+        const [a, w, dm] = x.split(":");
+        const acc = String(a || "").trim().replace(/^@/, "").toLowerCase();
+        if (acc) cp[acc] = { w: w === "" || isNaN(Number(w)) ? null : Number(w), dm: dm === undefined || dm === "" || isNaN(Number(dm)) ? null : Number(dm) };
+      });
+      // eski format: faqat umumiy w/dm → asosiy akkauntga
       const num = (v) => (v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
-      const w = num(req.query.w), dm = num(req.query.dm);
+      if (!Object.keys(cp).length && (num(req.query.w) !== null || num(req.query.dm) !== null)) cp[MAIN] = { w: num(req.query.w), dm: num(req.query.dm) };
       const [leads, sales, sets] = await Promise.all([list("crmLeads"), list("crmSales"), list("crmSettings").catch(() => [])]);
       const rate = Number((sets.find((s) => s.id === "target") || {}).usdRate) || 12050;
       const isIg = (l) => !!l && (/instagram/i.test(l.source || "") || l.target === true || !!l.account);
+      const accOf = (l) => (l.account || MAIN).toLowerCase();
+      const isTarget = (l) => l.target === true || l.source === "Instagram target";
       const dayOf = (x) => {
         if (!x) return "";
         if (typeof x === "string") return x.length > 10 ? new Date(Date.parse(x) + 5 * 3600e3).toISOString().slice(0, 10) : x;
@@ -37,24 +48,46 @@ module.exports = async (req, res) => {
       const qualified = igLeads.filter((l) => okToday(l) || (l.stage === "Sotildi" && dayOf(l.soldAt) === day));
       const byId = Object.fromEntries(leads.map((l) => [l.id, l]));
       const igSales = sales.filter((s) => s.date === day && s.status !== "Bekor qilindi" && (isIg(byId[s.leadId]) || /instagram/i.test(s.source || "") || s.fromTarget === true));
-      const sum = igSales.reduce((a, s) => a + (Number(s.amount) || 0) * ((s.currency || "$") === "$" ? rate : 1), 0);
+      const saleAcc = (s) => (byId[s.leadId] && isIg(byId[s.leadId]) ? accOf(byId[s.leadId]) : MAIN);
+      const som = (s) => (Number(s.amount) || 0) * ((s.currency || "$") === "$" ? rate : 1);
       const mln = (n) => (n >= 1e6 ? (Math.round(n / 1e5) / 10).toString().replace(".", ",") + " mln" : String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")) + " so'm";
-      const accs = {};
-      newIg.forEach((l) => (accs[l.account || "furnipart.uz"] = (accs[l.account || "furnipart.uz"] || 0) + 1));
+      const accs = [...new Set([MAIN, "furnipart_uz", ...Object.keys(cp), ...newIg.map(accOf), ...qualified.map(accOf), ...igSales.map(saleAcc)])];
+      const dash = (v) => (v === null || v === undefined ? "—" : v);
+      const dd = `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`;
+      const blocks = [];
+      const tot = { w: 0, dm: 0, tg: 0, n: 0, q: 0, s: 0, sum: 0, hasW: false };
+      for (const a of accs) {
+        const nl = newIg.filter((l) => accOf(l) === a);
+        const q = qualified.filter((l) => accOf(l) === a).length;
+        const ss = igSales.filter((s) => saleAcc(s) === a);
+        const sum = ss.reduce((x, s) => x + som(s), 0);
+        const c = cp[a] || { w: null, dm: null };
+        const tgN = nl.filter(isTarget).length;
+        if (!nl.length && !q && !ss.length && !c.w && !c.dm && a !== MAIN && !cp[a]) continue;
+        tot.n += nl.length; tot.q += q; tot.s += ss.length; tot.sum += sum; tot.tg += tgN;
+        if (c.w !== null) (tot.w += c.w), (tot.hasW = true);
+        if (c.dm !== null) tot.dm += c.dm;
+        blocks.push([
+          `📸 <b>@${esc(a)}</b>`,
+          `👀 Qiziqishlarga yozilganlar soni: <b>${dash(c.w)}</b>`,
+          `📣 Target orqali kelgan lidlar: <b>${tgN}</b>`,
+          `📞 Raqam olinganlar soni: <b>${nl.length}</b>`,
+          `💬 Smsda (Direct) yozishganlar soni: <b>${dash(c.dm)}</b>`,
+          `✅ Bizga javob berganlar (sifatliga o'tganlar): <b>${q}</b>`,
+          `💰 Sotuv: <b>${ss.length} ta</b>${ss.length ? " · " + mln(sum) : ""}`,
+          `📅 Sana: <b>${dd}</b>`,
+          c.w ? `📈 Yozilgan → raqam ${Math.round((nl.length / c.w) * 100)}% · raqam → sotuv ${nl.length ? Math.round((ss.length / nl.length) * 100) : 0}%` : "",
+        ].filter(Boolean).join("\n"));
+      }
       const msg = [
-        `📊 <b>Instagram bo'yicha hisobot</b>`,
-        ``,
-        `👀 Qiziqishlarga yozilganlar soni: <b>${w === null ? "—" : w}</b>`,
-        `📞 Raqam olinganlar soni: <b>${newIg.length}</b>${Object.keys(accs).length > 1 ? " (" + Object.entries(accs).map(([a, n]) => `@${esc(a)}: ${n}`).join(", ") + ")" : ""}`,
-        `💬 Smsda (Direct) yozishganlar soni: <b>${dm === null ? "—" : dm}</b>`,
-        `✅ Bizga javob berganlar (sifatliga o'tganlar): <b>${qualified.length}</b>`,
-        `💰 Sotuv: <b>${igSales.length} ta</b>${igSales.length ? " · " + mln(sum) : ""}`,
-        `📅 Sana: <b>${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}</b>`,
-        w !== null && w > 0 ? `\n📈 Konversiya: yozilgan → raqam ${Math.round((newIg.length / w) * 100)}% · raqam → sotuv ${newIg.length ? Math.round((igSales.length / newIg.length) * 100) : 0}%` : "",
-      ].filter((x) => x !== "").join("\n");
+        `📊 <b>Instagram bo'yicha kunlik hisobot</b> — ${dd}`,
+        ...blocks,
+        blocks.length > 1 ? `🧮 <b>Jami:</b> yozilgan ${tot.hasW ? tot.w : "—"} · target ${tot.tg} · raqam ${tot.n} · sifatli ${tot.q} · sotuv ${tot.s} ta${tot.s ? " (" + mln(tot.sum) + ")" : ""}` : "",
+        !Object.keys(cp).length ? `<i>ℹ️ ChatPlace raqamlari (yozilganlar, Direct) bu safar kelmadi</i>` : "",
+      ].filter(Boolean).join("\n\n");
       if (req.query.dry) return res.status(200).json({ ok: true, msg });
       const r = await tg(msg);
-      await put("crmSettings", "igrep", { date: day, at: Date.now(), w, dm });
+      await put("crmSettings", "igrep", { date: day, at: Date.now(), cp });
       return res.status(200).json({ ok: !!r.ok, sent: true });
     }
     if (req.query.ics) {

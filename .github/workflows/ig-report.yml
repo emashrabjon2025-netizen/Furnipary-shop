@@ -11,6 +11,9 @@ on:
       dm:
         description: "Direct'da yozishganlar"
         required: false
+      cp:
+        description: "Har akkaunt: akkaunt:yozilganlar:direct;... (masalan furnipart.uz:12:3;furnipart_uz:5:1)"
+        required: false
       d:
         description: "Sana YYYY-MM-DD (bo'sh = bugun)"
         required: false
@@ -25,9 +28,10 @@ jobs:
           W: ${{ github.event.inputs.w }}
           DM: ${{ github.event.inputs.dm }}
           D: ${{ github.event.inputs.d }}
+          CP: ${{ github.event.inputs.cp }}
           EV: ${{ github.event_name }}
         run: |
           B="https://furnipart-shop.vercel.app/api/remind?igrep=1"
-          W=$(echo "$W" | tr -cd '0-9'); DM=$(echo "$DM" | tr -cd '0-9'); D=$(echo "$D" | tr -cd '0-9-')
-          if [ "$EV" = "schedule" ]; then URL="$B&auto=1"; else URL="$B&w=$W&dm=$DM&d=$D"; fi
+          W=$(echo "$W" | tr -cd '0-9'); DM=$(echo "$DM" | tr -cd '0-9'); D=$(echo "$D" | tr -cd '0-9-'); CP=$(echo "$CP" | tr -cd 'a-z0-9._:;')
+          if [ "$EV" = "schedule" ]; then URL="$B&auto=1"; else URL="$B&w=$W&dm=$DM&d=$D&cp=$CP"; fi
           curl -s -m 90 "$URL"; echo
