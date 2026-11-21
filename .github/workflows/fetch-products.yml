@@ -1,0 +1,63 @@
+name: fetch-products
+# Saytdagi mahsulotlarni (nom, narx, rasm) kategoriya bo'yicha tools/tmp/<kat>/ ga yuklaydi (PDF/kontent uchun)
+on:
+  workflow_dispatch:
+    inputs:
+      cat:
+        description: "Kategoriya nomidagi so'z (masalan: divan)"
+        required: true
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          CAT: ${{ github.event.inputs.cat }}
+        run: |
+          python3 - <<'PY'
+          import json, os, base64, re, urllib.request
+          B = "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents"
+          cat = os.environ["CAT"].lower()
+          def get(u):
+              return json.load(urllib.request.urlopen(u, timeout=30))
+          docs, tok = [], ""
+          while True:
+              d = get(f"{B}/products?pageSize=300" + (f"&pageToken={tok}" if tok else ""))
+              docs += d.get("documents", [])
+              tok = d.get("nextPageToken")
+              if not tok: break
+          def val(v):
+              if not v: return None
+              k = list(v)[0]; x = v[k]
+              if k == "mapValue": return {a: val(b) for a, b in x.get("fields", {}).items()}
+              if k == "arrayValue": return [val(i) for i in x.get("values", [])]
+              return x
+          out = f"tools/tmp/{re.sub('[^a-z0-9]+','-',cat)}"
+          os.makedirs(out, exist_ok=True)
+          items = []
+          for doc in docs:
+              f = {a: val(b) for a, b in doc.get("fields", {}).items()}
+              pid = doc["name"].split("/")[-1]
+              blob = json.dumps(f, ensure_ascii=False).lower()
+              if cat not in str(f.get("category", "")).lower() and cat not in str(f.get("name", "")).lower(): continue
+              ims = []
+              for suf in [""] + [f"__{i}" for i in range(1, 5)]:
+                  try:
+                      im = get(f"{B}/productImages/{pid}{suf}")
+                      data = val(im["fields"].get("data") or im["fields"].get("image") or im["fields"].get("src"))
+                      if data and "base64," in data:
+                          fn = f"{pid}{suf or '__0'}.jpg"
+                          open(f"{out}/{fn}", "wb").write(base64.b64decode(data.split("base64,", 1)[1]))
+                          ims.append(fn)
+                  except Exception as e:
+                      pass
+              f.pop("image", None)
+              items.append({"id": pid, **{k: v for k, v in f.items() if not (isinstance(v, str) and v.startswith("data:"))}, "files": ims})
+          json.dump(items, open(f"{out}/products.json", "w"), ensure_ascii=False, indent=1)
+          print(len(items), "mahsulot", sum(len(i["files"]) for i in items), "rasm")
+          PY
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add tools/tmp && git commit -m "fetch-products: $CAT" && git push || echo "o'zgarish yo'q"
