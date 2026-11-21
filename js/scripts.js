@@ -39,18 +39,47 @@ O'zbekiston bo'ylab dastavka bor (BTS / pochta).
 Hozir rasmiylashtiraylikmi? Qaysi shaharga yuboramiz?
 Har safar kerak bo'lsa — to'g'ridan-to'g'ri menga yozing.`,
   divan: `1. SALOM
-Assalomu alaykum, {ism}! FURNIPART'dan {operator}. Divan / bosh tomoni bo'yicha so'ragan ekansiz.
+Assalomu alaykum, {ism}! FURNIPART premium'dan {operator}. Divan bo'yicha so'ragan ekansiz — 2 daqiqa vaqtingiz bormi?
 
-2. SAVOLLAR
-• Qaysi o'lchamdagi matras uchun? (160, 180…)
-• Qaysi fason yoqdi? Rasmini yuboraymi?
-• Rangi va materiali (velyur, rogojka, eko-teri)?
+2. SAVOLLAR (javobini izohga yozing)
+• Matrasingiz o'lchami qancha? (bizda tayyori 170×210 matras uchun)
+• Faqat bosh tomoni kerakmi yoki to'liq komplekt (bosh + yon + oyoq tomoni)?
+• Qaysi rang yoqadi: sutli (malochniy) velyur yoki bordo koja?
+• Qaysi shahardasiz? (yetkazishni aytish uchun)
 
-3. TAKLIF
-Xohlagan dizayn va rangda tayyorlab beramiz. Narxi … , tayyor bo'lishi … kun.
+3. TAKLIF — 2 xil variant
+• Divan bosh tomoni (bo'yi 110 sm) — 580 000 so'm
+• To'liq komplekt: bosh + yon + oyoq tomonlari — 1 600 000 so'm (4 ta qotirish ugolnigi bilan)
+  Ugolniksiz — 1 500 000 so'm
+"Ko'pchilik to'liq komplektni oladi — karavot butunlay yangi, chiroyli ko'rinadi."
 
-4. YOPISH
-Zaklad bilan zakaz qilamiz, qolganini yetkazganda to'laysiz. Bugun rasmiylashtiraylikmi?`,
+4. MAHSULOT HAQIDA (savol bo'lsa)
+• Tayyori 2 rangda bor: sutli rang velyur va bordo rang koja.
+• Koja suv o'tkazmaydi — ho'l latta bilan bemalol artib ishlatasiz, dog' qolmaydi.
+• Ichida 17 zichlikdagi porolon — yumshoq, lekin cho'kib qolmaydi.
+• Karkasi yangi DSP dan.
+• O'zimiz ishlab chiqaramiz, jo'natishdan oldin tekshiramiz. Brak chiqsa — almashtirib beramiz.
+• Kafolat 1 yil — porolon cho'kib, buzilib qolsa.
+• Boshqa o'lcham yoki rang kerak bo'lsa — zakaz bo'yicha tayyorlaymiz, muddatini kelishamiz (admin bilan aniqlang).
+
+5. YETKAZISH VA TO'LOV
+• Farg'ona vodiysi bo'ylab — o'zimiz uyingizgacha olib boramiz.
+• Boshqa viloyatlarga — taksi yoki pochta orqali jo'natamiz, yo'l kirani mijoz to'laydi.
+• O'rnatib berish (ustanovka) yo'q — ugolniklar bilan o'zingiz oson qotirasiz.
+• Bo'lib to'lash yo'q. Mahsulot to'liq to'lovdan keyin jo'natiladi.
+• Katta zakazda (5–6 tadan ko'p) zaklad olinadi, tayyor bo'lgach qolgani to'liq to'lanadi.
+
+6. E'TIROZLAR
+• "Qimmat" → "Arzonida porolon 1 yilda cho'kib qoladi. Bizda 17 zichlikdagi porolon va 1 yil kafolat — bir marta olib, yillab ishlatasiz. Faqat bosh tomoni ham bor — 580 000 so'm."
+• "O'ylab ko'raman / maslahatlashaman" → "Albatta. Rasm va narxlarni yozib yuboraman, oilangizga ko'rsating. Ertaga soat nechada qo'ng'iroq qilay?" (keyingi qo'ng'iroq sana+soatini qo'ying)
+• "Bozorda arzon" → "Bozorda kafolat yo'q, sifatini bilmaysiz. Biz o'zimiz ishlab chiqaramiz, tekshirib jo'natamiz, brak bo'lsa almashtiramiz."
+• "Rasmdagidek keladimi?" → "Ha, xohlasangiz do'kondan aynan shu mahsulotni videoga olib yuboraman."
+• "Kelib ko'rsam bo'ladimi?" → "Albatta: Marg'ilon, Marg'ilon sitiy ro'parasida (Sto Tex yonida). Tel: +998 91 125 9000."
+• Ko'p dona (5 tadan ko'p) → komplekt 1 450 000 so'mgacha tushirish mumkin. Undan pastini faqat admin bilan kelishib ayting.
+
+7. YOPISH
+"Qaysi rangini rasmiylashtiraylik — sutli velyurmi yoki bordo kojami? Manzilingizni yozib olay, ertaga yetkazib beramiz."
+→ Sotildi bo'lsa: 💰 Sotildi tugmasini bosing, rang va variantni izohga yozing.`,
   umumiy: `1. SALOM
 Assalomu alaykum, {ism}! FURNIPART premium'dan {operator}. Bizga yozgan ekansiz — qanday yordam bera olaman?
 

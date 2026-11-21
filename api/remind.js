@@ -126,7 +126,7 @@ module.exports = async (req, res) => {
       for (const c of ["dvClients", "dvPhotos", "crmCouriers", "matrasClients"]) out[c] = await ok(c);
       res.setHeader("Cache-Control", "no-store");
       const ls = await list("crmLeads").catch(() => []);
-      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients, leadsWithTime: ls.filter((l) => l.nextCallTime).length, recordings: ls.flatMap((l) => l.recordings || []).map((r) => ({ name: String(r.name || "").split(".").pop(), size: r.size, dur: r.dur, via: r.via || "panel", hasFile: !!r.fileId, ch: String(r.chatId || "").slice(0, 4) })), timedReminded: ls.filter((l) => l.callRemindFor).length } });
+      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients, leadsWithTime: ls.filter((l) => l.nextCallTime).length, recordings: ls.flatMap((l) => l.recordings || []).map((r) => ({ name: String(r.name || "").split(".").pop(), size: r.size, dur: r.dur, via: r.via || "panel", hasFile: !!r.fileId, ch: String(r.chatId || "").slice(0, 4) })), timedReminded: ls.filter((l) => l.callRemindFor).length, scriptsSaved: Object.keys((await getOne("crmSettings", "scripts").catch(() => null)) || {}).filter((k) => k !== "id" && k !== "updatedAt") } });
     }
     const st = (await getOne("crmSettings", "remind")) || {};
     if (st.lastRun && Date.now() - Number(st.lastRun) < 2 * 60e3) return res.status(200).json({ ok: true, skip: "yaqinda tekshirildi" });
