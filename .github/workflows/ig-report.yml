@@ -1,0 +1,33 @@
+name: ig-report
+# Har kuni 21:00 (Toshkent) — Instagram bo'yicha hisobot Telegram'ga (api/remind.js?igrep=1)
+# w/dm (ChatPlace raqamlari) Claude rejalashtirilgan vazifasi orqali workflow_dispatch bilan keladi.
+# 21:20 dagi cron — zaxira: bugun yuborilmagan bo'lsa, ChatPlace raqamlarisiz yuboradi.
+on:
+  workflow_dispatch:
+    inputs:
+      w:
+        description: "Qiziqishlarga yozilganlar (ChatPlace avtomatizatsiyalariga kirganlar)"
+        required: false
+      dm:
+        description: "Direct'da yozishganlar"
+        required: false
+      d:
+        description: "Sana YYYY-MM-DD (bo'sh = bugun)"
+        required: false
+  schedule:
+    - cron: "20 16 * * *"
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          W: ${{ github.event.inputs.w }}
+          DM: ${{ github.event.inputs.dm }}
+          D: ${{ github.event.inputs.d }}
+          EV: ${{ github.event_name }}
+        run: |
+          B="https://furnipart-shop.vercel.app/api/remind?igrep=1"
+          W=$(echo "$W" | tr -cd '0-9'); DM=$(echo "$DM" | tr -cd '0-9'); D=$(echo "$D" | tr -cd '0-9-')
+          if [ "$EV" = "schedule" ]; then URL="$B&auto=1"; else URL="$B&w=$W&dm=$DM&d=$D"; fi
+          curl -s -m 90 "$URL"; echo

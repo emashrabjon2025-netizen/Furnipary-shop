@@ -13,6 +13,50 @@ const tashkentMinutes = () => {
 
 module.exports = async (req, res) => {
   try {
+    if (req.query.igrep) {
+      // 📊 Instagram kunlik hisoboti (21:00). w = qiziqishlarga yozilganlar, dm = Direct'da yozishganlar (ChatPlace'dan)
+      const t = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+      const day = /^\d{4}-\d{2}-\d{2}$/.test(req.query.d || "") ? req.query.d : t;
+      const st = (await getOne("crmSettings", "igrep")) || {};
+      if (req.query.auto && st.date === day) return res.status(200).json({ ok: true, skip: "bugun yuborilgan" });
+      if (st.at && Date.now() - Number(st.at) < 10 * 60e3 && st.date === day && !req.query.force) return res.status(200).json({ ok: true, skip: "yaqinda yuborilgan" });
+      const num = (v) => (v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
+      const w = num(req.query.w), dm = num(req.query.dm);
+      const [leads, sales, sets] = await Promise.all([list("crmLeads"), list("crmSales"), list("crmSettings").catch(() => [])]);
+      const rate = Number((sets.find((s) => s.id === "target") || {}).usdRate) || 12050;
+      const isIg = (l) => !!l && (/instagram/i.test(l.source || "") || l.target === true || !!l.account);
+      const dayOf = (x) => {
+        if (!x) return "";
+        if (typeof x === "string") return x.length > 10 ? new Date(Date.parse(x) + 5 * 3600e3).toISOString().slice(0, 10) : x;
+        const sec = x.seconds || x._seconds;
+        return sec ? new Date(sec * 1000 + 5 * 3600e3).toISOString().slice(0, 10) : "";
+      };
+      const igLeads = leads.filter(isIg);
+      const newIg = igLeads.filter((l) => (l.date || dayOf(l.createdAt)) === day);
+      const okToday = (l) => (l.attemptLog || []).some((a) => new Date(Number(a.at) + 5 * 3600e3).toISOString().slice(0, 10) === day && /gaplashdik|o'ylab|sotildi|💰/i.test(a.t || ""));
+      const qualified = igLeads.filter((l) => okToday(l) || (l.stage === "Sotildi" && dayOf(l.soldAt) === day));
+      const byId = Object.fromEntries(leads.map((l) => [l.id, l]));
+      const igSales = sales.filter((s) => s.date === day && s.status !== "Bekor qilindi" && (isIg(byId[s.leadId]) || /instagram/i.test(s.source || "") || s.fromTarget === true));
+      const sum = igSales.reduce((a, s) => a + (Number(s.amount) || 0) * ((s.currency || "$") === "$" ? rate : 1), 0);
+      const mln = (n) => (n >= 1e6 ? (Math.round(n / 1e5) / 10).toString().replace(".", ",") + " mln" : String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")) + " so'm";
+      const accs = {};
+      newIg.forEach((l) => (accs[l.account || "furnipart.uz"] = (accs[l.account || "furnipart.uz"] || 0) + 1));
+      const msg = [
+        `📊 <b>Instagram bo'yicha hisobot</b>`,
+        ``,
+        `👀 Qiziqishlarga yozilganlar soni: <b>${w === null ? "—" : w}</b>`,
+        `📞 Raqam olinganlar soni: <b>${newIg.length}</b>${Object.keys(accs).length > 1 ? " (" + Object.entries(accs).map(([a, n]) => `@${esc(a)}: ${n}`).join(", ") + ")" : ""}`,
+        `💬 Smsda (Direct) yozishganlar soni: <b>${dm === null ? "—" : dm}</b>`,
+        `✅ Bizga javob berganlar (sifatliga o'tganlar): <b>${qualified.length}</b>`,
+        `💰 Sotuv: <b>${igSales.length} ta</b>${igSales.length ? " · " + mln(sum) : ""}`,
+        `📅 Sana: <b>${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}</b>`,
+        w !== null && w > 0 ? `\n📈 Konversiya: yozilgan → raqam ${Math.round((newIg.length / w) * 100)}% · raqam → sotuv ${newIg.length ? Math.round((igSales.length / newIg.length) * 100) : 0}%` : "",
+      ].filter((x) => x !== "").join("\n");
+      if (req.query.dry) return res.status(200).json({ ok: true, msg });
+      const r = await tg(msg);
+      await put("crmSettings", "igrep", { date: day, at: Date.now(), w, dm });
+      return res.status(200).json({ ok: !!r.ok, sent: true });
+    }
     if (req.query.ics) {
       // Telefon kalendariga eslatma (.ics): ?ics=1&d=YYYY-MM-DD&t=HH:MM&title=..&desc=..
       const d = String(req.query.d || ""), t = String(req.query.t || "");
