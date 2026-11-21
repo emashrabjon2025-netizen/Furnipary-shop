@@ -18,12 +18,16 @@ jobs:
           CAT: ${{ github.event.inputs.cat }}
         run: |
           python3 - <<'PY'
-          import json, os, base64, re, urllib.request
+          import json, os, base64, re, urllib.request, urllib.error
           B = "https://firestore.googleapis.com/v1/projects/furbipart/databases/default/documents"
           cat = os.environ["CAT"].lower()
           KEY = "AIzaSyDrbB7ppT6vSccAl1CLMdVhcmzg7Tyj1zU"
           def get(u):
-              return json.load(urllib.request.urlopen(u, timeout=30))
+              r = urllib.request.Request(u, headers={"Referer": "https://furnipart-shop.vercel.app/", "Origin": "https://furnipart-shop.vercel.app"})
+              try:
+                  return json.load(urllib.request.urlopen(r, timeout=30))
+              except urllib.error.HTTPError as e:
+                  print("HTTP", e.code, u.split("?")[0], e.read()[:300]); raise
           docs, tok = [], ""
           while True:
               d = get(f"{B}/products?key={KEY}&pageSize=300" + (f"&pageToken={tok}" if tok else ""))
