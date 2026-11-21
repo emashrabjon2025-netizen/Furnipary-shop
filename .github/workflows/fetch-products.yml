@@ -33,7 +33,7 @@ jobs:
                       files.append(fn)
               it["files"] = files
           json.dump(d.get("items", []), open(f"{out}/products.json", "w"), ensure_ascii=False, indent=1, default=str)
-          print(len(d.get("items", [])), "mahsulot")
+          print(len(d.get("items", [])), "mahsulot", [(i.get("name"), i.get("category")) for i in d.get("items", [])], str(d)[:200])
           PY
           git config user.name "github-actions"; git config user.email "actions@github.com"
           git add tools/tmp && git commit -m "fetch-products: $CAT" && git push || echo "o'zgarish yo'q"
