@@ -19,7 +19,8 @@ module.exports = async (req, res) => {
       const t = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
       const day = /^\d{4}-\d{2}-\d{2}$/.test(req.query.d || "") ? req.query.d : t;
       const st = (await getOne("crmSettings", "igrep")) || {};
-      if (req.query.auto && st.date === day) return res.status(200).json({ ok: true, skip: "bugun yuborilgan" });
+      // kuniga bir marta: bugun allaqachon yuborilgan bo'lsa takrorlamaymiz (force=1 bilan majburan)
+      if (st.date === day && !req.query.force && !req.query.dry) return res.status(200).json({ ok: true, skip: "bugun yuborilgan" });
       if (st.at && Date.now() - Number(st.at) < 10 * 60e3 && st.date === day && !req.query.force && !req.query.dry) return res.status(200).json({ ok: true, skip: "yaqinda yuborilgan" });
       const MAIN = "furnipart.uz";
       const cp = {};
