@@ -92,7 +92,8 @@
   "slot": "kunduz",
   "date": "2026-11-14",
   "sent_at": "2026-11-14T15:37+05:00",
-  "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?"
+  "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?",
+  "reported": "2026-11-21T15:45+05:00"
  },
  {
   "message_id": 15128,
@@ -184,5 +185,12 @@
   "date": "2026-11-21",
   "sent_at": "2026-11-21T09:45+05:00",
   "question": "🌙 Siz kechasi necha soat uxlaysiz?"
+ },
+ {
+  "message_id": 15205,
+  "slot": "kunduz",
+  "date": "2026-11-21",
+  "sent_at": "2026-11-21T15:45+05:00",
+  "question": "🚚 Mebel sotib olganingizda siz uchun eng katta bosh og'riq nima?"
  }
 ]
