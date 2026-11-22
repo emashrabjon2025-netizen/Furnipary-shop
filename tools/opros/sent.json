@@ -100,14 +100,16 @@
   "slot": "ertalab",
   "date": "2026-11-15",
   "sent_at": "2026-11-15T09:41+05:00",
-  "question": "🏠 Yangi uyga ko'chganingizda, birinchi navbatda nima olasiz?"
+  "question": "🏠 Yangi uyga ko'chganingizda, birinchi navbatda nima olasiz?",
+  "reported": "2026-11-22T17:08+05:00"
  },
  {
   "message_id": 15131,
   "slot": "kunduz",
   "date": "2026-11-15",
   "sent_at": "2026-11-15T15:39+05:00",
-  "question": "🛍 Mebel yoki matras olayotganingizda eng ko'p nimadan xavotir olasiz?"
+  "question": "🛍 Mebel yoki matras olayotganingizda eng ko'p nimadan xavotir olasiz?",
+  "reported": "2026-11-22T17:08+05:00"
  },
  {
   "message_id": 15139,
@@ -192,5 +194,12 @@
   "date": "2026-11-21",
   "sent_at": "2026-11-21T15:45+05:00",
   "question": "🚚 Mebel sotib olganingizda siz uchun eng katta bosh og'riq nima?"
+ },
+ {
+  "message_id": 15222,
+  "slot": "ertalab",
+  "date": "2026-11-22",
+  "sent_at": "2026-11-22T17:08+05:00",
+  "question": "🛏 Sizningcha, sifatli matras necha yil xizmat qiladi?"
  }
 ]
