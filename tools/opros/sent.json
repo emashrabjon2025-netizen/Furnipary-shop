@@ -201,5 +201,12 @@
   "date": "2026-11-22",
   "sent_at": "2026-11-22T17:08+05:00",
   "question": "🛏 Sizningcha, sifatli matras necha yil xizmat qiladi?"
+ },
+ {
+  "message_id": 15226,
+  "slot": "kunduz",
+  "date": "2026-11-22",
+  "sent_at": "2026-11-22T22:42+05:00",
+  "question": "😣 Ertalab belingiz yoki bo'yningiz og'rib turadimi?"
  }
 ]
