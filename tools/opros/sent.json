@@ -116,14 +116,16 @@
   "slot": "ertalab",
   "date": "2026-11-16",
   "sent_at": "2026-11-16T10:18+05:00",
-  "question": "⏰ Siz ertalab qanday turasiz?"
+  "question": "⏰ Siz ertalab qanday turasiz?",
+  "reported": "2026-11-23T18:51+05:00"
  },
  {
   "message_id": 15146,
   "slot": "kunduz",
   "date": "2026-11-16",
   "sent_at": "2026-11-16T16:20+05:00",
-  "question": "👫 Turmush o'rtog'ingiz bilan bir matrasda yaxshi uxlaysizmi?"
+  "question": "👫 Turmush o'rtog'ingiz bilan bir matrasda yaxshi uxlaysizmi?",
+  "reported": "2026-11-23T18:51+05:00"
  },
  {
   "message_id": 15150,
@@ -208,5 +210,12 @@
   "date": "2026-11-22",
   "sent_at": "2026-11-22T22:42+05:00",
   "question": "😣 Ertalab belingiz yoki bo'yningiz og'rib turadimi?"
+ },
+ {
+  "message_id": 15234,
+  "slot": "ertalab",
+  "date": "2026-11-23",
+  "sent_at": "2026-11-23T18:51+05:00",
+  "question": "😴 Bilasizmi, inson umrining qancha qismi uyquda o'tadi?"
  }
 ]
