@@ -17,6 +17,9 @@ on:
       d:
         description: "Sana YYYY-MM-DD (bo'sh = bugun)"
         required: false
+      force:
+        description: "1 = shu kun allaqachon yuborilgan bo'lsa ham qayta yuborish"
+        required: false
   schedule:
     - cron: "20 16 * * *"
 jobs:
@@ -29,9 +32,10 @@ jobs:
           DM: ${{ github.event.inputs.dm }}
           D: ${{ github.event.inputs.d }}
           CP: ${{ github.event.inputs.cp }}
+          F: ${{ github.event.inputs.force }}
           EV: ${{ github.event_name }}
         run: |
           B="https://furnipart-shop.vercel.app/api/remind?igrep=1"
-          W=$(echo "$W" | tr -cd '0-9'); DM=$(echo "$DM" | tr -cd '0-9'); D=$(echo "$D" | tr -cd '0-9-'); CP=$(echo "$CP" | tr -cd 'a-z0-9._:;')
-          if [ "$EV" = "schedule" ]; then URL="$B&auto=1"; else URL="$B&w=$W&dm=$DM&d=$D&cp=$CP"; fi
+          W=$(echo "$W" | tr -cd '0-9'); DM=$(echo "$DM" | tr -cd '0-9'); D=$(echo "$D" | tr -cd '0-9-'); CP=$(echo "$CP" | tr -cd 'a-z0-9._:;'); F=$(echo "$F" | tr -cd '1')
+          if [ "$EV" = "schedule" ]; then URL="$B&auto=1"; else URL="$B&w=$W&dm=$DM&d=$D&cp=$CP"; [ -n "$F" ] && URL="$URL&force=1"; fi
           curl -s -m 90 "$URL"; echo
