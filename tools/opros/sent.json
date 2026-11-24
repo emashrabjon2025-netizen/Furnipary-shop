@@ -233,5 +233,12 @@
   "date": "2026-11-24",
   "sent_at": "2026-11-24T19:25+05:00",
   "question": "🤔 Sizningcha, matrasni qanchada bir marta aylantirib (ag'darib) qo'yish kerak?"
+ },
+ {
+  "message_id": 15256,
+  "slot": "kunduz",
+  "date": "2026-11-25",
+  "sent_at": "2026-11-25T01:34+05:00",
+  "question": "🚪 Uyingizdagi shkaf eshiklari osilib yoki qiyshayib qolganmi?"
  }
 ]
