@@ -1,0 +1,34 @@
+name: report-to-bot
+# Kunlik hisobotni Telegram botga yuborish (reports/<sana>/*.txt, fayl tartibida)
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Hisobot sanasi (papka nomi, masalan 2026-11-23)"
+        required: true
+      chat_id:
+        description: "Chat ID (bo'sh bo'lsa TELEGRAM_CHAT_ID secret, bo'lmasa botga oxirgi yozgan)"
+        required: false
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
+          D: ${{ inputs.date }}
+        run: |
+          set -e
+          api="https://api.telegram.org/bot$TOKEN"
+          if [ -z "${CHAT:-}" ]; then
+            CHAT=$(curl -sS "$api/getUpdates" | jq -r '[.result[] | (.message // .my_chat_member // empty) | .chat | select(.type=="private") | .id] | last // empty')
+            [ -n "$CHAT" ] || { echo "::error::Chat ID topilmadi — botga /start yozing"; exit 1; }
+          fi
+          for f in reports/$D/*.txt; do
+            r=$(curl -sS "$api/sendMessage" --form-string "chat_id=$CHAT" --form-string "text=$(head -c 4000 "$f")")
+            echo "$(basename "$f"): $(echo "$r" | jq -r '.ok')"
+            echo "$r" | jq -e '.ok' >/dev/null || { echo "$r"; exit 1; }
+          done
