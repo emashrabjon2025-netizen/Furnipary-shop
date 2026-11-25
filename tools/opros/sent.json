@@ -148,14 +148,16 @@
   "slot": "ertalab",
   "date": "2026-11-18",
   "sent_at": "2026-11-18T09:48+05:00",
-  "question": "🛋 Divan tanlashda siz uchun eng muhimi nima?"
+  "question": "🛋 Divan tanlashda siz uchun eng muhimi nima?",
+  "reported": "2026-11-25T18:44+05:00"
  },
  {
   "message_id": 15172,
   "slot": "kunduz",
   "date": "2026-11-18",
   "sent_at": "2026-11-18T15:58+05:00",
-  "question": "📅 Yaqin 1 oyda siz uyingiz uchun nima olishni rejalashtiryapsiz?"
+  "question": "📅 Yaqin 1 oyda siz uyingiz uchun nima olishni rejalashtiryapsiz?",
+  "reported": "2026-11-25T18:44+05:00"
  },
  {
   "message_id": 15178,
@@ -240,5 +242,12 @@
   "date": "2026-11-25",
   "sent_at": "2026-11-25T01:34+05:00",
   "question": "🚪 Uyingizdagi shkaf eshiklari osilib yoki qiyshayib qolganmi?"
+ },
+ {
+  "message_id": 15266,
+  "slot": "ertalab",
+  "date": "2026-11-25",
+  "sent_at": "2026-11-25T18:44+05:00",
+  "question": "🚪 Sizningcha, oshxona shkafi eshigi qancha marta ochib-yopiladi (yiliga)?"
  }
 ]
