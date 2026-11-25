@@ -249,5 +249,12 @@
   "date": "2026-11-25",
   "sent_at": "2026-11-25T18:44+05:00",
   "question": "🚪 Sizningcha, oshxona shkafi eshigi qancha marta ochib-yopiladi (yiliga)?"
+ },
+ {
+  "message_id": 15269,
+  "slot": "kunduz",
+  "date": "2026-11-26",
+  "sent_at": "2026-11-26T00:50+05:00",
+  "question": "🛋 Divaningiz qanday ahvolda?"
  }
 ]
