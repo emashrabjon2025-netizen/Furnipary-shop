@@ -265,5 +265,12 @@
   "date": "2026-11-26",
   "sent_at": "2026-11-26T18:22+05:00",
   "question": "🛋 Uyingizda vaqtingiz eng ko'p qayerda o'tadi?"
+ },
+ {
+  "message_id": 15287,
+  "slot": "kunduz",
+  "date": "2026-11-27",
+  "sent_at": "2026-11-27T00:28+05:00",
+  "question": "🍳 Oshxonangizda joy yetishmaydimi?"
  }
 ]
