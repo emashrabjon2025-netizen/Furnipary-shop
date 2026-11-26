@@ -164,14 +164,16 @@
   "slot": "ertalab",
   "date": "2026-11-19",
   "sent_at": "2026-11-19T09:51+05:00",
-  "question": "📏 Bilasizmi, ikki kishilik standart matras o'lchami qancha?"
+  "question": "📏 Bilasizmi, ikki kishilik standart matras o'lchami qancha?",
+  "reported": "2026-11-26T18:22+05:00"
  },
  {
   "message_id": 15187,
   "slot": "kunduz",
   "date": "2026-11-19",
   "sent_at": "2026-11-19T15:57+05:00",
-  "question": "👵 Ota-onangiz qanday matrasda uxlaydilar?"
+  "question": "👵 Ota-onangiz qanday matrasda uxlaydilar?",
+  "reported": "2026-11-26T18:22+05:00"
  },
  {
   "message_id": 15191,
@@ -256,5 +258,12 @@
   "date": "2026-11-26",
   "sent_at": "2026-11-26T00:50+05:00",
   "question": "🛋 Divaningiz qanday ahvolda?"
+ },
+ {
+  "message_id": 15284,
+  "slot": "ertalab",
+  "date": "2026-11-26",
+  "sent_at": "2026-11-26T18:22+05:00",
+  "question": "🛋 Uyingizda vaqtingiz eng ko'p qayerda o'tadi?"
  }
 ]
