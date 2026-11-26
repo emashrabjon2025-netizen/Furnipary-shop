@@ -51,6 +51,7 @@
       <button class="tab" data-tab="target">📣 Target</button>
       <button class="tab" data-tab="mtrep">🛏 Matras hisobot</button>
       <button class="tab" data-tab="dvrep">🚚 Dastavka hisobot</button>
+      <button class="tab" data-tab="divan">🛋 Divan ombor</button>
       <button class="tab" data-tab="ops">👥 Operatorlar</button>
       <button class="tab" data-tab="sitechat">💬 Sayt chat <span id="chatCount" class="badge-red"></span></button>
       <button class="tab" data-tab="products">Mahsulotlar <span id="pCount"></span></button>
@@ -125,6 +126,26 @@
       <h2 id="dvTitle" class="sec-h"></h2>
       <div class="panel"><h2>💵 Dastavka savdosi</h2><div id="dvSalesRep"></div></div>
       <div class="panel dr-panel"><h2>🚚 Yetkazib berilgan joylar</h2><div id="rDelivery"></div></div>
+    </div>
+
+    <!-- 🛋 Divan ombori: kirim / sotuv / qoldiq — asosiy savdo va rejaga aralashmaydi -->
+    <div class="tabpane" id="tab-divan" hidden>
+      <div class="toolbar">
+        <input id="dsMonth" type="month" />
+        <button class="btn btn-yellow" type="button" id="dsIn">➕ Kirim</button>
+        <button class="btn btn-dark" type="button" id="dsSale">💰 Sotuv</button>
+        <button class="btn btn-dark" type="button" id="dsKit">🛋 Komplekt sotuv</button>
+        <button class="btn btn-line" type="button" id="dsOut">➖ Chiqim / brak</button>
+        <button class="btn btn-line" type="button" id="dsItemAdd">🗂 Tur qo'shish</button>
+      </div>
+      <p class="muted small">Bu bo'lim faqat divan qismlarining ombor hisobi — asosiy sotuvlar, reja va hisobotlarga qo'shilmaydi.</p>
+      <div id="dsErr"></div>
+      <div class="mgrid" id="dsKpi"></div>
+      <h2 class="sec-h">📦 Qoldiq (ostatka)</h2>
+      <div class="ds-grid" id="dsGrid"></div>
+      <h2 class="sec-h" id="dsMovesTitle">🧾 Harakatlar</h2>
+      <div class="toolbar"><select id="dsFilter"><option value="all">Hammasi</option><option value="in">Kirim</option><option value="sale">Sotuv</option><option value="out">Chiqim / brak</option></select></div>
+      <div id="dsMoves"></div>
     </div>
 
     <!-- Matras hisoboti (asosiy savdodan alohida) -->
@@ -528,6 +549,67 @@
   <script type="module" src="js/operators-admin.js?v=7"></script>
   <script type="module" src="js/delivery-report.js?v=3"></script>
   <script type="module" src="js/matras-report.js?v=1"></script>
+  <script type="module" src="js/divan-stock.js?v=1"></script>
+
+  <!-- Divan ombor: tur (mahsulot) -->
+  <dialog id="dsItemDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="dsItemForm" class="pform">
+      <h2 id="dsItemTitle">🗂 Yangi tur</h2>
+      <div class="two">
+        <label>Qism<select name="part"><option value="bosh">Bosh tomoni</option><option value="yon">Yon tomoni</option><option value="oyoq">Oyoq tomoni</option><option value="ugolnik">Ugolnik</option><option value="boshqa">Boshqa</option></select></label>
+        <label>Rang / material<input name="color" maxlength="60" placeholder="Sutli velyur" /></label>
+      </div>
+      <div class="two">
+        <label>O'lcham<input name="size" maxlength="40" placeholder="170×210" /></label>
+        <label>Sotuv narxi (dona)<input name="price" inputmode="numeric" placeholder="580 000" /></label>
+      </div>
+      <label>Tannarx (ixtiyoriy)<input name="cost" inputmode="numeric" placeholder="0" /></label>
+      <label>Ogohlantirish: qoldiq shundan kam bo'lsa qizil<input name="min" type="number" min="0" value="2" /></label>
+      <label>📷 Rasm</label>
+      <div class="ds-ph" id="dsItemPh"></div>
+      <label class="btn btn-line btn-block file-btn">📷 Rasm tanlash<input id="dsItemPhIn" type="file" accept="image/*" hidden /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+      <button class="btn btn-red btn-block" type="button" id="dsItemDel" hidden>🗑 Turni o'chirish</button>
+    </form>
+  </dialog>
+
+  <!-- Divan ombor: harakat (kirim / sotuv / chiqim / komplekt) -->
+  <dialog id="dsMoveDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <form id="dsMoveForm" class="pform">
+      <h2 id="dsMoveTitle">➕ Kirim</h2>
+      <div id="dsKitBox" hidden>
+        <label>Rang / material<select name="kitColor"></select></label>
+        <label class="check"><input type="checkbox" name="kitUgol" checked /> 4 ta ugolnik bilan</label>
+        <p class="muted small" id="dsKitInfo"></p>
+      </div>
+      <label id="dsItemRow">Qaysi tur<select name="itemSel"></select></label>
+      <div class="two">
+        <label>Soni<input name="qty" type="number" min="1" value="1" required /></label>
+        <label>Sana<input name="date" type="date" required /></label>
+      </div>
+      <div class="two" id="dsMoneyRow">
+        <label id="dsPriceLbl">Narxi (dona)<input name="price" inputmode="numeric" /></label>
+        <label>Jami summa<input name="sum" inputmode="numeric" readonly /></label>
+      </div>
+      <div class="two" id="dsClientRow">
+        <label>Mijoz<input name="client" maxlength="80" placeholder="Ism" /></label>
+        <label>Telefon<input name="phone" type="tel" inputmode="tel" placeholder="ixtiyoriy" /></label>
+      </div>
+      <label>Izoh<input name="note" maxlength="300" placeholder="Masalan: sexdan keldi / Toshkentga taksi bilan" /></label>
+      <label>📷 Rasm (nakladnoy, mahsulot, chek)</label>
+      <div class="ds-ph" id="dsMovePh"></div>
+      <label class="btn btn-line btn-block file-btn">📷 Rasm qo'shish (3 tagacha)<input id="dsMovePhIn" type="file" accept="image/*" multiple hidden /></label>
+      <button class="btn btn-yellow btn-block" type="submit">Saqlash</button>
+    </form>
+  </dialog>
+
+  <!-- Divan ombor: tur tarixi / harakat ko'rish -->
+  <dialog id="dsViewDlg" class="sheet">
+    <button class="x" data-close type="button" aria-label="Yopish">×</button>
+    <div id="dsViewBody"></div>
+  </dialog>
   <script type="module" src="js/pwa-panel.js?v=1"></script>
 </body>
 </html>

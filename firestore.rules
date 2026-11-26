@@ -89,6 +89,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       allow read, create: if isCourier();
     }
+    // 🛋 Divan ombori (kirim / sotuv / qoldiq) — faqat admin
+    match /divanItems/{id} { allow read, write: if isAdmin(); }
+    match /divanMoves/{id} { allow read, write: if isAdmin(); }
+    match /divanPhotos/{id} { allow read, write: if isAdmin(); }
     match /crmSettings/{id} {
       allow read, write: if isAdmin();
       allow read: if id == 'scripts' && isOperator();
