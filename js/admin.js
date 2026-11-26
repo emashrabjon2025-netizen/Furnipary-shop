@@ -119,7 +119,7 @@ function startListeners() {
 // ================= Tayyor kataloglar (avtomatik yuklash) =================
 // /catalog/*.json dagi mahsulotlar admin kirganda bazaga qo'shiladi.
 // Bazada shu ID yoki shu nomdagi mahsulot bo'lsa — qayta qo'shilmaydi.
-const CATALOGS = ["higold-oshxona", "higold-garderob"];
+const CATALOGS = ["higold-oshxona", "higold-garderob", "drsleep"];
 let catalogsSynced = false;
 
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -184,7 +184,7 @@ function renderProducts() {
         <img src="${escapeHtml(p.thumb || p.imgUrl || PLACEHOLDER_IMG)}" alt="" loading="lazy" />
         <div class="meta">
           <b>${escapeHtml(p.name)}</b>
-          <small>${escapeHtml(categoryLabel(p.category))} · ${formatPrice(p.price)}${p.salePrice ? " → " + formatPrice(p.salePrice) : ""}${p.stock === 0 ? " · tugagan" : p.stock ? " · " + p.stock + " ta" : ""}${p.active === false ? " · yashirin" : ""}</small>
+          <small>${escapeHtml(categoryLabel(p.category))} · ${p.price ? formatPrice(p.price) : "narxi yo'q"}${p.salePrice ? " → " + formatPrice(p.salePrice) : ""}${p.stock === 0 ? " · tugagan" : p.stock ? " · " + p.stock + " ta" : ""}${p.active === false ? " · yashirin" : ""}</small>
         </div>
         <div class="row-actions">
           <button class="icon-btn" data-edit="${p.id}" title="O'zgartirish">✎</button>

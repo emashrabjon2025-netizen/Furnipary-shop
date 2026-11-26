@@ -69,7 +69,9 @@ function imgOf(p) {
   return p.thumb || p.imgUrl || PLACEHOLDER_IMG;
 }
 
+const hasPrice = (p) => Number(effectivePrice(p)) > 0;
 function priceHtml(p) {
+  if (!hasPrice(p)) return `<span class="price ask">Narxini so'rang</span>`;
   const eff = effectivePrice(p);
   if (eff !== p.price) {
     return `<span class="price">${formatPrice(eff)}</span><s class="old">${formatPrice(p.price)}</s>`;
@@ -174,7 +176,7 @@ function renderGrid() {
       const many = g.items.length > 1;
       const sale = g.items.some((x) => effectivePrice(x) !== x.price);
       const out = g.items.every((x) => x.stock === 0);
-      const priceDiff = new Set(g.items.map(effectivePrice)).size > 1;
+      const priceDiff = g.items.every(hasPrice) && new Set(g.items.map(effectivePrice)).size > 1;
       return `<article class="card" data-id="${p.id}">
         <button class="card-img" data-open="${p.id}" aria-label="${escapeHtml(g.title)}">
           <img src="${escapeHtml(imgOf(p))}" alt="${escapeHtml(g.title)}" loading="lazy" />
@@ -188,6 +190,8 @@ function renderGrid() {
           ${
             many
               ? `<button class="btn btn-yellow btn-sm" data-open="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "O'lchamni tanlash"}</button>`
+              : !hasPrice(p)
+              ? `<button class="btn btn-yellow btn-sm" data-open="${p.id}">Batafsil</button>`
               : `<button class="btn btn-yellow btn-sm" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga"}</button>`
           }
         </div>
@@ -230,7 +234,7 @@ async function openProduct(id) {
         ${group.items
           .map(
             (v, i) => `<button type="button" class="variant ${v.id === p.id ? "on" : ""}" role="radio" aria-checked="${v.id === p.id}" data-variant="${v.id}" ${v.stock === 0 ? "data-out" : ""}>
-            <span>${escapeHtml(labels[i])}</span><b>${formatPrice(effectivePrice(v))}</b></button>`
+            <span>${escapeHtml(labels[i])}</span><b>${hasPrice(v) ? formatPrice(effectivePrice(v)) : "—"}</b></button>`
           )
           .join("")}
       </div>`
@@ -240,7 +244,9 @@ async function openProduct(id) {
     ${p.description ? `<p class="pd-desc">${escapeHtml(p.description).replace(/\n/g, "<br>")}</p>` : ""}
     <ul class="perks"><li>${escapeHtml(SHOP.delivery)}</li>${p.category === "matras" ? "<li>5 yil kafolat</li>" : ""}</ul>
     <div class="pd-actions">
-      <button class="btn btn-yellow" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga qo'shish"}</button>
+      ${hasPrice(p)
+        ? `<button class="btn btn-yellow" data-add="${p.id}" ${out ? "disabled" : ""}>${out ? "Tugagan" : "Savatga qo'shish"}</button>`
+        : `<button class="btn btn-yellow" type="button" data-ask="${escapeHtml(p.name)} — narxi qancha?">Narxini so'rash</button>`}
       <a class="btn btn-dark" href="${SHOP.phoneHref}">Qo'ng'iroq</a>
     </div>
     <button class="btn btn-ask" type="button" data-ask="${escapeHtml(many ? group.title : p.name)}">💬 Savol berish</button>`;
@@ -319,6 +325,7 @@ function updateCartCount() {
 function addToCart(id) {
   const p = products.find((x) => x.id === id);
   if (!p) return;
+  if (!hasPrice(p)) return openProduct(id);
   const row = cart.find((i) => i.id === id);
   if (row) row.qty += 1;
   else cart.push({ id, qty: 1 });
@@ -514,7 +521,7 @@ window.addEventListener("hashchange", () => {
 // ---------- Yuklash ----------
 // Tayyor kataloglar (/catalog/*.json) — bazaga qo'shilmagan bo'lsa ham saytda ko'rinadi.
 // Bazada shu ID yoki nomdagi mahsulot bo'lsa, bazadagisi ishlatiladi (admin o'zgartirishi/yashirishi mumkin).
-const CATALOGS = ["higold-oshxona", "higold-garderob", "shablonlar"];
+const CATALOGS = ["higold-oshxona", "higold-garderob", "shablonlar", "drsleep"];
 let catalogItems = [];
 async function loadCatalogs() {
   const all = await Promise.all(

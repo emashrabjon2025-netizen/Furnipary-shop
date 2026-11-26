@@ -38,5 +38,6 @@ export const CATEGORIES = [
   { id: "oshxona", label: "Oshxona mexanizmlar", keys: ["oshxona", "ошхона", "kuxn", "кухн"] },
   { id: "divan", label: "Divanlar", keys: ["divan", "диван"] },
   { id: "matras", label: "Matraslar", keys: ["matras", "матрас"] },
+  { id: "yostiq", label: "Topper va yostiqlar", keys: ["yostiq", "topper", "подушк", "топпер"] },
   { id: "shablon", label: "Shablonlar", keys: ["shablon", "шаблон"] },
 ];
