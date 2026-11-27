@@ -281,5 +281,12 @@
   "date": "2026-11-27",
   "sent_at": "2026-11-27T18:19+05:00",
   "question": "🔧 Siz yumshoq yopiladigan (dovodchikli) petlyani bilasizmi?"
+ },
+ {
+  "message_id": 15301,
+  "slot": "kunduz",
+  "date": "2026-11-28",
+  "sent_at": "2026-11-28T00:24+05:00",
+  "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?"
  }
 ]
