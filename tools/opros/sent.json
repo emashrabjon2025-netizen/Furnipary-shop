@@ -196,14 +196,16 @@
   "slot": "ertalab",
   "date": "2026-11-21",
   "sent_at": "2026-11-21T09:45+05:00",
-  "question": "🌙 Siz kechasi necha soat uxlaysiz?"
+  "question": "🌙 Siz kechasi necha soat uxlaysiz?",
+  "reported": "2026-11-28T17:35+05:00"
  },
  {
   "message_id": 15205,
   "slot": "kunduz",
   "date": "2026-11-21",
   "sent_at": "2026-11-21T15:45+05:00",
-  "question": "🚚 Mebel sotib olganingizda siz uchun eng katta bosh og'riq nima?"
+  "question": "🚚 Mebel sotib olganingizda siz uchun eng katta bosh og'riq nima?",
+  "reported": "2026-11-28T17:35+05:00"
  },
  {
   "message_id": 15222,
@@ -288,5 +290,12 @@
   "date": "2026-11-28",
   "sent_at": "2026-11-28T00:24+05:00",
   "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?"
+ },
+ {
+  "message_id": 15307,
+  "slot": "ertalab",
+  "date": "2026-11-28",
+  "sent_at": "2026-11-28T17:35+05:00",
+  "question": "🛏 Sizningcha, qaysi matras umurtqa uchun foydaliroq?"
  }
 ]
