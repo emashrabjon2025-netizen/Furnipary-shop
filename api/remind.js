@@ -142,10 +142,10 @@ module.exports = async (req, res) => {
       // Firestore qoidalari e'lon qilinganmi — faqat ha/yo'q (ma'lumot qaytarmaydi)
       const ok = async (c) => list(c).then((x) => x.length, () => -1);
       const out = {};
-      for (const c of ["dvClients", "dvPhotos", "crmCouriers", "matrasClients", "divanItems", "divanMoves", "divanPhotos"]) out[c] = await ok(c);
+      for (const c of ["dvClients", "dvPhotos", "crmCouriers", "matrasClients"]) out[c] = await ok(c);
       res.setHeader("Cache-Control", "no-store");
       const ls = await list("crmLeads").catch(() => []);
-      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients, divanItems: out.divanItems, divanMoves: out.divanMoves, leadsWithTime: ls.filter((l) => l.nextCallTime).length, recordings: ls.flatMap((l) => l.recordings || []).map((r) => ({ name: String(r.name || "").split(".").pop(), size: r.size, dur: r.dur, via: r.via || "panel", hasFile: !!r.fileId, ch: String(r.chatId || "").slice(0, 4) })), timedReminded: ls.filter((l) => l.callRemindFor).length, scriptsSaved: Object.keys((await getOne("crmSettings", "scripts").catch(() => null)) || {}).filter((k) => k !== "id" && k !== "updatedAt") } });
+      return res.status(200).json({ ok: true, rules: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v >= 0])), count: { dvClients: out.dvClients, divan: await list("crmSettings").then((a) => ({ turlar: a.filter((x) => String(x.id).startsWith("dvi_")).length, harakatlar: a.filter((x) => String(x.id).startsWith("dvm_")).length }), () => "xato"), leadsWithTime: ls.filter((l) => l.nextCallTime).length, recordings: ls.flatMap((l) => l.recordings || []).map((r) => ({ name: String(r.name || "").split(".").pop(), size: r.size, dur: r.dur, via: r.via || "panel", hasFile: !!r.fileId, ch: String(r.chatId || "").slice(0, 4) })), timedReminded: ls.filter((l) => l.callRemindFor).length, scriptsSaved: Object.keys((await getOne("crmSettings", "scripts").catch(() => null)) || {}).filter((k) => k !== "id" && k !== "updatedAt") } });
     }
     const st = (await getOne("crmSettings", "remind")) || {};
     if (st.lastRun && Date.now() - Number(st.lastRun) < 2 * 60e3) return res.status(200).json({ ok: true, skip: "yaqinda tekshirildi" });

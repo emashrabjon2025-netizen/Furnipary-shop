@@ -1,10 +1,11 @@
 // Admin → "🛋 Divan ombor": divan qismlari (bosh / yon / oyoq tomoni, ugolnik) kirim–sotuv–qoldiq hisobi.
-// Asosiy sotuvlar (crmSales), reja va hisobotlarga ARALASHMAYDI — alohida kolleksiyalar:
-//   divanItems  — turlar (qism + rang, narx, rasm)
-//   divanMoves  — harakatlar: type in|sale|out, lines [{itemId, qty}], sum, date, client, note, photos
-//   divanPhotos — harakat rasmlari (alohida, kerak bo'lganda yuklanadi)
+// Asosiy sotuvlar (crmSales), reja va hisobotlarga ARALASHMAYDI. Qo'shimcha Firebase qoidasi talab qilmasligi uchun
+// mavjud admin kolleksiyalarida, alohida prefiks bilan saqlanadi:
+//   crmSettings/dvi_*  — turlar (qism + rang, narx)
+//   crmSettings/dvm_*  — harakatlar: type in|sale|out, lines [{itemId, qty}], sum, date, client, note, photos
+//   dvPhotos/dsi_<turId>, dvPhotos/dsm_<harakatId> — rasmlar (kerak bo'lganda yuklanadi)
 import { ADMIN_UIDS } from "./config.js";
-import { db, auth, collection, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, writeBatch, onAuthStateChanged } from "./firebase.js";
+import { db, auth, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, writeBatch, onAuthStateChanged } from "./firebase.js";
 import { $, escapeHtml as esc, toast, compressImage } from "./util.js";
 
 const PARTS = { bosh: "Bosh tomoni", yon: "Yon tomoni", oyoq: "Oyoq tomoni", ugolnik: "Ugolnik", boshqa: "Boshqa" };
@@ -29,6 +30,9 @@ let itemPhoto = "";
 let moveType = "in";
 let movePhotos = [];
 const photoCache = {};
+const itemPhotos = {};
+const COL = "crmSettings";
+const newId = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 const pad = (n) => String(n).padStart(2, "0");
 const today = () => {
@@ -86,7 +90,7 @@ function render() {
           const x = st[i.id];
           const lowCls = x.left <= (Number(i.min) || 0) ? "low" : "";
           return `<button type="button" class="ds-card ${lowCls}" data-item="${i.id}">
-            <span class="ds-img">${i.photo ? `<img src="${i.photo}" alt="" />` : `<i>${i.part === "ugolnik" ? "📐" : "🛋"}</i>`}</span>
+            <span class="ds-img">${itemPhotos[i.id] ? `<img src="${itemPhotos[i.id]}" alt="" />` : `<i>${i.part === "ugolnik" ? "📐" : "🛋"}</i>`}</span>
             <span class="ds-info">
               <b>${esc(PARTS[i.part] || i.part)}</b>
               <small>${esc(i.color || "")}${i.size ? " · " + esc(i.size) : ""}</small>
@@ -119,7 +123,7 @@ function render() {
 // ---------- Turlar ----------
 function openItem(it) {
   editItem = it ? it.id : null;
-  itemPhoto = it ? it.photo || "" : "";
+  itemPhoto = it ? itemPhotos[it.id] || "" : "";
   const f = $("#dsItemForm").elements;
   $("#dsItemForm").reset();
   $("#dsItemTitle").textContent = it ? "✏️ Turni tahrirlash" : "🗂 Yangi tur";
@@ -155,10 +159,14 @@ $("#dsItemPh").addEventListener("click", (e) => {
 $("#dsItemForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target.elements;
-  const data = { part: f.part.value, color: f.color.value.trim(), size: f.size.value.trim(), price: num(f.price.value), cost: num(f.cost.value), min: Number(f.min.value) || 0, photo: itemPhoto, updatedAt: serverTimestamp() };
+  const data = { part: f.part.value, color: f.color.value.trim(), size: f.size.value.trim(), price: num(f.price.value), cost: num(f.cost.value), min: Number(f.min.value) || 0, hasPhoto: !!itemPhoto, updatedAt: serverTimestamp() };
   try {
-    if (editItem) await updateDoc(doc(db, "divanItems", editItem), data);
-    else await addDoc(collection(db, "divanItems"), { ...data, createdAt: serverTimestamp() });
+    const id = editItem || newId("dvi_");
+    if (itemPhoto) await setDoc(doc(db, "dvPhotos", "dsi_" + id), { images: [itemPhoto] });
+    else if (editItem && itemPhotos[id]) await deleteDoc(doc(db, "dvPhotos", "dsi_" + id));
+    itemPhotos[id] = itemPhoto;
+    if (editItem) await updateDoc(doc(db, COL, id), data);
+    else await setDoc(doc(db, COL, id), { ...data, createdAt: serverTimestamp() });
     $("#dsItemDlg").close();
     toast("✅ Saqlandi");
   } catch (err) {
@@ -170,7 +178,8 @@ $("#dsItemDel").addEventListener("click", async () => {
   if (!it) return;
   const used = moves.some((m) => (m.lines || []).some((l) => l.itemId === it.id));
   if (!confirm(`${itemName(it)} o'chirilsinmi?${used ? "\n\nDiqqat: bu turda harakatlar bor — ular tarixda «o'chirilgan tur» bo'lib qoladi." : ""}`)) return;
-  await deleteDoc(doc(db, "divanItems", it.id)).catch((err) => toast(err.message, "err"));
+  await deleteDoc(doc(db, COL, it.id)).catch((err) => toast(err.message, "err"));
+  deleteDoc(doc(db, "dvPhotos", "dsi_" + it.id)).catch(() => {});
   $("#dsItemDlg").close();
 });
 
@@ -298,8 +307,8 @@ $("#dsMoveForm").addEventListener("submit", async (e) => {
   const btn = e.target.querySelector("[type=submit]");
   btn.disabled = true;
   try {
-    const ref = doc(collection(db, "divanMoves"));
-    if (movePhotos.length) await setDoc(doc(db, "divanPhotos", ref.id), { images: movePhotos.slice(0, 3) });
+    const ref = doc(db, COL, newId("dvm_"));
+    if (movePhotos.length) await setDoc(doc(db, "dvPhotos", "dsm_" + ref.id), { images: movePhotos.slice(0, 3) });
     await setDoc(ref, data);
     if (movePhotos.length) photoCache[ref.id] = movePhotos.slice(0, 3);
     $("#dsMoveDlg").close();
@@ -314,7 +323,7 @@ $("#dsMoveForm").addEventListener("submit", async (e) => {
 // ---------- Ko'rish ----------
 async function photosOf(id) {
   if (photoCache[id]) return photoCache[id];
-  const d = await getDoc(doc(db, "divanPhotos", id)).catch(() => null);
+  const d = await getDoc(doc(db, "dvPhotos", "dsm_" + id)).catch(() => null);
   return (photoCache[id] = d && d.exists() ? d.data().images || [] : []);
 }
 async function viewMove(m) {
@@ -336,7 +345,7 @@ function viewItem(it) {
   const st = stats($("#dsMonth").value || today().slice(0, 7))[it.id];
   const hist = moves.filter((m) => (m.lines || []).some((l) => l.itemId === it.id)).sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 30);
   $("#dsViewBody").innerHTML = `
-    ${it.photo ? `<img class="ds-hero" src="${it.photo}" alt="" />` : ""}
+    ${itemPhotos[it.id] ? `<img class="ds-hero" src="${itemPhotos[it.id]}" alt="" />` : ""}
     <h2>${esc(itemName(it))}</h2>
     <div class="mgrid">
       <div><small>Qoldiq</small><b class="${st.left <= (Number(it.min) || 0) ? "neg" : ""}">${st.left} dona</b></div>
@@ -366,8 +375,8 @@ $("#dsViewBody").addEventListener("click", async (e) => {
   if (d && confirm("Bu harakat o'chirilsinmi? Qoldiq qayta hisoblanadi.")) {
     try {
       const b = writeBatch(db);
-      b.delete(doc(db, "divanMoves", d.dataset.delmove));
-      b.delete(doc(db, "divanPhotos", d.dataset.delmove));
+      b.delete(doc(db, COL, d.dataset.delmove));
+      b.delete(doc(db, "dvPhotos", "dsm_" + d.dataset.delmove));
       await b.commit();
       $("#dsViewDlg").close();
       toast("O'chirildi");
@@ -389,7 +398,7 @@ $("#dsGrid").addEventListener("click", async (e) => {
   if (e.target.closest("#dsSeed")) {
     try {
       const b = writeBatch(db);
-      DEFAULTS.forEach((d) => b.set(doc(collection(db, "divanItems")), { ...d, cost: 0, min: 2, photo: "", createdAt: serverTimestamp() }));
+      DEFAULTS.forEach((d) => b.set(doc(db, COL, newId("dvi_")), { ...d, cost: 0, min: 2, hasPhoto: false, createdAt: serverTimestamp() }));
       await b.commit();
       toast("✅ Standart turlar qo'shildi — endi rasmlarini qo'ying");
     } catch (err) {
@@ -407,7 +416,7 @@ $("#dsMoves").addEventListener("click", (e) => {
 
 function permErr(err) {
   if (/permission|insufficient/i.test(err.message || "")) {
-    $("#dsErr").innerHTML = `<div class="warn">⚠️ Firebase qoidalarida divanItems / divanMoves / divanPhotos uchun ruxsat yo'q. Rules'ga qo'shib Publish qiling.</div>`;
+    $("#dsErr").innerHTML = `<div class="warn">⚠️ Ma'lumotni o'qib bo'lmadi: ${esc(err.message)}</div>`;
   }
 }
 
@@ -415,13 +424,21 @@ function start() {
   if (unsub.length) return;
   $("#dsMonth").value = today().slice(0, 7);
   unsub.push(
-    onSnapshot(collection(db, "divanItems"), (s) => {
-      items = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    onSnapshot(collection(db, COL), (s) => {
+      const all = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+      items = all.filter((x) => x.id.startsWith("dvi_"));
+      moves = all.filter((x) => x.id.startsWith("dvm_"));
       render();
-    }, permErr),
-    onSnapshot(collection(db, "divanMoves"), (s) => {
-      moves = s.docs.map((d) => ({ id: d.id, ...d.data() }));
-      render();
+      // tur rasmlarini bir marta yuklab olamiz
+      items.filter((i) => i.hasPhoto && itemPhotos[i.id] === undefined).forEach((i) => {
+        itemPhotos[i.id] = "";
+        getDoc(doc(db, "dvPhotos", "dsi_" + i.id))
+          .then((d) => {
+            itemPhotos[i.id] = d.exists() ? (d.data().images || [])[0] || "" : "";
+            render();
+          })
+          .catch(() => {});
+      });
     }, permErr)
   );
 }
