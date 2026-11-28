@@ -45,6 +45,9 @@ const som = (n) => fmt(n) + " so'm";
 const fmtDate = (s) => (s ? s.split("-").reverse().join(".") : "");
 const itemName = (it) => (it ? `${PARTS[it.part] || it.part}${it.color ? " — " + it.color : ""}${it.size ? " (" + it.size + ")" : ""}` : "o'chirilgan tur");
 const byId = (id) => items.find((i) => i.id === id);
+const colorKey = (c) =>
+  String(c || "").toLowerCase().replace(/[ʻʼ'`‘’]/g, "").replace(/villur|velur|velyur/g, "velyur").replace(/malochniy|molochniy|sutli/g, "sutli").replace(/bordo|qizil/g, "qizil").replace(/kashmir|kashemir/g, "kashmir")
+    .split(/[\s,·-]+/).filter(Boolean).sort().join(" ");
 const sortItems = (a, b) => PART_ORDER.indexOf(a.part) - PART_ORDER.indexOf(b.part) || String(a.color || "").localeCompare(String(b.color || ""));
 
 // qoldiq va statistika
@@ -82,14 +85,10 @@ function render() {
     <div><small>${MONTHS[mo - 1]} — sotuv summasi</small><b>${som(mSales.reduce((a, m) => a + (Number(m.sum) || 0), 0))}</b><small class="muted">${mSales.length} ta sotuv</small></div>
     ${low.length ? `<div class="neg"><small>Kam qolgan</small><b>${low.length} tur</b><small>${low.map((i) => esc(itemName(i))).slice(0, 3).join(", ")}</small></div>` : ""}`;
 
-  $("#dsGrid").innerHTML = items.length
-    ? items
-        .slice()
-        .sort(sortItems)
-        .map((i) => {
-          const x = st[i.id];
-          const lowCls = x.left <= (Number(i.min) || 0) ? "low" : "";
-          return `<div role="button" tabindex="0" class="ds-card ${lowCls}" data-item="${i.id}">
+  const card = (i) => {
+    const x = st[i.id];
+    const lowCls = x.left <= (Number(i.min) || 0) ? "low" : "";
+    return `<div role="button" tabindex="0" class="ds-card ${lowCls}" data-item="${i.id}">
             <button type="button" class="ds-del" data-delitem="${i.id}" aria-label="O'chirish" title="O'chirish">🗑</button>
             <span class="ds-img">${itemPhotos[i.id] ? `<img src="${itemPhotos[i.id]}" alt="" />` : `<i>${i.part === "ugolnik" ? "📐" : "🛋"}</i>`}</span>
             <span class="ds-info">
@@ -99,6 +98,31 @@ function render() {
               <small class="muted">Sotilgan: ${x.mSale} (oy) · ${x.sale} (jami) · Kirim: ${x.in}${x.out ? " · Chiqim: " + x.out : ""}</small>
             </span>
           </div>`;
+  };
+  const groups = new Map();
+  items.forEach((i) => {
+    const k = colorKey(i.color);
+    if (!groups.has(k)) groups.set(k, { name: i.color || "", list: [] });
+    groups.get(k).list.push(i);
+  });
+  const gList = [...groups.entries()].sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)));
+  $("#dsGrid").innerHTML = items.length
+    ? gList
+        .map(([k, g]) => {
+          const sum = (p) => g.list.filter((i) => i.part === p).reduce((a, i) => a + Math.max(0, st[i.id].left), 0);
+          const has = (p) => g.list.some((i) => i.part === p);
+          const total = g.list.reduce((a, i) => a + Math.max(0, st[i.id].left), 0);
+          const sold = g.list.reduce((a, i) => a + st[i.id].mSale, 0);
+          const kit = has("bosh") && has("yon") && has("oyoq") ? Math.min(sum("bosh"), Math.floor(sum("yon") / 2), sum("oyoq")) : null;
+          const chips = ["bosh", "yon", "oyoq", "ugolnik", "boshqa"].filter(has).map((p) => `<span>${esc(PARTS[p])}: <b>${sum(p)}</b></span>`).join("");
+          return `<details class="ds-group" open>
+            <summary>
+              <span class="ds-gname">🎨 ${esc(k ? g.name : "Umumiy (rangsiz)")}</span>
+              <span class="ds-gsum">${total} dona · ${g.list.length} tur${sold ? ` · bu oy ${sold} sotildi` : ""}</span>
+              <span class="ds-gchips">${chips}${kit !== null ? `<span class="${kit ? "ok" : "no"}">🛋 Komplekt chiqadi: <b>${kit}</b></span>` : ""}</span>
+            </summary>
+            <div class="ds-ggrid">${g.list.slice().sort(sortItems).map(card).join("")}</div>
+          </details>`;
         })
         .join("")
     : `<div class="panel"><p>Hali tur qo'shilmagan.</p><button class="btn btn-yellow" type="button" id="dsSeed">⚡ Standart turlarni qo'shish (bosh, yon, oyoq — sutli velyur va bordo koja, ugolnik)</button></div>`;

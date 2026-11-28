@@ -266,3 +266,14 @@ button.pill { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-w
 .ds-card { position: relative; }
 .ds-del { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 10px; border: 1px solid #f0c9c9; background: #fff; font-size: 16px; cursor: pointer; }
 .ds-del:active { background: #fdecea; }
+.ds-grid { display: block; }
+.ds-group { background: #faf8f3; border: 1.5px solid var(--line, #e6e1d6); border-radius: 18px; padding: 10px; margin-bottom: 12px; }
+.ds-group > summary { list-style: none; cursor: pointer; display: grid; gap: 4px; padding: 4px 4px 10px; }
+.ds-group > summary::-webkit-details-marker { display: none; }
+.ds-gname { font-weight: 800; font-size: 18px; }
+.ds-group[open] .ds-gname::after { content: " ▾"; color: #999; } .ds-group:not([open]) .ds-gname::after { content: " ▸"; color: #999; }
+.ds-gsum { color: #777; font-size: 13px; }
+.ds-gchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ds-gchips span { background: #fff; border: 1px solid #e6e1d6; border-radius: 999px; padding: 3px 10px; font-size: 13px; }
+.ds-gchips span.ok { background: #eaf7ee; border-color: #b9e3c6; } .ds-gchips span.no { background: #fff6f6; border-color: #f0c9c9; }
+.ds-ggrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
