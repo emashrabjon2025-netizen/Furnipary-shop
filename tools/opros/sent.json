@@ -297,5 +297,12 @@
   "date": "2026-11-28",
   "sent_at": "2026-11-28T17:35+05:00",
   "question": "🛏 Sizningcha, qaysi matras umurtqa uchun foydaliroq?"
+ },
+ {
+  "message_id": 15310,
+  "slot": "kunduz",
+  "date": "2026-11-28",
+  "sent_at": "2026-11-28T23:02+05:00",
+  "question": "😴 Yaxshi uxlashingizga nima xalaqit beradi?"
  }
 ]
