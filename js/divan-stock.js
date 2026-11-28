@@ -89,7 +89,8 @@ function render() {
         .map((i) => {
           const x = st[i.id];
           const lowCls = x.left <= (Number(i.min) || 0) ? "low" : "";
-          return `<button type="button" class="ds-card ${lowCls}" data-item="${i.id}">
+          return `<div role="button" tabindex="0" class="ds-card ${lowCls}" data-item="${i.id}">
+            <button type="button" class="ds-del" data-delitem="${i.id}" aria-label="O'chirish" title="O'chirish">🗑</button>
             <span class="ds-img">${itemPhotos[i.id] ? `<img src="${itemPhotos[i.id]}" alt="" />` : `<i>${i.part === "ugolnik" ? "📐" : "🛋"}</i>`}</span>
             <span class="ds-info">
               <b>${esc(PARTS[i.part] || i.part)}</b>
@@ -97,7 +98,7 @@ function render() {
               <span class="ds-left">${x.left} <small>dona qoldi</small></span>
               <small class="muted">Sotilgan: ${x.mSale} (oy) · ${x.sale} (jami) · Kirim: ${x.in}${x.out ? " · Chiqim: " + x.out : ""}</small>
             </span>
-          </button>`;
+          </div>`;
         })
         .join("")
     : `<div class="panel"><p>Hali tur qo'shilmagan.</p><button class="btn btn-yellow" type="button" id="dsSeed">⚡ Standart turlarni qo'shish (bosh, yon, oyoq — sutli velyur va bordo koja, ugolnik)</button></div>`;
@@ -173,14 +174,22 @@ $("#dsItemForm").addEventListener("submit", async (e) => {
     toast("Saqlanmadi: " + err.message, "err");
   }
 });
-$("#dsItemDel").addEventListener("click", async () => {
-  const it = byId(editItem);
-  if (!it) return;
+async function delItem(it) {
+  if (!it) return false;
   const used = moves.some((m) => (m.lines || []).some((l) => l.itemId === it.id));
-  if (!confirm(`${itemName(it)} o'chirilsinmi?${used ? "\n\nDiqqat: bu turda harakatlar bor — ular tarixda «o'chirilgan tur» bo'lib qoladi." : ""}`)) return;
-  await deleteDoc(doc(db, COL, it.id)).catch((err) => toast(err.message, "err"));
-  deleteDoc(doc(db, "dvPhotos", "dsi_" + it.id)).catch(() => {});
-  $("#dsItemDlg").close();
+  if (!confirm(`${itemName(it)} o'chirilsinmi?${used ? "\n\nDiqqat: bu turda kirim/sotuv harakatlari bor — ular tarixda «o'chirilgan tur» bo'lib qoladi." : ""}`)) return false;
+  try {
+    await deleteDoc(doc(db, COL, it.id));
+    deleteDoc(doc(db, "dvPhotos", "dsi_" + it.id)).catch(() => {});
+    toast("🗑 O'chirildi");
+    return true;
+  } catch (err) {
+    toast("O'chmadi: " + err.message, "err");
+    return false;
+  }
+}
+$("#dsItemDel").addEventListener("click", async () => {
+  if (await delItem(byId(editItem))) $("#dsItemDlg").close();
 });
 
 // ---------- Harakatlar ----------
@@ -358,6 +367,7 @@ function viewItem(it) {
       <button class="btn btn-dark" type="button" data-quick="sale">💰 Sotuv</button>
       <button class="btn btn-line" type="button" data-quick="out">➖ Chiqim</button>
       <button class="btn btn-line" type="button" data-quick="edit">✏️ Tahrir / rasm</button>
+      <button class="btn btn-line" type="button" data-quick="del">🗑 O'chirish</button>
     </div>
     <h3 class="op-h">Tarix</h3>
     <ul class="op-log">${hist.map((m) => `<li>${fmtDate(m.date)} — ${TYPES[m.type]} × ${(m.lines.find((l) => l.itemId === it.id) || {}).qty}${m.kit ? " (komplekt)" : ""}${m.client ? " · " + esc(m.client) : ""}</li>`).join("") || "<li>Hali harakat yo'q</li>"}</ul>`;
@@ -369,6 +379,7 @@ $("#dsViewBody").addEventListener("click", async (e) => {
   if (q) {
     const it = byId($("#dsViewBody").dataset.item);
     $("#dsViewDlg").close();
+    if (q.dataset.quick === "del") return delItem(it);
     return q.dataset.quick === "edit" ? openItem(it) : openMove(q.dataset.quick, it.id);
   }
   const d = e.target.closest("[data-delmove]");
@@ -406,6 +417,8 @@ $("#dsGrid").addEventListener("click", async (e) => {
     }
     return;
   }
+  const del = e.target.closest("[data-delitem]");
+  if (del) return delItem(byId(del.dataset.delitem));
   const c = e.target.closest("[data-item]");
   if (c) viewItem(byId(c.dataset.item));
 });
